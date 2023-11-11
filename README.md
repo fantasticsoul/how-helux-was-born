@@ -11,10 +11,9 @@ npm run start
 ### 包结构
 
 ```
-.
-└── src/libs
-    ├── helux                 # react 适配层
-    ├── helux-core            # helux状态管理核心逻辑包
-    ├── helux-plugin-devtool  # 调试工具包（需安装浏览器的redux插件）
-    └── limu                  # limu不可变数据js库核心逻辑包
+├── src/libs
+  ├── helux                 # react 适配层
+  ├── helux-core            # helux状态管理核心逻辑包
+  ├── helux-plugin-devtool  # 调试工具包（需安装浏览器的redux插件）
+  └── limu                  # limu不可变数据js库核心逻辑包
 ```
