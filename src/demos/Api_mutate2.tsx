@@ -1,0 +1,52 @@
+import React from 'react';
+import { mutate, share, useShared } from 'helux';
+import { MarkUpdate, Entry } from './comps';
+import { random, delay } from './logic/util';
+
+const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'Api_mutate' });
+const [finalPriceState, , ctx] = share({ retA: 0, time: 0 }, { moduleName: 'Api_mutate_finalPriceState' });
+
+// 外部定义 mutate 函数
+const witness = mutate(finalPriceState)({
+  deps: () => [priceState.a] as const,
+  fn: (draft, [a]) => {
+    draft.retA += a; // 初始值函数，随 priceState.a 变化会重新执行
+  },
+});
+
+function changePrice() {
+  setPrice(draft => { draft.a = random() });
+}
+
+function forceRunMutate() {
+  witness.call();
+};
+
+function Price() {
+  const [price, , info] = useShared(priceState);
+  return <MarkUpdate name="Price" info={info}>{price.a}</MarkUpdate>;
+}
+
+function FinalPrice() {
+  const [finalPrice, , info] = useShared(finalPriceState);
+  const [loading] = ctx.useMutateLoading();
+  const status = loading[witness.desc];
+
+  return <MarkUpdate name="FinalPrice" info={info}>
+    {status.loading && 'loading'}
+    {status.err && status.err.message}
+    {status.ok && <>finalPrice.retA: {finalPrice.retA}</>}
+  </MarkUpdate>;
+}
+
+const Demo = () => (
+  <Entry fns={[forceRunMutate, changePrice]}>
+    <Price />
+    <Price />
+    <FinalPrice />
+    <FinalPrice />
+  </Entry>
+);
+
+
+export default Demo;

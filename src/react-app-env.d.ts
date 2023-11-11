@@ -1,0 +1,161 @@
+/// <reference types="node" />
+/// <reference types="react" />
+/// <reference types="react-dom" />
+
+import * as heluxApi from './libs/helux-core/src/types-api';
+import * as heluxModelApi from './libs/helux-core/src/types-model';
+
+
+declare namespace NodeJS {
+  interface ProcessEnv {
+    readonly NODE_ENV: 'development' | 'production' | 'test';
+    readonly PUBLIC_URL: string;
+  }
+}
+
+declare global {
+  interface Window {
+    ori: any;
+    [key: string]: any;
+  }
+}
+
+
+declare module '*.avif' {
+  const src: string;
+  export default src;
+}
+
+declare module '*.bmp' {
+  const src: string;
+  export default src;
+}
+
+declare module '*.gif' {
+  const src: string;
+  export default src;
+}
+
+declare module '*.jpg' {
+  const src: string;
+  export default src;
+}
+
+declare module '*.jpeg' {
+  const src: string;
+  export default src;
+}
+
+declare module '*.png' {
+  const src: string;
+  export default src;
+}
+
+declare module '*.webp' {
+  const src: string;
+  export default src;
+}
+
+declare module '*.svg' {
+  import * as React from 'react';
+
+  export const ReactComponent: React.FunctionComponent<React.SVGProps<
+    SVGSVGElement
+  > & { title?: string }>;
+
+  const src: string;
+  export default src;
+}
+
+declare module '*.module.css' {
+  const classes: { readonly [key: string]: string };
+  export default classes;
+}
+
+declare module '*.module.scss' {
+  const classes: { readonly [key: string]: string };
+  export default classes;
+}
+
+declare module '*.module.sass' {
+  const classes: { readonly [key: string]: string };
+  export default classes;
+}
+
+declare module 'helux' {
+  export const {
+    atom,
+    share,
+    shareState,
+    shareAtom,
+    // derive for shared state
+    derive,
+    deriveAsync,
+    // derive for shared atom
+    deriveAtom,
+    deriveAtomAsync,
+    watch,
+    runDerive,
+    createShared,
+    useAtom,
+    useShared,
+    // use derived state
+    useDerived,
+    useDerivedAsync,
+    // use derived atom
+    useDerivedAtom,
+    useDerivedAtomAsync,
+    useWatch,
+    useGlobalId,
+    useObject,
+    useService,
+    useForceUpdate,
+    useEffect,
+    useLayoutEffect,
+    useOnEvent,
+    useMutable,
+    useMutateLoading,
+    useActionLoading,
+    // create action api
+    storeSrv,
+    action,
+    actionAsync,
+    atomAction,
+    atomActionAsync,
+    // signal api
+    signal,
+    block,
+    blockStatus,
+    dynamicBlock,
+    dynamicBlockStatus,
+    $,
+
+    // emit api
+    emit,
+    on,
+    produce,
+    shallowCompare,
+    isDiff,
+    getMutateLoading,
+    getActionLoading,
+    getDeriveLoading,
+    getRawState,
+    getSnap,
+    getAtom,
+    runMutate,
+    runMutateTask,
+    mutate,
+    atomMutate,
+    addMiddleware,
+    addPlugin,
+    EVENT_NAME,
+    WAY,
+    LOADING_MODE,
+  } = heluxApi;
+
+  export const {
+    // high level api
+    model,
+    modelFactory,
+  } = heluxModelApi;
+}
