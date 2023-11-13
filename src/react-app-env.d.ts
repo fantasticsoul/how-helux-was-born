@@ -116,6 +116,7 @@ declare module 'helux' {
     useMutable,
     useMutateLoading,
     useActionLoading,
+    useStable,
     // create action api
     storeSrv,
     action,
@@ -129,7 +130,6 @@ declare module 'helux' {
     dynamicBlock,
     dynamicBlockStatus,
     $,
-
     // emit api
     emit,
     on,
@@ -145,6 +145,7 @@ declare module 'helux' {
     runMutate,
     runMutateTask,
     mutate,
+    mutateDict,
     atomMutate,
     addMiddleware,
     addPlugin,
