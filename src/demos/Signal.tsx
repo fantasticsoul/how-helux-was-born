@@ -3,6 +3,9 @@ import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from "./logic/util";
 
+console.log(share);
+console.log(share.name);
+console.log(atom);
 
 const [sharedState, setState, call] = share({ a: 1, b: { b1: { b2: 200 }, b12: 100 }, name: Date.now() }, { moduleName: 'Signal' });
 const stateResult = derive(() => {
@@ -201,10 +204,10 @@ function changeB212() {
 const Demo = () => (
   <Entry fns={[changeB2, changeA, changeAtom, changeName, changeB22, changeB212]}>
     <AsyncBlock />
-    <RuiKun />
+    {/* <RuiKun />
     <RuiKun2 />
     <RuiKun3 />
-    <UserBlock />
+    <UserBlock /> */}
     {/* <SharedDict /> */}
     {/* <DerivedAtomVal /> */}
     {/* <SharedAtomVal />
@@ -235,3 +238,7 @@ const Demo = () => (
 // }
 
 export default Demo;
+
+// export default function () {
+//   return <h1>1</h1>;
+// }

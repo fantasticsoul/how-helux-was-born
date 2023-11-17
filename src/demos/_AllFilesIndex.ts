@@ -35,9 +35,13 @@
 // export { default as UseService } from './UseService';
 // export { default as UseWatch } from './UseWatch';
 // export * from './scenes';
-// export { default as MutateSelf } from './special/MutateSelf';
-export { default as M2 } from './special/M2';
-export { default as UseMemoFns } from './hooks/UseMemoFns';
-export { default as UseStable } from './hooks/UseStable';
+// export { default as UseMemoFns } from './hooks/UseMemoFns';
+// export { default as UseStable } from './hooks/UseStable';
 
-export const INITIAL_KEY = 'UseStable';
+// TODO  检查死循环为何没有拦住 done
+// export { default as MutateSelf } from './special/MutateSelf';
+
+// 检查 M2 取draft为何没拦住
+export { default as M2 } from './special/M2';
+
+export const INITIAL_KEY = 'M2';

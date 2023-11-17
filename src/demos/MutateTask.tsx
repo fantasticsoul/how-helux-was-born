@@ -9,6 +9,9 @@ const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'MutateTask
 const [idealPriceState, , ctx] = share({ loading: false, retA: 0, retB: 1 }, {
   moduleName: 'idealPrice',
   mutate: {
+
+
+    // 首次只执行同步方法，后续只会执行异步方法
     retA: {
       deps: () => [priceState.a, numAtom.val] as const,
       fn: (draft, [a, b]) => draft.retA = a + b,
@@ -21,6 +24,37 @@ const [idealPriceState, , ctx] = share({ loading: false, retA: 0, retB: 1 }, {
         });
       },
     },
+
+    // 首次只执行异步方法，后续会继续执行异步方法
+    retA2: {
+      deps: () => [priceState.a, numAtom.val] as const,
+      task: async ({ setState, input: [a, b] }) => {
+        setState({ loading: true });
+        await delay(1000);
+        setState(draft => {
+          draft.retA = priceState.a + numAtom.val;
+          draft.loading = false;
+        });
+      },
+    },
+
+    // 首次同步方法和异步方法均执行（设置 immediate为 true ），后续只会执行异步方法
+    retA3: {
+      deps: () => [priceState.a, numAtom.val] as const,
+      fn: (draft, [a, b]) => draft.retA = a + b,
+      task: async ({ setState, input: [a, b] }) => {
+        setState({ loading: true });
+        await delay(1000);
+        setState(draft => {
+          draft.retA = priceState.a + numAtom.val;
+          draft.loading = false;
+        });
+      },
+      immediate: true
+    },
+
+
+    //
     retB: (draft) => draft.retB = priceState.b + 2 + numAtom.val,
   },
 });

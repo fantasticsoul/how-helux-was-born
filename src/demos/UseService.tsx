@@ -13,7 +13,6 @@ function useSomeLogic(props: { a: number }) {
   const [state, setState] = useShared(priceState);
   const srv = useService({
     someCall() {
-      const props = srv.inner.getProps();
       console.log('props.a', props.a);
       // ...
       changeA(props.a);
@@ -23,7 +22,7 @@ function useSomeLogic(props: { a: number }) {
     },
     state,
     setState,
-  }, { props });
+  }, props);
   return srv;
 }
 

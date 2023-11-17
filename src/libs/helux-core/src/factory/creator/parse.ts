@@ -1,7 +1,9 @@
+import { canUseDeep, isFn, isObj, nodupPush, noop, noopArr, safeObjGet, setNoop } from 'helux-utils';
 import { immut } from 'limu';
 import { FROM, LOADING_MODE, SINGLE_MUTATE, STATE_TYPE, STOP_ARR_DEP, STOP_DEPTH } from '../../consts';
 import { createOb, injectHeluxProto } from '../../helpers/obj';
 import { getSharedKey, markSharedKey } from '../../helpers/state';
+import type { CoreApiCtx } from '../../types/api-ctx';
 import type {
   AtomMutateFnStdDict,
   AtomMutateFnStdItem,
@@ -20,18 +22,20 @@ import type {
   NumStrSymbol,
   WatchDepFn,
   WatchOptionsType,
-} from '../../types';
-import { canUseDeep, isFn, isObj, nodupPush, noop, noopArr, safeGet, setNoop } from '../../utils';
+} from '../../types/base';
 import { genFnKey } from '../common/key';
 import { getDepKeyByPath, tryGetLoc } from '../common/util';
 
 export interface IInnerOptions<T = any> {
+  apiCtx: CoreApiCtx;
   rawState: T | (() => T);
   forAtom?: boolean;
   forGlobal?: boolean;
   isLoading?: boolean;
   stateType?: string;
 }
+
+export type StdDict = MutateFnStdDict | AtomMutateFnStdDict;
 
 function markSharedKeyOnState(rawState: Dict) {
   injectHeluxProto(rawState);
@@ -73,24 +77,24 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, cachedDict?: Dic
   let validItem: MutateFnStdItem | AtomMutateFnStdItem | null = null;
   let desc = inputDesc || '';
   if (isFn(fnItem) && fnItem !== noop) {
-    validItem = { fn: fnItem, deps: noopArr, desc, realDesc: desc };
+    validItem = { fn: fnItem, deps: noopArr, oriDesc: desc, desc };
   } else if (isObj(fnItem)) {
-    const { fn, desc, deps, task, immediate = false } = fnItem;
+    const { fn, desc, deps, task, immediate } = fnItem;
     const descVar = inputDesc || desc || '';
     const fnVar = isFn(fn) ? fn : undefined;
     const taskVar = isFn(task) ? task : undefined;
     const depsVar = isFn(deps) ? deps : noopArr;
     if (fn || task) {
-      validItem = { fn: fnVar, desc: descVar, realDesc: descVar, deps: depsVar, task: taskVar, immediate };
+      validItem = { fn: fnVar, desc: descVar, oriDesc: descVar, deps: depsVar, task: taskVar, immediate };
     }
   }
 
   if (validItem && cachedDict) {
-    const { desc } = validItem;
-    if (!desc || cachedDict[desc]) {
-      validItem.realDesc = genFnKey(FROM.MUTATE);
+    const { oriDesc } = validItem;
+    if (!oriDesc || cachedDict[oriDesc]) {
+      // TODO tip desc duplicated
+      validItem.desc = genFnKey(FROM.MUTATE);
     }
-    cachedDict[validItem.realDesc] = validItem;
   }
 
   return validItem;
@@ -99,10 +103,16 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, cachedDict?: Dic
 /**
  * 解析伴随创建share对象时配置的 mutate 对象，如果传入已存在字典则写入
  */
-export function parseMutate(mutate?: IInnerCreateOptions['mutate'] | null, cachedDict?: MutateFnStdDict | AtomMutateFnStdDict) {
-  const mutateFnDict: MutateFnStdDict | AtomMutateFnStdDict = cachedDict || {};
+export function parseMutate(mutate?: IInnerCreateOptions['mutate'] | null, cachedDict?: StdDict) {
+  const mutateFnDict: StdDict = {};
+  if (!mutate) return mutateFnDict;
+
   const handleItem = (item: MutateFnLooseItem | MutateFn, inputDesc?: string) => {
-    parseMutateFn(item, inputDesc, mutateFnDict);
+    const stdFn = parseMutateFn(item, inputDesc, cachedDict);
+    if (stdFn) {
+      mutateFnDict[stdFn.desc] = stdFn
+      cachedDict && (cachedDict[stdFn.desc] = stdFn);
+    }
   };
 
   if (Array.isArray(mutate)) {
@@ -220,9 +230,9 @@ export function parseRules(options: ParsedOptions): IRuleConf {
     const result = when(state);
     // record id, globalId, stopDep
     const setRuleConf = (confKey: string) => {
-      const idList = safeGet(idsDict, confKey, [] as NumStrSymbol[]);
+      const idList = safeObjGet(idsDict, confKey, [] as NumStrSymbol[]);
       ids.forEach((id) => nodupPush(idList, id));
-      const globalIdList = safeGet(globalIdsDict, confKey, [] as NumStrSymbol[]);
+      const globalIdList = safeObjGet(globalIdsDict, confKey, [] as NumStrSymbol[]);
       globalIds.forEach((id) => nodupPush(globalIdList, id));
 
       let stopKeyDep;

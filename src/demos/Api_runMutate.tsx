@@ -3,6 +3,8 @@ import { atom, share, useShared, runMutate, runMutateTask, mutate } from 'helux'
 import { MarkUpdate, Entry } from './comps';
 import { log, delay } from './logic/util';
 
+console.log('useShared', useShared.name);
+
 const [numAtom] = atom(3000);
 const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'MutateTask' });
 const [idealPriceState, , ctx] = share({ loading: false, retA: 0, retB: 1 }, {
@@ -18,6 +20,7 @@ const witness = mutate(idealPriceState)({
   deps: () => [priceState.a, numAtom.val] as const,
   fn: (draft, [a, b]) => draft.retA = a + b,
   task: async ({ setState, input: [a, b] }) => {
+    console.log('call mutate retA task');
     setState({ loading: true });
     await delay(1000);
     setState(draft => {
@@ -31,8 +34,8 @@ const witness = mutate(idealPriceState)({
 const [finalPriceState] = share({ loading: false, retA: 0, time: 0 }, {
   mutate: {
     // retA: draft => draft.retA = idealPriceState.retA - 600,
-    retA: {
-      dep: () => [idealPriceState.retA],
+    depOnRetA: {
+      deps: () => [idealPriceState.retA],
       task: async ({ setState }) => {
         setState({ loading: true });
         await delay(1000);
@@ -57,11 +60,13 @@ function changePrice() {
 }
 
 function runMutateRetA() {
-  runMutate(idealPriceState, 'retA');
+  // runMutate(idealPriceState, 'retA');
+  runMutateTask(idealPriceState, 'retA');
 }
 
 function runMutateRetA2() {
-  witness.call();
+  // witness.call();
+  witness.callTask();
 }
 
 function runMutateRetA2Async() {
@@ -80,7 +85,7 @@ function IdealPrice() {
   const [loading] = ctx.useMutateLoading();
 
   return <MarkUpdate name="IdealPrice" info={info}>
-    <div>{idealPrice.loading ? 'loading' : idealPrice.retA}</div>
+    <div>idealPrice.retA: {idealPrice.loading ? 'loading' : idealPrice.retA}</div>
     <div>{loading.retB.loading ? 'retA is loading ...' : 'end'}</div>
   </MarkUpdate>;
 }

@@ -17,7 +17,6 @@ export function useMemoFns<T extends Record<string, Fn>>(fns: T): T {
   return srvWrap;
 }
 
-
 const Child = React.memo((props: any) => {
   console.log('Render Child');
   return <MarkUpdate forceColor={true}>

@@ -1,9 +1,10 @@
 import { getInternal, recordMod } from '../../helpers/state';
-import type { Dict, ICreateOptions } from '../../types';
+import type { Dict, ICreateOptions } from '../../types/base';
 import { markFnExpired } from '../common/fnScope';
 import { clearInternal } from '../common/internal';
 import { emitShareCreated } from '../common/plugin';
 import { buildSharedState } from './buildShared';
+import { clearDcLog } from './deadCycle';
 import { mapSharedToInternal } from './mapShared';
 import { watchAndCallMutateDict } from './mutateFn';
 import { IInnerOptions, parseOptions } from './parse';
@@ -23,6 +24,7 @@ export function buildSharedObject<T = Dict>(innerOptions: IInnerOptions, createO
 
   const internal = getInternal(sharedState);
   clearInternal(parsedOptions.moduleName, internal.loc);
+  clearDcLog(internal.usefulName);
   emitShareCreated(internal);
   return { sharedState, internal, parsedOptions };
 }

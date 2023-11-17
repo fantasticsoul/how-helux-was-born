@@ -1,24 +1,35 @@
+import { isPromise, tryAlert } from 'helux-utils';
 import { ASYNC_TYPE, WATCH } from '../consts';
 import { delComputingFnKey, getFnCtx, getFnCtxByObj, putComputingFnKey } from '../factory/common/fnScope';
-import type { Dict, IDeriveFnParams, TriggerReason } from '../types';
+import type { TInternal } from '../factory/creator/buildInternal';
+import { probeDeadCycle } from '../factory/creator/deadCycle';
+import type { Dict, IDeriveFnParams, TriggerReason } from '../types/base';
 import { shouldShowComputing } from './fnCtx';
 import { markComputing } from './fnStatus';
 
 const { MAY_TRANSFER } = ASYNC_TYPE;
 
+interface IRnFnOpt {
+  sn?: number;
+  force?: boolean;
+  isFirstCall?: boolean;
+  triggerReasons?: TriggerReason[];
+  err?: any,
+  internal?: TInternal;
+  desc?: any;
+}
+
 /**
  * 执行 derive 设置的导出函数
  */
-export function runFn(
-  fnKey: string,
-  options?: { sn?: number; force?: boolean; isFirstCall?: boolean; triggerReasons?: TriggerReason[]; err?: any },
-) {
-  const { isFirstCall = false, triggerReasons = [], sn = 0, err } = options || {};
+export function runFn(fnKey: string, options?: IRnFnOpt) {
+  const { isFirstCall = false, triggerReasons = [], sn = 0, err, internal, desc } = options || {};
   const fnCtx = getFnCtx(fnKey);
   if (!fnCtx) {
     return;
   }
   if (fnCtx.fnType === WATCH) {
+    probeDeadCycle(sn, desc, internal);
     return fnCtx.fn({ isFirstCall, triggerReasons, sn });
   }
 
@@ -93,14 +104,23 @@ export function runFn(
 
   if (task) {
     const del = () => isFirstCall && depKeys.forEach((depKey) => delComputingFnKey(depKey, fnKey));
-    return task(fnParams)
+    return Promise.resolve(() => {
+      const result = task(fnParams);
+      // 检查 result 是否是 Promise 来反推 task 是否是 async 函数
+      if (!isPromise(result)) {
+        tryAlert('ERR_NON_FN: deriveAsync need a async function arg!', false);
+        return null;
+      }
+      return result;
+    })
+      .then((wrap) => wrap())
       .then((data: any) => {
         del();
         updateAndDrillDown({ data });
         return fnCtx.result;
       })
       .catch((err: any) => {
-        // TODO: emit ERR_OCCURRED to plugin
+        // TODO: emit ON_DERIVE_ERROR_OCCURED to plugin
         del();
         updateAndDrillDown({ err }); // 向下传递错误
         return fnCtx.result;

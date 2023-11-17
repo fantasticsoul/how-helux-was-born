@@ -1,6 +1,6 @@
+import { isObj } from 'helux-utils';
 import { createDraft, finishDraft } from 'limu';
-import type { Dict, IInnerSetStateOptions } from '../../types';
-import { isObj } from '../../utils';
+import type { Dict, IInnerSetStateOptions } from '../../types/base';
 import { runMiddlewares } from '../common/middleware';
 import { emitDataChanged } from '../common/plugin';
 import { newMutateCtx } from '../common/util';
@@ -19,7 +19,7 @@ interface IPrepareDeepMutateOpts extends IInnerSetStateOptions {
 export function prepareDeepMutate(opts: IPrepareDeepMutateOpts) {
   const { internal, desc } = opts;
   const mutateCtx = newMutateCtx(opts);
-  const commitOpts = { state: {}, mutateCtx, ...opts };
+  const commitOpts = { state: {}, mutateCtx, ...opts, desc };
   const draft = createDraft(internal.rawState, {
     onOperate(opParams) {
       handleOperate(opParams, { internal, mutateCtx });
