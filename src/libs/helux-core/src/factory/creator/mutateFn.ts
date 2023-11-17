@@ -196,8 +196,8 @@ export function watchAndCallMutateDict(options: IWatchAndCallMutateDictOptions) 
           }
 
           // TODO: 此段代码为后面的 mutateSelf 接口做准备，初次执行自我变更的多个函数时会更高效
-          // 单因指提交一次draft的特效，对用户的mutate函数定义有特别要求，
-          // 即定义 deps 取 state，单计算时必须总取 draft，因为 draft 才是最新的
+          // 但因只提交一次draft的缘故，对用户的mutate函数定义有特别要求，
+          // 即 deps 函数里取 state，但计算函数里必须总取 draft，因为 draft 才是最新的
           // 循环到最后时将收集所有函数对上游数据的依赖，然后刻意将 draft 置空，后续此段逻辑不会再触发
           // if (lastIdx === idx && draft) {
           //   // ATTENTION: draft = null 必须放置到 finishMutate 之前，

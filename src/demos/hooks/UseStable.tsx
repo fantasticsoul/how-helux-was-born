@@ -12,6 +12,8 @@ const Child = React.memo((props: any) => {
 
 function Comp(props: any) {
   const [obj, setObj] = useObject({ num: 1 });
+
+  // 生成稳定的对象，对象的所有方法将转为稳定引用，且回调里始终可以读到外部的最新值，无闭包陷阱
   const srv = useStable({
     readState() {
       console.log(`%c read state num ${obj.num}`, `color:green`);
@@ -23,7 +25,11 @@ function Comp(props: any) {
       setObj({ num: random() });
     },
   });
+
+  // 传入值，则只是返回最新值
   const numTwo = useStable(2);
+
+  // 如传入单函数，则返回的稳定的函数引用
   const fn = useStable(() => {
     console.log(`%c read state num ${obj.num}`, `color:green`);
   });

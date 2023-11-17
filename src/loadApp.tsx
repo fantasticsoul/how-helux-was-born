@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 // import { addPlugin } from 'helux';
-// import { HeluxPluginReduxDevtool } from 'helux-plugin-redux-devtool';
+// import { HeluxPluginDevtool } from 'helux-plugin-devtool';
 import './index.css';
 import App from './App';
 
