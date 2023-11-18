@@ -319,19 +319,13 @@ module.exports = function (webpackEnv) {
         'helux-plugin-redux-devtool': path.resolve(__dirname, '../src/libs-base/helux-plugin-redux-devtool/src'),
 
         // 如需开启源码修改调试，( 解开1关闭2，或者解开2关闭1 )
-        // 注释 1 helux-core 对应helux仓库 packages/helux-core/src 的源码
-        // 1 面向所有类 react 的包组织模式，对应helux仓库 packages/**/* 的源码
+        // 面向所有类 react 的包组织模式，对应helux仓库 packages/**/* 的源码
         'helux': path.resolve(__dirname, '../src/libs/helux/src'),
         'helux-core': path.resolve(__dirname, '../src/libs/helux-core/src'),
         'helux-hooks': path.resolve(__dirname, '../src/libs/helux-hooks/src'),
         'helux-hooks-impl': path.resolve(__dirname, '../src/libs/helux-hooks-impl/src'),
         'helux-utils': path.resolve(__dirname, '../src/libs/helux-utils/src'),
         'helux-types': path.resolve(__dirname, '../src/libs/helux-types/src'),
-
-        // 2 面向 react 的包组织模式
-        // 'helux': path.resolve(__dirname, '../src/libs-old/helux/src'),
-        // 'helux-core': path.resolve(__dirname, '../src/libs-old/helux-core/src'),
-
 
         // Support React Native Web
         // https://www.smashingmagazine.com/2016/08/a-glimpse-into-the-future-with-react-native-for-web/

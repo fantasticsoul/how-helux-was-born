@@ -1,3 +1,0 @@
-
-## desc
-helux-core lib
