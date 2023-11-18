@@ -11,8 +11,12 @@ const [funnyAtom] = atom({
   double: 0, funnyName: '',
 }, {
   mutate: [
-    (draft) => draft.val.double = infoAtom.val.price * 2,
+    (draft) => {
+      console.log('double mutate');
+      draft.val.double = infoAtom.val.price * 2;
+    },
     ({ val }) => {
+      console.log('funnyName mutate');
       const { from, detail } = infoAtom.val.info;
       val.funnyName = `${from}_${detail.street}`;
     },
@@ -35,17 +39,17 @@ function changeStreet() {
 
 function InfoAtom() {
   const [base, , info] = useAtom(infoAtom);
-  return <MarkUpdate name="InfoAtom" info={info}>{base.price}</MarkUpdate>;
+  return <MarkUpdate name="InfoAtom" info={info}>price {base.price}</MarkUpdate>;
 }
 
 function FunnyAtom() {
   const [funny, , info] = useAtom(funnyAtom);
-  return <MarkUpdate name="FunnyAtom" info={info}>{funny.funnyName}</MarkUpdate>;
+  return <MarkUpdate name="FunnyAtom" info={info}>funnyName: {funny.funnyName}</MarkUpdate>;
 }
 
 function FunnyAtomDouble() {
   const [funny, , info] = useAtom(funnyAtom);
-  return <MarkUpdate name="FunnyAtomDouble" info={info}>{funny.double}</MarkUpdate>;
+  return <MarkUpdate name="FunnyAtomDouble" info={info}>double: {funny.double}</MarkUpdate>;
 }
 
 function NickAtom() {

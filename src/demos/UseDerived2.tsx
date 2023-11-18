@@ -1,4 +1,4 @@
-import { share, derive, deriveAsync, useShared, useDerived, runDerive } from "helux";
+import { share, derive, useShared, useDerived, runDerive } from "helux";
 import { random } from "./logic/util";
 import { MarkUpdate, Entry } from "./comps";
 
@@ -6,7 +6,7 @@ const delay = (ms = 1000) => new Promise((r) => setTimeout(r, ms));
 
 const [sharedState, setState, call] = share({ a: 1, b: { b1: { b2: 200 } } });
 const doubleAResult = derive(() => ({ val: sharedState.a * 2 + random() }));
-const aPlusB2Result = deriveAsync({
+const aPlusB2Result = derive({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
   task: async ({ input: [a, b2] }) => {
@@ -16,7 +16,7 @@ const aPlusB2Result = deriveAsync({
 });
 // const transResult1 = derive(() => aPlusB2Result);
 // const transResult2 = derive(() => transResult1);
-const transResult1 = deriveAsync({
+const transResult1 = derive({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, aPlusB2Result.val] as const,
   task: async ({ input: [a, val] }) => {
@@ -24,8 +24,7 @@ const transResult1 = deriveAsync({
     return { val: a + val + random() };
   },
 });
-
-const transResult2 = deriveAsync({
+const transResult2 = derive({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, transResult1.val] as const,
   task: async ({ input: [a, val] }) => {
@@ -33,8 +32,14 @@ const transResult2 = deriveAsync({
     return { val: a + val + random() };
   },
 });
-const transResult3 = derive(() => {
-  return { val: transResult2.val + 5 };
+// const transResult3 = derive(() => {
+//   return { val: transResult2.val + 5 };
+// });
+const transResult3 = derive({
+  fn: () => {
+    console.error('run transResult3');
+    return { val: transResult2.val + 5 };
+  },
 });
 
 function changeA() {
@@ -54,42 +59,42 @@ function ReadRerived() {
 }
 
 function ReadTrans1() {
-  const [aPlusB2, isComputing, info] = useDerived(transResult1);
+  const [aPlusB2, status, info] = useDerived(transResult1);
 
   return (
     <MarkUpdate info={[info]}>
-      <div>{isComputing ? 'computing' : ''} aPlusB2.val: {aPlusB2.val}</div>
+      <div>{status.loading ? 'computing' : ''} aPlusB2.val: {aPlusB2.val}</div>
     </MarkUpdate>
   );
 }
 
 function ReadTrans2() {
-  const [result, isComputing, info] = useDerived(transResult2);
+  const [result, status, info] = useDerived(transResult2);
 
   return (
     <MarkUpdate info={[info]}>
-      <div>{isComputing ? 'computing' : ''} transResult2.val: {result.val}</div>
+      <div>{status.loading ? 'computing' : ''} transResult2.val: {result.val}</div>
     </MarkUpdate>
   );
 }
 
 function ReadTrans3() {
-  const [result, isComputing, info] = useDerived(transResult3);
+  const [result, status, info] = useDerived(transResult3);
 
   return (
     <MarkUpdate info={[info]}>
-      <div>{isComputing ? 'computing' : ''} transResult3.val: {result.val}</div>
+      <div>{status.loading ? 'computing' : ''} transResult3.val: {result.val}</div>
     </MarkUpdate>
   );
 }
 
 const Demo = () => (
   <Entry fns={[changeA]}>
-    {/* <ReadTrans1 />
-    <ReadTrans2 /> */}
+    <ReadTrans1 />
+    <ReadTrans2 />
     <ReadTrans3 />
-    {/* <ReadRerived />
-    <ReadRerived /> */}
+    <ReadRerived />
+    <ReadRerived />
   </Entry>
 );
 

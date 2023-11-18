@@ -9,8 +9,6 @@ const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'MutateTask
 const [idealPriceState, , ctx] = share({ loading: false, retA: 0, retB: 1 }, {
   moduleName: 'idealPrice',
   mutate: {
-
-
     // 首次只执行同步方法，后续只会执行异步方法
     retA: {
       deps: () => [priceState.a, numAtom.val] as const,
@@ -65,7 +63,7 @@ const [finalPriceState] = share({ loading: false, retA: 0, time: 0 }, {
   mutate: {
     // retA: draft => draft.retA = idealPriceState.retA - 600,
     retA: {
-      dep: () => [idealPriceState.retA],
+      deps: () => [idealPriceState.retA] as const,
       task: async ({ setState }) => {
         setState({ loading: true });
         await delay(1000);
@@ -100,7 +98,7 @@ function IdealPrice() {
   const [loading] = ctx.useMutateLoading();
 
   return <MarkUpdate name="IdealPrice" info={info}>
-    <div>{idealPrice.loading ? 'loading' : idealPrice.retA}</div>
+    <div>idealPrice.retA: {idealPrice.loading ? 'loading' : idealPrice.retA}</div>
     <div>{loading.retA.loading ? 'retA is loading ...' : 'end'}</div>
   </MarkUpdate>;
 }

@@ -315,23 +315,22 @@ module.exports = function (webpackEnv) {
         .map(ext => `.${ext}`)
         .filter(ext => useTypeScript || !ext.includes('ts')),
       alias: {
-        'limu': path.resolve(__dirname, '../src/libs-zero/limu/src'),
-        'helux-plugin-redux-devtool': path.resolve(__dirname, '../src/libs-zero/helux-plugin-redux-devtool/src'),
+        'limu': path.resolve(__dirname, '../src/libs-base/limu/src'),
+        'helux-plugin-redux-devtool': path.resolve(__dirname, '../src/libs-base/helux-plugin-redux-devtool/src'),
 
         // 如需开启源码修改调试，( 解开1关闭2，或者解开2关闭1 )
-        // 解开注释 1 把 packages/helux-core/src 源码复制到 src/libs/helux-core 目录下即可
-        // 解开注释 2 把 packages-pure/helux-core/src 源码复制到 src/libs-pure/helux-core/src 目录下即可
-        // 1 面向所有 类 react 的包组织模式
-        // 'helux': path.resolve(__dirname, '../src/libs/helux/src'),
-        // 'helux-core': path.resolve(__dirname, '../src/libs/helux-core/src'),
-        // 'helux-hooks': path.resolve(__dirname, '../src/libs/helux-hooks/src'),
-        // 'helux-hooks-impl': path.resolve(__dirname, '../src/libs/helux-hooks-impl/src'),
-        // 'helux-utils': path.resolve(__dirname, '../src/libs/helux-utils/src'),
-        // 'helux-types': path.resolve(__dirname, '../src/libs/helux-types/src'),
+        // 注释 1 helux-core 对应helux仓库 packages/helux-core/src 的源码
+        // 1 面向所有类 react 的包组织模式，对应helux仓库 packages/**/* 的源码
+        'helux': path.resolve(__dirname, '../src/libs/helux/src'),
+        'helux-core': path.resolve(__dirname, '../src/libs/helux-core/src'),
+        'helux-hooks': path.resolve(__dirname, '../src/libs/helux-hooks/src'),
+        'helux-hooks-impl': path.resolve(__dirname, '../src/libs/helux-hooks-impl/src'),
+        'helux-utils': path.resolve(__dirname, '../src/libs/helux-utils/src'),
+        'helux-types': path.resolve(__dirname, '../src/libs/helux-types/src'),
 
         // 2 面向 react 的包组织模式
-        // 'helux': path.resolve(__dirname, '../src/libs-pure/helux/src'),
-        // 'helux-core': path.resolve(__dirname, '../src/libs-pure/helux-core/src'),
+        // 'helux': path.resolve(__dirname, '../src/libs-old/helux/src'),
+        // 'helux-core': path.resolve(__dirname, '../src/libs-old/helux-core/src'),
 
 
         // Support React Native Web

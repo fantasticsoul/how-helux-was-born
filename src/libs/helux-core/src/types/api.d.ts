@@ -24,20 +24,18 @@ import type {
   BlockStatusComponent,
   BlockStatusProps,
   ChangeDraftCb,
-  DeriveAtomFn,
   DerivedAtom,
   DerivedDict,
-  DeriveDictFn,
+  DeriveFn,
+  DeriveFnItem,
   Dict,
   EffectCb,
   Fn,
+  IUseDerivedOptions,
   IAtomCreateOptions,
   IAtomCtx,
   IBlockOptions,
   ICreateOptions,
-  IDeriveAsyncOptions,
-  IDeriveAtomAsyncOptions,
-  IDeriveAtomFnParams,
   IDeriveFnParams,
   IPlugin,
   IRenderInfo,
@@ -64,7 +62,6 @@ import type {
   SharedDict,
   SharedState,
   SingalVal,
-  TriggerReason,
   WatchOptionsType,
 } from './base';
 
@@ -77,11 +74,6 @@ export declare const LOADING_MODE: {
   NONE: LoadingNone;
   PRIVATE: 'PRIVATE';
   GLOBAL: 'GLOBAL';
-};
-
-export declare const WAY: {
-  FIRST_RENDER: 'FIRST_RENDER';
-  EVERY_RENDER: 'EVERY_RENDER';
 };
 
 /**
@@ -166,14 +158,8 @@ export function shareAtom<T = Dict, O extends IAtomCreateOptions<T> = IAtomCreat
  * @param deriveFn
  * ```
  */
-export function derive<T = PlainObject>(deriveFn: (params: IDeriveFnParams<T>) => T): T;
-
-interface IDeriveFnParams2<T = Dict, I extends readonly any[] = readonly any[]> {
-  isFirstCall: boolean;
-  prevResult: T | null;
-  triggerReasons: TriggerReason[];
-  input: I;
-}
+// export function derive<T = PlainObject>(deriveFn: (params: IDeriveFnParams<T>) => T): T;
+export function derive<T = PlainObject, I = readonly any[]>(deriveFnOrFnItem: DeriveFn<T> | DeriveFnItem<T, I>): T;
 
 /**
  * 支持异步导出的接口
@@ -202,48 +188,27 @@ interface IDeriveFnParams2<T = Dict, I extends readonly any[] = readonly any[]> 
  *  });
  * ```
  */
-export function deriveAsync<T = PlainObject, I = readonly any[]>(options: {
-  /**
-   * 依赖声明，会透传给 fn.input 和 task.input
-   */
-  deps?: () => I;
-  /**
-   * 异步函数的初始函数，仅首次会执行
-   * ```ts
-   * // written like this will lost result type ~_~
-   * fn: (params: IDeriveFnParams<T, I>) => T;
-   * ```
-   */
-  fn: (params: { isFirstCall: boolean; prevResult: T | null; triggerReasons: TriggerReason[]; input: I }) => T;
-  task: (params: IDeriveFnParams<T, I>) => Promise<T>;
-  immediate?: boolean;
-}): T;
-
-// export interface IDeriveAsyncOptions<T = Dict, I = any[]> {
-//   fn: (params: IDeriveFnParams<T, I>) => T;
+// export function deriveAsync<T = PlainObject, I = readonly any[]>(options: {
+//   /**
+//    * 依赖声明，会透传给 fn.input 和 task.input
+//    */
 //   deps?: () => I;
+//   /**
+//    * 异步函数的初始函数，仅首次会执行
+//    * ```ts
+//    * // written like this will lost result type ~_~
+//    * fn: (params: IDeriveFnParams<T, I>) => T;
+//    * ```
+//    */
+//   fn: (params: { isFirstCall: boolean; prevResult: T | null; triggerReasons: TriggerReason[]; input: I }) => T;
 //   task: (params: IDeriveFnParams<T, I>) => Promise<T>;
 //   immediate?: boolean;
-// }
-
-// export function deriveAsync2<T = PlainObject, D = any[]>(options: IDeriveAsyncOptions<T, D>): T;
+// }): T;
 
 /**
- * 创建一个普通的派生新结果的atom任务，支持返回 pritimive 类型
+ * 创建一个派生atom新结果的任务，支持返回 pritimive 类型
  */
 export function deriveAtom<T = any>(deriveFn: (params: IDeriveFnParams<T>) => T): Atom<T>;
-
-// export function deriveAtomAsync<T = any, D = any[]>(options: IDeriveAtomAsyncOptions<T, D>): Atom<T>;
-
-/**
- * 创建一个异步的派生新结果的atom任务，使用方法同 deriveAsync，支持返回 pritimive 类型
- */
-export function deriveAtomAsync<T = any, I = readonly any[]>(options: {
-  deps?: () => I;
-  fn: (params: { isFirstCall: boolean; prevResult: Atom<T> | null; triggerReasons: TriggerReason[]; input: I }) => T;
-  task: (params: IDeriveAtomFnParams<T, I>) => Promise<T>;
-  immediate?: boolean;
-}): Atom<T>;
 
 /**
  * 观察共享状态变化，默认 watchFn 立即执行
@@ -277,14 +242,13 @@ export function useShared<T = Dict>(sharedObject: T, IUseSharedOptions?: IUseSha
 export function useAtom<T = any>(sharedState: Atom<T>, options?: IUseSharedOptions<Atom<T>>): [T, SetAtom<T>, IRenderInfo];
 
 /**
- * 使用普通对象，需注意此接口只接受普通对象，如传递共享对象给它会报错 OBJ_NOT_NORMAL_ERR
+ * 使用普通对象，需注意此接口只接受普通对象
  * 应用里使用 useObject 替代 React.useState 将享受到以下两个好处
  * ```txt
  * 1 方便定义多个状态值时，少写很多 useState
  * 2 内部做了 unmount 判断，让异步函数也可以安全的调用 setState，避免 react 出现警告 :
  * "Called SetState() on an Unmounted Component" Errors
  * ```
- * 需注意此接口只接受普通对象，如传递共享对象给它会报错 OBJ_NOT_NORMAL_ERR
  * @param initialState
  * @returns
  */
@@ -335,13 +299,9 @@ export function useEffect(cb: EffectCb, deps?: any[]): void;
  */
 export function useLayoutEffect(cb: EffectCb, deps?: any[]): void;
 
-export function useDerived<R = SharedDict>(resultOrFn: DerivedDict<R> | DeriveDictFn<R>): [R, LoadingStatus, IRenderInfo];
+export function useDerived<R = SharedDict>(resultOrFn: DerivedDict<R>, options?: IUseDerivedOptions): [R, LoadingStatus, IRenderInfo];
 
-export function useDerivedAsync<T = PlainObject, D = any[]>(options: IDeriveAsyncOptions<T, D>): [T, LoadingStatus, IRenderInfo];
-
-export function useDerivedAtom<T = any>(resultOrFn: DerivedAtom<T> | DeriveAtomFn<T>): [T, LoadingStatus, IRenderInfo];
-
-export function useDerivedAtomAsync<T = any, D = any[]>(options: IDeriveAtomAsyncOptions<T, D>): [T, LoadingStatus, IRenderInfo];
+export function useDerivedAtom<T = any>(resultOrFn: DerivedAtom<T>, options?: IUseDerivedOptions): [T, LoadingStatus, IRenderInfo];
 
 /**
  * 组件里监听来自 emit 接口发射的事件，会在组件销毁时自动取消监听
@@ -360,6 +320,35 @@ export function useMutable<T extends PlainObject>(
   initialState: T | (() => T),
 ): [state: T, setDraft: (partialOrDraftCb: Partial<T> | ChangeDraftCb<T>) => void];
 
+/**
+ * 生成稳定的对象，对象的所有方法将转为稳定引用，且回调里始终可以读到外部的最新值，无闭包陷阱
+ * ```ts
+ * function Comp(props: any) {
+ *   const [obj, setObj] = useObject({ num: 1 });
+ *   // 如字典包含非方法值，可获取最新值
+ *   const srv = useStable({
+ *     readState() {
+ *      console.log(`%c read state num ${obj.num}`, `color:green`);
+ *    },
+ *    readProps() {
+ *     console.log(`%c read props num ${props.num}`, `color:green`);
+ *   },
+ *   changeState() {
+ *     setObj({ num: random() });
+ *   },
+ *  });
+ *
+ *  // 如传入单函数，则返回的稳定的函数引用
+ *  const fn = useStable(() => {
+ *    console.log(`%c read state num ${obj.num}`, `color:green`);
+ *  });
+ *
+ *  // 传入值，则只是返回最新值
+ *  const numTwo = useStable(2);
+ *
+ * }
+ * ```
+ */
 export function useStable<T = any>(data: T): T;
 
 /**
@@ -439,6 +428,8 @@ export function atomMutate<T extends any>(
 ): <A extends ReadOnlyArr = ReadOnlyArr>(fnItem: AtomMutateFnLooseItem<T, A> | AtomMutateFn<T, A>) => MutateWitness<T>;
 
 export function runDerive<T = SharedState>(result: T): T;
+
+export function runDeriveAsync<T = SharedState>(result: T): Promise<T>;
 
 /**
  * 生成 Block 组件，会自动绑定视图中的状态依赖，

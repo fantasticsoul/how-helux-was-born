@@ -49,7 +49,7 @@ watch((params) => {
 });
 
 function NumAtom() {
-  const [num, setNum, info] = useAtom(numAtom, { way: WAY.FIRST_RENDER });
+  const [num, setNum, info] = useAtom(numAtom, { collect: false });
   const changeNum = () => setNum(num + 1);
   const changeNumByDraft = () => setNum((d) => (d.val += 2));
 

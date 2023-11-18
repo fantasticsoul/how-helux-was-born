@@ -1,4 +1,4 @@
-import { $, share, atom, deriveAtom, derive, deriveAsync, block, blockStatus } from 'helux';
+import { $, share, atom, deriveAtom, derive, block, blockStatus } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from "./logic/util";
@@ -14,7 +14,7 @@ const stateResult = derive(() => {
     b: sharedState.b.b1.b2 * 100,
   };
 });
-const aPlusB2Result = deriveAsync({
+const aPlusB2Result = derive({
   deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
   fn: () => ({ val: 0 }),
   task: async ({ input: [a, b] }) => {

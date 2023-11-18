@@ -1,4 +1,4 @@
-import { share, derive, deriveAsync, useShared, useDerived, runDerive, atom } from "helux";
+import { share, derive, useShared, useDerived, runDerive, atom } from "helux";
 import { random } from "./logic/util";
 import { MarkUpdate } from "./comps";
 
@@ -27,7 +27,7 @@ const [a2, seAtom, atomCtx] = atom(
 const doubleAResult = derive(() => ({ val: sharedState.a * 2 + random() }));
 
 // create async derive result with multi shared state
-const aPlusB2Result = deriveAsync({
+const aPlusB2Result = derive({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
   task: async ({ input: [a, b2] }) => {

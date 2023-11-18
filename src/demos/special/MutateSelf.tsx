@@ -3,7 +3,7 @@ import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
 import { random, delay } from "../logic/util";
 
-const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 } }, c: 2, d: 10, e: 1 }, { moduleName: 'ForCopy' });
+const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 } }, c: 2, d: 10, e: 1 }, { moduleName: 'MutateSelf' });
 
 // const witness1 = ctx.mutate({
 //   deps: (state) => [state.a],
@@ -31,10 +31,10 @@ const witnessDict = mutateDict(sharedState)({
     deps: (state) => [state.c],
     fn: (draft, [c]) => { draft.d = c + 1 + random() },
   },
-  key4: {
-    deps: (state) => [state.d],
-    fn: (draft, [d]) => { draft.a = d + 1 + random() },
-  },
+  // key4: {
+  //   deps: (state) => [state.d],
+  //   fn: (draft, [d]) => { draft.a = d + 1 + random() },
+  // },
 
 
   // depA: {

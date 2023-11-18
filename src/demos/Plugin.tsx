@@ -11,7 +11,7 @@ addPlugin({
   }
 })
 
-const [sharedState, setState, call] = share({ a: 1, b: { b1: { b2: 200 } } }, { moduleName: 'ForCopy' });
+const [sharedState, setState, call] = share({ a: 1, b: { b1: { b2: 200 } } }, { moduleName: 'Plugin' });
 
 function changeA() {
   setState((draft) => {

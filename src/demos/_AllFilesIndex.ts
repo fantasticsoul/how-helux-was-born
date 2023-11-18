@@ -42,4 +42,4 @@ export { default as MutateSelf } from './special/MutateSelf';
 // 检查 M2 取draft为何没拦住
 export { default as M2 } from './special/M2';
 
-export const INITIAL_KEY = 'M2';
+export const INITIAL_KEY = 'DeriveToState';

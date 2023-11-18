@@ -3,7 +3,7 @@ import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from "./logic/util";
 
-const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 } } }, { moduleName: 'ForCopy' });
+const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 } } }, { moduleName: '_ForCopy' });
 
 function changeA() {
   setState((draft) => {

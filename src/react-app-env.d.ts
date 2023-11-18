@@ -2,8 +2,8 @@
 /// <reference types="react" />
 /// <reference types="react-dom" />
 
-import * as heluxApi from './libs/helux-core/src/types-api';
-import * as heluxModelApi from './libs/helux-core/src/types-model';
+import * as heluxApi from './libs/helux-core/src/types/api';
+import * as heluxModelApi from './libs/helux-core/src/types/model';
 
 
 declare namespace NodeJS {
@@ -82,81 +82,78 @@ declare module '*.module.sass' {
   export default classes;
 }
 
-// declare module 'helux' {
-//   export const {
-//     atom,
-//     share,
-//     shareState,
-//     shareAtom,
-//     // derive for shared state
-//     derive,
-//     deriveAsync,
-//     // derive for shared atom
-//     deriveAtom,
-//     deriveAtomAsync,
-//     watch,
-//     runDerive,
-//     createShared,
-//     useAtom,
-//     useShared,
-//     // use derived state
-//     useDerived,
-//     useDerivedAsync,
-//     // use derived atom
-//     useDerivedAtom,
-//     useDerivedAtomAsync,
-//     useWatch,
-//     useGlobalId,
-//     useObject,
-//     useService,
-//     useForceUpdate,
-//     useEffect,
-//     useLayoutEffect,
-//     useOnEvent,
-//     useMutable,
-//     useMutateLoading,
-//     useActionLoading,
-//     useStable,
-//     // create action api
-//     storeSrv,
-//     action,
-//     actionAsync,
-//     atomAction,
-//     atomActionAsync,
-//     // signal api
-//     signal,
-//     block,
-//     blockStatus,
-//     dynamicBlock,
-//     dynamicBlockStatus,
-//     $,
-//     // emit api
-//     emit,
-//     on,
-//     produce,
-//     shallowCompare,
-//     isDiff,
-//     getMutateLoading,
-//     getActionLoading,
-//     getDeriveLoading,
-//     getRawState,
-//     getSnap,
-//     getAtom,
-//     runMutate,
-//     runMutateTask,
-//     mutate,
-//     mutateDict,
-//     atomMutate,
-//     addMiddleware,
-//     addPlugin,
-//     EVENT_NAME,
-//     WAY,
-//     LOADING_MODE,
-//   } = heluxApi;
+declare module 'helux' {
+  export const {
+    atom,
+    share,
+    shareState,
+    shareAtom,
+    // derive for shared state
+    derive,
+    // derive for shared atom
+    deriveAtom,
+    watch,
+    runDerive,
+    runDeriveAsync,
+    createShared,
+    useAtom,
+    useShared,
+    // use derived state
+    useDerived,
+    // use derived atom
+    useDerivedAtom,
+    useWatch,
+    useGlobalId,
+    useObject,
+    useService,
+    useForceUpdate,
+    useEffect,
+    useLayoutEffect,
+    useOnEvent,
+    useMutable,
+    useMutateLoading,
+    useActionLoading,
+    useStable,
+    // create action api
+    storeSrv,
+    action,
+    actionAsync,
+    atomAction,
+    atomActionAsync,
+    // signal api
+    signal,
+    block,
+    blockStatus,
+    dynamicBlock,
+    dynamicBlockStatus,
+    $,
+    // emit api
+    emit,
+    on,
+    produce,
+    shallowCompare,
+    isDiff,
+    getMutateLoading,
+    getActionLoading,
+    getDeriveLoading,
+    getRawState,
+    getSnap,
+    getAtom,
+    runMutate,
+    runMutateTask,
+    mutate,
+    mutateDict,
+    atomMutate,
+    addMiddleware,
+    addPlugin,
+    EVENT_NAME,
+    WAY,
+    LOADING_MODE,
+  } = heluxApi;
 
-//   export const {
-//     // high level api
-//     model,
-//     modelFactory,
-//   } = heluxModelApi;
-// }
+  export const {
+    // high level api
+    model,
+    modelFactory,
+  } = heluxModelApi;
+}

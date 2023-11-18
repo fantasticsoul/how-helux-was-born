@@ -1,8 +1,8 @@
 // @ts-nocheck
 
-export function noop(...args: any[]): any {}
+export function noop(...args: any[]): undefined { }
 
-export function noopArgs(...args: any[]): any {
+export function noopArgs<T extends any[] = any[]>(...args: T): T {
   return args;
 }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
-  useShared, share, watch, useForceUpdate, derive, useDerived, useDerivedAsync,
-  deriveAsync, runDerive, createShared,
+  useShared, share, watch, useForceUpdate, useDerived,
+  derive, runDerive, runDeriveAsync,
 } from 'helux';
 import * as util from './logic/util';
 import { MarkUpdate, Entry } from './comps';
@@ -20,17 +20,19 @@ const coolWrap = derive(() => {
   return { cool: doubleA + 19 }
 });
 
-const outRet = deriveAsync({
+const outRet = derive({
   deps: () => [ret.doubleA] as const,
-  fn: () => ({ val: 0 }),
+  fn: () => ({ val: 0 + util.random() }),
   task: async ({ input: [doubleA] }) => {
     await util.delay();
     return { val: doubleA + 100 + util.random() };
   },
+  immediate: true,
 });
 
 // @ts-ignore
 const rerun = () => runDerive(outRet);
+const rerunAsync = () => runDeriveAsync(outRet);
 
 function change_a() {
   setState(draft => {
@@ -40,7 +42,7 @@ function change_a() {
   console.log('ret.doubleA', ret.doubleA);
 }
 
-function A() {
+function SharedA() {
   console.log('Render A', ret);
   const [state] = useShared(ret);
   return (
@@ -65,54 +67,29 @@ function ReadCool() {
   const [coolCu] = useDerived(coolWrap);
   return (
     <div>
-      read derived val 22: {coolCu.cool}
+      read coolWrap val: {coolCu.cool}
     </div>
   );
 }
 
-function DeriveInComp() {
-  console.log('Render DeriveInComp');
-  const [coolCu] = useDerived(() => {
-    const { doubleA } = ret;
-    return { val: doubleA + 50 };
-  });
+
+function UseDerived() {
+  // const [outData, status] = useDerived(outRet, { showLoading:  });
+  const [outData, status] = useDerived(outRet);
   return (
     <div>
-      read derived val in comp ffff: {coolCu.val}
-    </div>
-  );
-}
-
-function DeriveAsyncInComp() {
-  console.log('Render DeriveAsyncInComp');
-
-  // TODO CHECK
-  const [innerResult] = useDerivedAsync({
-    deps: () => [outRet.val] as const,
-    fn: () => ({ val: 0 }),
-    task: async ({ input: [val] }) => {
-      await util.delay();
-      return { val: val + 100 + util.random() };
-    },
-  });
-
-  const [outData] = useDerived(outRet);
-  return (
-    <div>
-      inner async derived: {innerResult.val}
-      <br />
-      out async derived: {outData.val}
+      outRet.val: {outData.val}
+      <div>{status.loading ? 'loading...' : ''}</div>
     </div>
   );
 }
 
 function Demo(props: any) {
-  return <Entry fns={[change_a, rerun]}>
-    <A />
+  return <Entry fns={[change_a, rerun, rerunAsync]}>
+    <SharedA />
     <DoubleA />
     <ReadCool />
-    <DeriveInComp />
-    <DeriveAsyncInComp />
+    <UseDerived />
   </Entry>
 }
 
