@@ -1,4 +1,4 @@
-import { isPromise, tryAlert, enureReturnArr, noop } from 'helux-utils';
+import { isPromise, tryAlert, enureReturnArr, noop, noopVoid } from 'helux-utils';
 import { ASYNC_TYPE, WATCH } from '../consts';
 import { delComputingFnKey, getFnCtx, getFnCtxByObj, putComputingFnKey } from '../factory/common/fnScope';
 import type { TInternal } from '../factory/creator/buildInternal';
@@ -104,7 +104,7 @@ export function runFn(fnKey: string, options?: IRnFnOpt) {
     return updateAndDrillDown({ data: result });
   }
   if (task) {
-    let del = noop;
+    let del = noopVoid;
     if (isFirstCall) {
       depKeys.forEach((depKey) => putComputingFnKey(depKey, fnKey));
       del = () => depKeys.forEach((depKey) => delComputingFnKey(depKey, fnKey));

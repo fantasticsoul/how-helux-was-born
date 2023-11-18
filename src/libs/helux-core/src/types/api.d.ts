@@ -1,6 +1,6 @@
 /*
 |------------------------------------------------------------------------------------------------
-| helux-core@3.0.9
+| helux-core@3.1.0
 | A state library core that integrates atom, signal, collection dep, derive and watch,
 | it supports all react like frameworks.
 |------------------------------------------------------------------------------------------------
@@ -153,32 +153,31 @@ export function shareAtom<T = Dict, O extends IAtomCreateOptions<T> = IAtomCreat
 ): IAtomCtx<T, O>;
 
 /**
- * 以共享状态或其他计算结果为输入，创建计算函数
- * 需注意返回结果必须是 Object
- * @param deriveFn
- * ```
- */
-// export function derive<T = PlainObject>(deriveFn: (params: IDeriveFnParams<T>) => T): T;
-export function derive<T = PlainObject, I = readonly any[]>(deriveFnOrFnItem: DeriveFn<T> | DeriveFnItem<T, I>): T;
-
-/**
- * 支持异步导出的接口
+ * 定义全量派生结果，支持同步和异步
  * ```ts
  * // 示例1：已一个共享对象和已导出结果作为输入源定义一个异步计算任务
  *  const [sharedState, setState, call] = share({ a: 1, b: { b1: { b2: 200 } } });
+ *  // 同步派生
  *  const doubleAResult = derive(() => ({ val: sharedState.a * 2 + random() }));
- *  const aPlusB2Result = deriveAsync({
- *    // 定义依赖项，会透传给 fn 和 task 的 input
+ *  // 等效于
+ *  const doubleAResult = derive({ fn: () => ({ val: sharedState.a * 2 + random() }) });
+ *
+ *  // 异步派生
+ *  const aPlusB2Result = derive({
+ *    // 【可选】定义依赖项，会透传给 fn 和 task 的 input
  *    deps: () => [sharedState.a, sharedState.b.b1.b2, doubleAResult.val] as const,
- *    fn: () => ({ val: 0 }), // 定义初始值函数
+ *    // 【可选】定义初始值函数
+ *    fn: () => ({ val: 0 }),
+ *    // 【可选】未显式定义 immediate 时，如定义了 fn，则 task 首次不执行，未定义则 task 首次执行
  *    task: async ({ input: [a, b2, val] }) => { // 定义异步运算任务，input 里可获取到 deps 返回的值
  *      await delay(1000);
  *      return { val: a + b2 + val + random() };
  *    },
- *    immediate: true, // 定义后就执行任务（默认首次不执行）
+ *    //【可选】定义后就首次执行任务 task（默认首次不执行）
+ *    immediate: true,
  *  });
  *
- *  // 示例2：初始值函数读取 input 计算初始值，并定义一个后续相关依赖发生变化后才计算的异步任务
+ *  // 异步派生示例2：初始值函数读取 input 计算初始值，并定义一个后续相关依赖发生变化后才计算的异步任务
  *  const aPlusB2Result = deriveAsync({
  *    deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
  *    // 读取 deps 函数的返回并相加
@@ -188,22 +187,7 @@ export function derive<T = PlainObject, I = readonly any[]>(deriveFnOrFnItem: De
  *  });
  * ```
  */
-// export function deriveAsync<T = PlainObject, I = readonly any[]>(options: {
-//   /**
-//    * 依赖声明，会透传给 fn.input 和 task.input
-//    */
-//   deps?: () => I;
-//   /**
-//    * 异步函数的初始函数，仅首次会执行
-//    * ```ts
-//    * // written like this will lost result type ~_~
-//    * fn: (params: IDeriveFnParams<T, I>) => T;
-//    * ```
-//    */
-//   fn: (params: { isFirstCall: boolean; prevResult: T | null; triggerReasons: TriggerReason[]; input: I }) => T;
-//   task: (params: IDeriveFnParams<T, I>) => Promise<T>;
-//   immediate?: boolean;
-// }): T;
+export function derive<T = PlainObject, I = readonly any[]>(deriveFnOrFnItem: DeriveFn<T> | DeriveFnItem<T, I>): T;
 
 /**
  * 创建一个派生atom新结果的任务，支持返回 pritimive 类型
