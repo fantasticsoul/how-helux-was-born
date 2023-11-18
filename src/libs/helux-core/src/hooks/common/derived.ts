@@ -1,11 +1,11 @@
-import { isFn, nodupPush } from 'helux-utils';
+import { isFn } from 'helux-utils';
 import { ASYNC_TYPE, SCOPE_TYPE } from '../../consts';
 import { isDerivedAtom } from '../../factory/common/atom';
 import { getFnCtxByObj } from '../../factory/common/fnScope';
 import { createDeriveLogic } from '../../factory/createDerived';
 import { delFnCtx } from '../../helpers/fnCtx';
 import { attachInsDerivedResult } from '../../helpers/insCtx';
-import type { AsyncType, IFnCtx, ScopeType } from '../../types/base';
+import type { AsyncType, IFnCtx } from '../../types/base';
 
 const InvalidInput = 'ERR_NOT_DERIVED_RESULT: useDerived only accept derived result';
 const NotDerivedAtom = 'ERR_NOT_ATOM_RESULT: useDerivedAtom only accept derived atom';
@@ -54,10 +54,7 @@ function ensureHotReload(fnCtx: IFnCtx) {
 export function genDerivedResult(deriveCtx: IDeriveCtx, options: IUseDerivedLogicOptions) {
   const { result, forAtom, showLoading } = options;
   const { fnCtx, input, deriveFn } = deriveCtx;
-  let isAsync = false;
-  let upstreamFnCtx: IFnCtx | null = null;
   let isCtxChanged = false;
-  const scopeType: ScopeType = SCOPE_TYPE.HOOK;
 
   // 已记录函数句柄，完成了导出结果的各种初始动作
   if (deriveFn) {
@@ -71,8 +68,7 @@ export function genDerivedResult(deriveCtx: IDeriveCtx, options: IUseDerivedLogi
   }
 
   deriveCtx.input = result;
-  upstreamFnCtx = getFnCtxByObj(result);
-
+  const upstreamFnCtx = getFnCtxByObj(result);
   if (!upstreamFnCtx) {
     throw new Error(InvalidInput);
   }
@@ -80,16 +76,13 @@ export function genDerivedResult(deriveCtx: IDeriveCtx, options: IUseDerivedLogi
     throw new Error(NotDerivedAtom);
   }
 
-  isAsync = upstreamFnCtx.isAsync;
-  const ensuredFnCtx = upstreamFnCtx;
-
   // 做结果中转
-  deriveCtx.deriveFn = () => ensuredFnCtx.result;
+  deriveCtx.deriveFn = () => upstreamFnCtx.result;
   createDeriveLogic(
-    { fn: () => ensuredFnCtx.result, deps: () => [], task: async () => ensuredFnCtx.result },
+    { fn: () => upstreamFnCtx.result, deps: () => [], task: async () => upstreamFnCtx.result },
     {
-      isAsync,
-      scopeType,
+      isAsync: upstreamFnCtx.isAsync,
+      scopeType: SCOPE_TYPE.HOOK,
       fnCtxBase: fnCtx,
       isAsyncTransfer: true,
       runAsync: false,
