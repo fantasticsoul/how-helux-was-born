@@ -3,7 +3,12 @@ import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from "./logic/util";
 
-const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: '200' } } }, { moduleName: 'DeriveTask' });
+const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: '200' } } }, {
+  moduleName: 'DeriveTask',
+  before(params) {
+    console.log('test before', params);
+  },
+});
 
 function changeA() {
   setState((draft) => {
@@ -19,11 +24,11 @@ function SharedDict() {
       <br />
       sync<input value={state.a} onChange={ctx.sync(to => to.a, (a, draft) => draft.a = Date.now())} />
       <br />
-      sync multi path<input value={state.b.b1.b2} onChange={ctx.sync(to => to.b.b1.b2)} />
+      sync multi path<input style={{ width: '300px' }} value={state.b.b1.b2} onChange={ctx.sync(to => to.b.b1.b2)} />
       <br />
-      sync multi path by path arr<input value={state.b.b1.b2} onChange={ctx.sync(['b', 'b1', 'b2'])} />
+      sync multi path by path arr<input style={{ width: '300px' }} value={state.b.b1.b2} onChange={ctx.sync(['b', 'b1', 'b2'])} />
       <br />
-      sync multi path with before<input value={state.b.b1.b2} onChange={ctx.sync(to => to.b.b1.b2, (b, draft) => draft.b.b1.b2 = `${b}_${Date.now()}`)} />
+      sync multi path with before<input style={{ width: '300px' }} value={state.b.b1.b2} onChange={ctx.sync(to => to.b.b1.b2, (b, draft) => draft.b.b1.b2 = `${b}_${Date.now()}`)} />
       <br />
     </MarkUpdate>
   );

@@ -1,6 +1,7 @@
-import { enureReturnArr, isFn, isObj, noop, tryAlert } from 'helux-utils';
+import { enureReturnArr, noop, tryAlert } from 'helux-utils';
 import { EVENT_NAME, SCOPE_TYPE } from '../../consts';
 import { emitPluginEvent } from '../../factory/common/plugin';
+import { wrapPartial, runPartialCb } from '../../factory/common/util';
 import { analyzeErrLog, dcErr, inDeadCycle } from '../../factory/creator/deadCycle';
 import { setLoadStatus } from '../../factory/creator/loading';
 import { getInternal } from '../../helpers/state';
@@ -10,7 +11,6 @@ import { createWatchLogic } from '../createWatch';
 interface ICallMutateFnLogicOptionsBase {
   desc?: string;
   sn?: number;
-  skipBefore?: boolean;
   deps?: Fn;
   from: From;
   /** watchAndRunMutate 需要自己捕获错误 */
@@ -23,51 +23,23 @@ interface ICallMutateFnLogicOptions<T = SharedState> extends ICallMutateFnLogicO
   draft?: T;
   fn: Fn;
   /** fn 函数调用入参拼装 */
-  getArgs?: (param: { draft: SharedState; setState: Fn; desc: string, input: any[] }) => any[];
+  getArgs?: (param: { draft: SharedState; setState: Fn; desc: string; input: any[] }) => any[];
 }
 
 interface ICallAsyncMutateFnLogicOptions extends ICallMutateFnLogicOptionsBase {
   task: Fn;
   /** task 函数调用入参拼装，暂不像同步函数逻辑那样提供 draft 给用户直接操作，用户必须使用 setState 修改状态 */
-  getArgs?: (param: { desc: string; setState: Fn, input: any[] }) => any[];
-}
-
-function mayWrapVal(forAtom: boolean, val: any) {
-  if (val === undefined) return; // undefined 丢弃，如正需要赋值 undefined，对 draft 操作即可
-  if (forAtom) return { val };
-  if (isObj(val)) return val;
+  getArgs?: (param: { desc: string; setState: Fn; input: any[] }) => any[];
 }
 
 /** 呼叫异步函数的逻辑封装 */
 export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options: ICallAsyncMutateFnLogicOptions) {
-  const { desc = '', sn, task, skipBefore = false, getArgs = noop, deps, from, throwErr } = options;
+  const { desc = '', sn, task, getArgs = noop, deps, from } = options;
   const internal = getInternal(targetState);
-  const { before, setStateImpl, forAtom } = internal;
   const customOptions: IInnerSetStateOptions = { desc, sn, from };
   const statusKey = `${from}/${desc}`;
-
   const setState: any = (cb: any) => {
-    const { draft, finishMutate } = setStateImpl(noop);
-    // 注意这里需要区分是 atom 还是 shared 返回，atom 返回要自动包裹未 { val: T }
-    const mayPartial = !isFn(cb) ? mayWrapVal(forAtom, cb) : mayWrapVal(forAtom, cb(draft));
-    let mayAnotherPartial = null;
-
-    try {
-      if (!skipBefore) {
-        mayAnotherPartial = mayWrapVal(forAtom, before({ from, draft, desc, sn }));
-      }
-      let mergedPartial;
-      if (mayPartial || mayAnotherPartial) {
-        mergedPartial = Object.assign({}, mayPartial, mayAnotherPartial);
-      }
-      finishMutate(mergedPartial, customOptions);
-    } catch (err: any) {
-      if (throwErr) {
-        throw err;
-      }
-      setLoadStatus(internal, statusKey, { loading: false, err, ok: false });
-      return internal.snap;
-    }
+    return internal.innerSetState(cb, customOptions); // 继续透传 sn from 等信息
   };
 
   const defaultParams = { desc, setState, input: enureReturnArr(deps, targetState) };
@@ -86,34 +58,34 @@ export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options:
 
 /** 呼叫同步函数的逻辑封装 */
 export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICallMutateFnLogicOptions<T>) {
-  const { desc = '', sn, fn, skipBefore = false, getArgs = noop, deps, from, throwErr, isFirstCall } = options;
+  const { desc = '', sn, fn, getArgs = noop, deps, from, throwErr, isFirstCall } = options;
   const internal = getInternal(targetState);
-  const { before, setStateImpl, setDraft } = internal;
+  const { setStateImpl, innerSetState } = internal;
   const innerSetOptions: IInnerSetStateOptions = { desc, sn, from, isFirstCall };
 
   let draft = options.draft as SharedState; // 如果传递了 draft 表示需要复用
   let finishMutate = noop;
 
-  // 现阶段此段逻辑不会触发，见 watchAndCallMutateDict TODO 解释
+  // 现阶段此段逻辑不会触发，见 watchAndCallMutateDict TODO 解释（后续会考虑移除）
   if (!draft) {
     // 不透传 draft 时，才指向一个真正有结束功能的 finishMutate 句柄
     const ret = setStateImpl(noop);
     draft = ret.draft;
     finishMutate = ret.finishMutate;
   }
+
   // 不定制同步函数入参的话，默认就是 (draft, input)，
   // 调用函数形如：(draft)=>draft.xxx+=1; 或 (draft, input)=>draft.xxx+=input[0]
+  const setState: any = (cb: any) => {
+    return innerSetState(cb, innerSetOptions);// 继续透传 sn from 等信息
+  };
   const input = enureReturnArr(deps, targetState);
-  const args = getArgs({ draft, setState: setDraft, desc, input }) || [draft, input];
+  const args = getArgs({ draft, setState, desc, input }) || [draft, input];
 
   // TODO 考虑同步函数的错误发送给插件
   try {
     fn(...args);
-    let newPartial;
-    if (!skipBefore) {
-      newPartial = before({ from, draft, desc, sn });
-    }
-    return finishMutate(newPartial, innerSetOptions);
+    return finishMutate(null, innerSetOptions);
   } catch (err: any) {
     if (throwErr) {
       throw err;
@@ -154,7 +126,7 @@ export function watchAndCallMutateDict(options: IWatchAndCallMutateDictOptions) 
   // let { draft, finishMutate } = setStateImpl(noop);
   // const lastIdx = keys.length - 1;
 
-  keys.forEach((descKey, idx) => {
+  keys.forEach((descKey) => {
     const item = mutateFnDict[descKey];
     // 开始映射函数相关箭头关系
     createWatchLogic(

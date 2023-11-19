@@ -1,10 +1,5 @@
 import { CoreApiCtx } from '../types/api-ctx';
-import type {
-  DerivedAtom,
-  DerivedDict,
-  PlainObject,
-  IUseDerivedOptions,
-} from '../types/base';
+import type { DerivedAtom, DerivedDict, IUseDerivedOptions, PlainObject } from '../types/base';
 import { getAtomTuple, getTuple, useDerivedLogic } from './common/useDerivedLogic';
 
 export function useDerived<T = PlainObject>(api: CoreApiCtx, result: DerivedDict<T>, options?: IUseDerivedOptions) {

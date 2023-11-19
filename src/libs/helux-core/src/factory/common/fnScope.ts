@@ -1,4 +1,4 @@
-import { delListItem, isDebug, isFn, isObj, safeMapGet, nodupPush } from 'helux-utils';
+import { delListItem, isDebug, isFn, isObj, nodupPush, safeMapGet } from 'helux-utils';
 import { EXPIRE_MS, FN_KEY, NOT_MOUNT, SIZE_LIMIT, UNMOUNT } from '../../consts';
 import { injectHeluxProto } from '../../helpers/obj';
 import type { Dict, IFnCtx, ScopeType } from '../../types/base';
@@ -43,12 +43,12 @@ export function delFnDepData(fnCtx: IFnCtx) {
 export function opUpstreamFnKey(fnCtx: IFnCtx, isAdd?: boolean) {
   const { FNKEY_STATIC_CTX_MAP } = getFnScope();
   const { fnKey, prevLevelFnKeys } = fnCtx;
-  prevLevelFnKeys.forEach(upFnKey => {
+  prevLevelFnKeys.forEach((upFnKey) => {
     const next = FNKEY_STATIC_CTX_MAP.get(upFnKey)?.nextLevelFnKeys;
     if (next) {
       isAdd ? nodupPush(next, fnKey) : delListItem(next, fnKey);
     }
-  })
+  });
 }
 
 export function delHistoryUnmoutFnCtx() {

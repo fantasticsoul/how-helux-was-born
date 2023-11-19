@@ -76,7 +76,7 @@ const [finalPriceState] = share({ loading: false, retA: 0, time: 0 }, {
   },
   before({ desc, draft }) {
     draft.time = Date.now();
-    log('finalPriceState', `desc is ${desc}`);
+    log('finalPriceState', `desc is ${desc}`, draft);
   },
 });
 

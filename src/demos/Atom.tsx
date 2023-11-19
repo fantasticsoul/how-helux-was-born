@@ -26,6 +26,10 @@ function changeNumOutOfComp() {
   setAtom(numAtom.val + 1);
 }
 
+function changeNumOutOfCompWithCb() {
+  setAtom(() => numAtom.val + 1);
+}
+
 function changeNumByDraftOutOfComp() {
   setAtom((d) => (d.val += 2));
 }
@@ -84,7 +88,7 @@ function NumPlus200Atom() {
 
 function Demo(props: any) {
   return (
-    <Entry fns={[changeNumOutOfComp, changeNumByDraftOutOfComp, someAction, hiAction]}>
+    <Entry fns={[changeNumOutOfComp, changeNumOutOfCompWithCb, changeNumByDraftOutOfComp, someAction, hiAction]}>
       <NumAtom />
       <NumAtom />
       <NumPlusAtom />

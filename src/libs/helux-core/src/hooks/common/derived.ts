@@ -19,7 +19,7 @@ export interface IUseDerivedLogicOptions {
 
 interface IDeriveCtx {
   input: any;
-  deriveFn: any,
+  deriveFn: any;
   fnCtx: IFnCtx;
 }
 

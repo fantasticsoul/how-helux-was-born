@@ -22,6 +22,7 @@ const witness = mutate(idealPriceState)({
   task: async ({ setState, input: [a, b] }) => {
     console.log('call mutate retA task');
     setState({ loading: true });
+    console.log('call mutate retA task 2');
     await delay(1000);
     setState(draft => {
       draft.retA = priceState.a + numAtom.val;
@@ -37,7 +38,9 @@ const [finalPriceState] = share({ loading: false, retA: 0, time: 0 }, {
     depOnRetA: {
       deps: () => [idealPriceState.retA],
       task: async ({ setState }) => {
+        console.log('call mutate depOnRetA task');
         setState({ loading: true });
+        console.log('call mutate depOnRetA task');
         await delay(1000);
         setState(draft => {
           draft.retA = idealPriceState.retA - 600;
@@ -48,7 +51,7 @@ const [finalPriceState] = share({ loading: false, retA: 0, time: 0 }, {
   },
   before({ desc, draft }) {
     draft.time = Date.now();
-    log('finalPriceState', `desc is ${desc}`);
+    log('call before, finalPriceState', `desc is ${desc}`);
   },
 });
 

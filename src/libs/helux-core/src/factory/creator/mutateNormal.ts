@@ -2,11 +2,13 @@ import { has, isObj, nodupPush, prefixValKey } from 'helux-utils';
 import { createOb } from '../../helpers/obj';
 import type { Dict, IInnerSetStateOptions } from '../../types/base';
 import { runMiddlewares } from '../common/middleware';
+import { genRenderSN } from '../common/key';
 import { emitDataChanged } from '../common/plugin';
 import { newMutateCtx, newOpParams } from '../common/util';
 import type { TInternal } from './buildInternal';
 import { commitState } from './commitState';
 import { handleOperate } from './operateState';
+import { beforeCommit } from './mutateDeep';
 
 interface IPrepareNormalMutateOpts extends IInnerSetStateOptions {
   internal: TInternal;
@@ -62,8 +64,6 @@ export function prepareNormalMutate(opts: IPrepareNormalMutateOpts) {
         Object.assign(newPartial, partial);
         Object.keys(partial).forEach((key) => handleValueChange(key, partial[key]));
       }
-
-      runMiddlewares(mockDraft, internal);
       /**
        * 让非 deep 模式下用户的以下代码，能够推导出 a 发生了改变
        * ```txt
@@ -80,6 +80,7 @@ export function prepareNormalMutate(opts: IPrepareNormalMutateOpts) {
         handleValueChange(key, newPartial[key]);
       });
 
+      beforeCommit(commitOpts, innerSetOptions, mockDraft);
       const { depKeys, triggerReasons } = mutateCtx;
       Object.keys(newPartial).forEach((key) => {
         const depKey = prefixValKey(key, sharedKey);
@@ -87,7 +88,6 @@ export function prepareNormalMutate(opts: IPrepareNormalMutateOpts) {
         triggerReasons.push({ sharedKey, moduleName, keyPath: [depKey] });
       });
       commitOpts.state = newPartial;
-      Object.assign(commitOpts, innerSetOptions);
       commitState(commitOpts);
       emitDataChanged(internal, innerSetOptions, desc);
 

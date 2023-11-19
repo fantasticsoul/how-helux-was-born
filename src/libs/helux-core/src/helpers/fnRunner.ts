@@ -1,4 +1,4 @@
-import { isPromise, tryAlert, enureReturnArr, noop, noopVoid } from 'helux-utils';
+import { enureReturnArr, isPromise, noopVoid, tryAlert } from 'helux-utils';
 import { ASYNC_TYPE, WATCH } from '../consts';
 import { delComputingFnKey, getFnCtx, getFnCtxByObj, putComputingFnKey } from '../factory/common/fnScope';
 import type { TInternal } from '../factory/creator/buildInternal';
@@ -26,10 +26,7 @@ interface IRnFnOpt {
  * 执行 derive 设置的导出函数
  */
 export function runFn(fnKey: string, options?: IRnFnOpt) {
-  const {
-    isFirstCall = false, forceFn = false, forceTask = false, triggerReasons = [], sn = 0,
-    from, err, internal, desc,
-  } = options || {};
+  const { isFirstCall = false, forceFn = false, forceTask = false, triggerReasons = [], sn = 0, from, err, internal, desc } = options || {};
   const fnCtx = getFnCtx(fnKey);
   if (!fnCtx) {
     return;
@@ -108,8 +105,9 @@ export function runFn(fnKey: string, options?: IRnFnOpt) {
     if (isFirstCall) {
       depKeys.forEach((depKey) => putComputingFnKey(depKey, fnKey));
       del = () => depKeys.forEach((depKey) => delComputingFnKey(depKey, fnKey));
-    } else if (forceTask) { // 需要展现 loading，由 runDeriveAsync 触发
-      fnCtx.nextLevelFnKeys.forEach(fnKey => markComputing(fnKey))
+    } else if (forceTask) {
+      // 需要展现 loading，由 runDeriveAsync 触发
+      fnCtx.nextLevelFnKeys.forEach((fnKey) => markComputing(fnKey));
     }
 
     return Promise.resolve(() => {

@@ -1,4 +1,3 @@
-import { delListItem } from 'helux-utils';
 import { MOUNTED, RENDER_END, RENDER_START, SCOPE_TYPE } from '../../consts';
 import { buildFnCtx, delFnCtx } from '../../helpers/fnCtx';
 import { getDepSharedStateFeature, recoverDep } from '../../helpers/fnDep';
@@ -12,7 +11,7 @@ function useFnCtx(apiCtx: CoreApiCtx, options: IUseDerivedLogicOptions): IFnCtx 
   const { result, forAtom } = options;
   const { hookImpl, react } = apiCtx;
   const updater = hookImpl.useForceUpdate();
-  const { current: deriveCtx } = react.useRef<{ input: any, deriveFn: any, fnCtx: any }>({ input: result, deriveFn: null, fnCtx: null });
+  const { current: deriveCtx } = react.useRef<{ input: any; deriveFn: any; fnCtx: any }>({ input: result, deriveFn: null, fnCtx: null });
   if (!deriveCtx.fnCtx) {
     deriveCtx.fnCtx = buildFnCtx({ updater, scopeType: SCOPE_TYPE.HOOK, forAtom });
   }

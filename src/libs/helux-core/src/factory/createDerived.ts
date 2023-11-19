@@ -1,20 +1,12 @@
 import { isFn } from 'helux-utils';
-import type {
-  Atom,
-  ICreateDeriveLogicOptions,
-  DeriveFn,
-  DeriveFnItem,
-  DeriveAtomFn,
-  DeriveAtomFnItem,
-  PlainObject,
-} from '../types/base';
+import type { Atom, DeriveAtomFn, DeriveAtomFnItem, DeriveFn, DeriveFnItem, ICreateDeriveLogicOptions, PlainObject } from '../types/base';
 import { initDeriveFn } from './common/derived';
 
 export function createDeriveLogic<T extends any = any>(
   fn: DeriveFn<T> | DeriveFnItem | DeriveAtomFn<T> | DeriveAtomFnItem,
   options?: ICreateDeriveLogicOptions,
 ) {
-  const fnItem = isFn(fn) ? { fn } : fn;
+  const fnItem = isFn(fn) ? { fn } : fn || {};
   const fnCtx = initDeriveFn({ ...(options || {}), ...fnItem });
   return fnCtx;
 }

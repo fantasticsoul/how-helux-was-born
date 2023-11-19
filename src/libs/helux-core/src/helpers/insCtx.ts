@@ -1,4 +1,4 @@
-import { isFn, isSymbol, prefixValKey, warn } from 'helux-utils';
+import { isSymbol, prefixValKey, warn } from 'helux-utils';
 import { immut } from 'limu';
 import { EXPIRE_MS, IS_DERIVED_ATOM, KEY_SPLITER, NOT_MOUNT, RENDER_END, RENDER_START } from '../consts';
 import { genInsKey } from '../factory/common/key';
@@ -28,7 +28,8 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
   const { rawState, isDeep, level1ArrKeys, sharedKey } = internal;
 
   const collectDep = (info: DepKeyInfo, value: any) => {
-    if (!insCtx.canCollect) {// 无需收集依赖
+    if (!insCtx.canCollect) {
+      // 无需收集依赖
       return;
     }
     if (Array.isArray(value)) {
