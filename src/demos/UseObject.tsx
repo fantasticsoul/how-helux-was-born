@@ -4,14 +4,19 @@ import { MarkUpdate, Entry } from './comps';
 import { log, logRed } from './logic/util';
 
 function Comp() {
-  const [state, setState] = useObject({ a: 1, b: 2 });
+  const [state, setState, api] = useObject({ a: 1, b: 2 });
   const updateA = () => {
     setState({ a: Date.now() }); // only pass partial state
   };
   const updateB = () => {
     setState({ b: Date.now() }); // only pass partial state
   };
+
+  // console.log('api.getLatestState()', api.getLatestState());
+  // console.log('api.getLatestState()', api.getStableState());
   React.useEffect(() => {
+    // console.log('api.getLatestState()', api.getLatestState());
+    // console.log('api.getStableState()', api.getStableState());
     console.log('setState is a stable ref'); // print only one time
   }, [setState]);
 
