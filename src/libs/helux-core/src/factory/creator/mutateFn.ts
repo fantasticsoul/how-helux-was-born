@@ -1,7 +1,6 @@
 import { enureReturnArr, noop, tryAlert } from 'helux-utils';
 import { EVENT_NAME, SCOPE_TYPE } from '../../consts';
 import { emitPluginEvent } from '../../factory/common/plugin';
-import { wrapPartial, runPartialCb } from '../../factory/common/util';
 import { analyzeErrLog, dcErr, inDeadCycle } from '../../factory/creator/deadCycle';
 import { setLoadStatus } from '../../factory/creator/loading';
 import { getInternal } from '../../helpers/state';
@@ -77,7 +76,7 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
   // 不定制同步函数入参的话，默认就是 (draft, input)，
   // 调用函数形如：(draft)=>draft.xxx+=1; 或 (draft, input)=>draft.xxx+=input[0]
   const setState: any = (cb: any) => {
-    return innerSetState(cb, innerSetOptions);// 继续透传 sn from 等信息
+    return innerSetState(cb, innerSetOptions); // 继续透传 sn from 等信息
   };
   const input = enureReturnArr(deps, targetState);
   const args = getArgs({ draft, setState, desc, input }) || [draft, input];

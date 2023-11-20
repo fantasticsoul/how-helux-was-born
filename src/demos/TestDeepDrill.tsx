@@ -4,6 +4,7 @@ import {
   useShared, share, watch, useForceUpdate, useDerived
 } from 'helux';
 import * as util from './logic/util';
+import { MarkUpdate, Entry } from './comps';
 import { createDraft } from 'limu';
 
 const node = { a: 1 }
@@ -57,7 +58,7 @@ watch(() => {
 
     draft.f.f1.newNode.c.c1 = 3000 + util.random(100);
   });
-});
+}, { immediate: true });
 
 util.bindToWindow({ ret, ori });
 
@@ -67,6 +68,12 @@ function change_a() {
   });
   console.log('ret.a', ret.a);
   console.log('ret.doubleA', ret.doubleA);
+}
+
+function changeNewNode() {
+  setState(draft => {
+    draft.f.f1.newNode.c.c1 = util.random(100);
+  });
 }
 
 function A() {
@@ -91,34 +98,24 @@ function C() {
 
 function AnotherC() {
   console.log('Render ReadCool');
-  const [state] = useShared(ret);
+  const [state, , info] = useShared(ret);
   return (
-    <div>
+    <MarkUpdate info={[info]}>
       state.f.f1.newNode.c.c1: {state.f.f1.newNode.c?.c1}
       <br />
       state.g.newNode2.c.c1: {state.g.newNode2.c?.c1}
       <br />
-    </div>
+    </MarkUpdate>
   );
 }
 
-function Entry(props: any) {
-  console.log('Render Entry');
-  const [show, setShow] = React.useState(true);
-  const showRef = React.useRef(show);
-  const forceUpdate = useForceUpdate();
-  showRef.current = show;
-
-  return <div>
-    <button onClick={() => setShow(!show)}>switch show</button>
-    <button onClick={forceUpdate}>force update</button>
-    <button onClick={change_a}>change_a</button>
-    {show && <>
-      <A />
-      <C />
-      <AnotherC />
-    </>}
-  </div>
+function Demo(props: any) {
+  return <Entry fns={[change_a, changeNewNode]}>
+    <h3>caution: 多引用存在问题的示例</h3>
+    <A />
+    <C />
+    <AnotherC />
+  </Entry>
 }
 
-export default Entry;
+export default Demo;

@@ -4,13 +4,12 @@ import { runFn } from '../../helpers/fnRunner';
 import { markComputing } from '../../helpers/fnStatus';
 import { runInsUpdater } from '../../helpers/insCtx';
 import type { Dict, InsCtxMap } from '../../types/base';
-import { genRenderSN } from '../common/key';
 import type { InsCtxDef } from './buildInternal';
 import type { ICommitStateOptions } from './commitState';
 import { getGlobalEmptyInternal, getGlobalIdInsKeys } from './globalId';
 
 export function execDepFnAndInsUpdater(opts: ICommitStateOptions) {
-  const { mutateCtx, internal, desc, isFirstCall, from } = opts;
+  const { mutateCtx, internal, desc, isFirstCall, from, sn } = opts;
   const { ids, globalIds, depKeys, triggerReasons } = mutateCtx;
   const { key2InsKeys, id2InsKeys, insCtxMap, sharedKey } = internal;
 
@@ -41,8 +40,6 @@ export function execDepFnAndInsUpdater(opts: ICommitStateOptions) {
     getGlobalIdInsKeys(id).forEach((insKey) => globalInsKeys.push(insKey));
   });
 
-  // sn 序号相同表示同一批次触发重渲染
-  const sn = opts.sn || genRenderSN();
   // deduplicate
   allInsKeys = dedupList(allInsKeys);
   allFirstLevelFnKeys = dedupList(allFirstLevelFnKeys);

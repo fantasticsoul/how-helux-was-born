@@ -1,11 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-// import { addPlugin } from 'helux';
+// import { addPlugin, addMiddleware } from 'helux';
 // import { HeluxPluginDevtool } from 'helux-plugin-devtool';
 import './index.css';
 import App from './App';
 
-// addPlugin(HeluxPluginReduxDevtool);
+// addPlugin(HeluxPluginDevtool);
+
+// addMiddleware((mid) => {
+//   console.log(mid);
+// })
 
 let rootNode = document.getElementById('root') as HTMLElement;
 if (!rootNode) {

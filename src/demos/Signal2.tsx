@@ -118,7 +118,7 @@ function changeB212() {
 
 const Demo = () => (
   <Entry fns={[changeB2, changeA, changeAtom, changeName, changeB22, changeB212]}>
-    {/* <AsyncBlock /> */}
+    <AsyncBlock />
     <RuiKun />
     <RuiKun2 />
     <RuiKun3 />

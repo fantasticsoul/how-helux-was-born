@@ -6,7 +6,10 @@ import App from './App';
 import { HeluxPluginDevtool } from 'helux-plugin-devtool';
 import { addPlugin, addMiddleware, Middleware } from 'helux';
 
-addPlugin(HeluxPluginDevtool)
+addPlugin(HeluxPluginDevtool);
+addMiddleware((mid) => {
+  console.log(mid);
+});
 
 
 // const markTimeMiddleWare : Middleware = (params)=>{

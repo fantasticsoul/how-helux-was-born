@@ -1,9 +1,6 @@
 import React from 'react';
-import * as helux from 'helux';
+import { $, model, modelFactory } from 'helux';
 import { MarkUpdate, Entry } from './comps';
-
-console.log('helux', helux);
-const { $, model, modelFactory } = helux;
 
 const myModel = model((api) => {
   const userCtx = api.shareState({ a: 1, b: 2 });

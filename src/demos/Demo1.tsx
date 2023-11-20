@@ -83,12 +83,12 @@ function DemoReadRerivedResult() {
   // read computed
   const [doubleA, , info] = useDerived(doubleAResult);
   const [cu2, , info2] = useDerived(cu2Ret);
-  const [aPlusB2, isComputing, info3] = useDerived(aPlusB2Result);
+  const [aPlusB2, status, info3] = useDerived(aPlusB2Result);
 
   return (
     <MarkUpdate info={[info, info2, info3]}>
       <div>doubleA: {doubleA.val}</div>
-      <div>aPlusB2: {isComputing ? "computing" : aPlusB2.val}</div>
+      <div>aPlusB2: {status.loading ? "computing" : aPlusB2.val}</div>
       <div>cu2: {cu2.val}</div>
     </MarkUpdate>
   );

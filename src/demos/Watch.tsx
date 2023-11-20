@@ -1,12 +1,20 @@
-import React from 'react';
-import { atom, share, watch, useShared, useForceUpdate, getSnap } from 'helux';
-import { MarkUpdate } from './comps';
+import React from "react";
+import { atom, share, watch, useShared, getSnap } from "helux";
+import { MarkUpdate, Entry } from "./comps";
 
-const [priceState, setPrice] = share({ a: 1 });
+const [priceState, setPrice] = share(
+  { a: 1, books: [] as any[] },
+  { moduleName: "Watch" }
+);
 const [numAtom, setNum] = atom(3000);
 
 function changePrice() {
-  setPrice(draft => { draft.a += 100 }, { desc: 'changeA' });
+  setPrice(
+    (draft) => {
+      draft.a += 100;
+    },
+    { desc: "changeA" }
+  );
 }
 
 function changePriceAndNum() {
@@ -14,46 +22,73 @@ function changePriceAndNum() {
   setNum(numAtom.val + 1000);
 }
 
-watch(() => {
-  console.log(`price change from ${getSnap(priceState).a} to ${priceState.a}`);
-}, { immediate: true });
+function addBooks() {
+  setPrice((draft) => { draft.books.push(1) });
+}
 
-watch(() => {
-  console.log(`found price changed: () => [priceState.a]`);
-}, () => [priceState.a]);
+watch(
+  () => {
+    console.log("books changed ", priceState.books);
+  },
+  () => [priceState.books]
+);
 
-watch(() => {
-  console.log(`found price changed: [ priceState ]`);
-}, () => [priceState]);
+watch(
+  () => {
+    console.log(
+      `price change from ${getSnap(priceState).a} to ${priceState.a}`
+    );
+  },
+  { immediate: true }
+);
 
-watch(() => {
-  console.log(`found price or numAtom changed: ()=>[ priceState, numAtom ]`);
-}, () => [priceState, numAtom]);
+watch(
+  () => {
+    console.log(`found price changed: () => [priceState.a]`);
+  },
+  () => [priceState.a]
+);
 
+watch(
+  () => {
+    console.log(`found price changed: [ priceState ]`);
+  },
+  () => [priceState]
+);
+
+watch(
+  () => {
+    console.log(`found price or numAtom changed: ()=>[ priceState, numAtom ]`);
+  },
+  () => [priceState, numAtom]
+);
 
 function Price() {
   const [price, , info] = useShared(priceState);
-  return <MarkUpdate name="Price" info={info}>{price.a}</MarkUpdate>;
+  return (
+    <MarkUpdate name="Price" info={info}>
+      {price.a}
+    </MarkUpdate>
+  );
 }
 
-function Entry(props: any) {
-  console.log('Render Entry');
-  const [show, setShow] = React.useState(true);
-  const showRef = React.useRef(show);
-  const forceUpdate = useForceUpdate();
-  showRef.current = show;
-
-  return <div>
-    <button onClick={() => setShow(!show)}>switch show</button>
-    <button onClick={forceUpdate}>force update</button>
-    <button onClick={changePrice}>changePrice</button>
-    <button onClick={changePriceAndNum}>changePriceAndNum</button>
-    {show && <>
-      <Price />
-      <Price />
-    </>}
-  </div>
+function Books() {
+  const [price, , info] = useShared(priceState);
+  return (
+    <MarkUpdate name="Price" info={info}>
+      price.books.length: {price.books.length}
+    </MarkUpdate>
+  );
 }
 
+function Demo(props: any) {
+  return (
+    <Entry fns={[changePrice, changePriceAndNum, addBooks]}>
+      <Books />
+      <Price />
+      <Price />
+    </Entry>
+  );
+}
 
-export default Entry;
+export default Demo;

@@ -58,7 +58,7 @@ function NumPlusAtom2(props: any) {
   const [state, , info] = useShared(sharedState);
 
   return (
-    <MarkUpdate info={info} name="useDerivedAtom with globalId">
+    <MarkUpdate info={info} name="no useGlobalId">
       <pre onClick={forceUpdate}>{state.b.b1}</pre>
     </MarkUpdate>
   );

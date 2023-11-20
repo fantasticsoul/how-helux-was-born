@@ -3,7 +3,7 @@ import { createOneLevelOb } from '../../helpers/obj';
 import type { Dict, Fn, SetState } from '../../types/base';
 import { createImmut, getDepKeyByPath } from '../common/util';
 
-export function tryEtractEventVal(e: any) {
+export function getEventVal(e: any) {
   let val = e;
   // avoid Warning: This synthetic event is reused for performance reasons. If you're seeing this...
   // call e.persist() @see https://reactjs.org/docs/events.html#event-pooling
@@ -29,11 +29,14 @@ function createTargetWrap(rawState: Dict) {
 
 function createSyncFn(setState: Fn, path: string[], before?: Fn) {
   const syncFn = (evOrVal: any) => {
-    let val = tryEtractEventVal(evOrVal);
-    setState((draft: any) => {
-      setVal(draft, path, val);
-      before?.(val, draft); // 用户设置了想修改其他数据或自身数据的函数
-    }, { from: 'Sync' });
+    let val = getEventVal(evOrVal);
+    setState(
+      (draft: any) => {
+        setVal(draft, path, val);
+        before?.(val, draft); // 用户设置了想修改其他数据或自身数据的函数
+      },
+      { from: 'Sync' },
+    );
   };
   return syncFn;
 }

@@ -9,6 +9,7 @@ import { derive, deriveAtom } from './factory/createDerived';
 import { atomMutate, mutate, mutateDict, runMutate, runMutateTask } from './factory/createMutate';
 import { atom, share, shareAtom, shareState } from './factory/createShared';
 import { watch } from './factory/createWatch';
+import { sync, syncer } from './factory/createSync';
 import { getDeriveLoading, runDerive, runDeriveAsync } from './helpers/fnRunner';
 import { getRawState, getSnap } from './helpers/state';
 import { useDerived, useDerivedAtom } from './hooks/useDerived';
@@ -56,18 +57,21 @@ export {
   atomAction,
   atomActionAsync,
   // signal api
+  $,
   signal,
   block,
   blockStatus,
   dynamicBlock,
   dynamicBlockStatus,
-  $,
   // mutate api
   mutate,
   mutateDict,
   atomMutate,
   runMutate,
   runMutateTask,
+  // sync api
+  sync,
+  syncer,
   // emit api
   emit,
   on,

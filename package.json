@@ -38,7 +38,7 @@
     "hel-micro-react": "^4.8.9",
     "hel-tdesign-react": "^1.5.0",
     "helux": "^3.1.0",
-    "helux-core": "^3.1.1",
+    "helux-core": "^3.1.4",
     "helux-hooks-impl": "^3.0.12",
     "helux-plugin-devtool": "^3.0.2",
     "helux-plugin-redux-devtool": "^3.0.1",

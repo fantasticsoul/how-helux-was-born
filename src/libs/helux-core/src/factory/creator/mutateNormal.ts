@@ -1,14 +1,12 @@
 import { has, isObj, nodupPush, prefixValKey } from 'helux-utils';
 import { createOb } from '../../helpers/obj';
 import type { Dict, IInnerSetStateOptions } from '../../types/base';
-import { runMiddlewares } from '../common/middleware';
-import { genRenderSN } from '../common/key';
 import { emitDataChanged } from '../common/plugin';
 import { newMutateCtx, newOpParams } from '../common/util';
 import type { TInternal } from './buildInternal';
 import { commitState } from './commitState';
-import { handleOperate } from './operateState';
 import { beforeCommit } from './mutateDeep';
+import { handleOperate } from './operateState';
 
 interface IPrepareNormalMutateOpts extends IInnerSetStateOptions {
   internal: TInternal;
@@ -80,15 +78,15 @@ export function prepareNormalMutate(opts: IPrepareNormalMutateOpts) {
         handleValueChange(key, newPartial[key]);
       });
 
-      beforeCommit(commitOpts, innerSetOptions, mockDraft);
+      const opts = beforeCommit(commitOpts, innerSetOptions, mockDraft);
       const { depKeys, triggerReasons } = mutateCtx;
       Object.keys(newPartial).forEach((key) => {
         const depKey = prefixValKey(key, sharedKey);
         nodupPush(depKeys, depKey);
         triggerReasons.push({ sharedKey, moduleName, keyPath: [depKey] });
       });
-      commitOpts.state = newPartial;
-      commitState(commitOpts);
+      opts.state = newPartial;
+      commitState(opts);
       emitDataChanged(internal, innerSetOptions, desc);
 
       return internal.snap;

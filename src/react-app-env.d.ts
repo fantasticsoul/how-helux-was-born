@@ -120,6 +120,8 @@ declare module 'helux' {
     actionAsync,
     atomAction,
     atomActionAsync,
+    sync,
+    syncer,
     // signal api
     signal,
     block,
