@@ -3,12 +3,12 @@ import React from 'react';
 import ReactDOMLegacy from "react-dom";
 import ReactDOM from "react-dom/client";
 import App from './App';
-import { HeluxPluginDevtool } from 'helux-plugin-devtool';
+import { HeluxPluginDevtool } from '@helux/plugin-devtool';
 import { addPlugin, addMiddleware, Middleware } from 'helux';
 
 addPlugin(HeluxPluginDevtool);
 addMiddleware((mid) => {
-  console.log(mid);
+  // console.log(mid);
 });
 
 

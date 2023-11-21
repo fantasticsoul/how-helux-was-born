@@ -36,8 +36,6 @@ const normalAction = atomAction(numAtom)<[number, string]>(
   'normalAction'
 );
 
-
-
 const asyncAction = atomActionAsync(numAtom)<[number, string]>(
   async ({ setState, args }) => {
     await delay(2000);
@@ -63,10 +61,11 @@ function NumAtom() {
 function NumAtomLoading() {
   const [loading, , info2] = ctx.useActionLoading();
   const [num, , info] = useAtom(numAtom);
+  const status = loading['asyncAction'];
 
   return (
-    <MarkUpdate info={[info, info2]}>
-      <pre> {loading['asyncAction'].loading ? <h1>loading ...</h1> : <>num: {num}</>}</pre>
+    <MarkUpdate name="NumAtomLoading" info={[info, info2]}>
+      <pre> {status.loading ? <h1>loading ...</h1> : <>num: {num}</>}</pre>
     </MarkUpdate>
   );
 }

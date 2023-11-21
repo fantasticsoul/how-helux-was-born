@@ -1,3 +1,3 @@
 
 ## desc
-helux-plugin-devtool lib
+@helux/plugin-devtool lib

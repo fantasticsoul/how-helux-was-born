@@ -16,6 +16,8 @@ export function getLocaleTime(date?: Date) {
   return `${str1} ${str2}`;
 }
 
+export function noop(...args: any[]) { }
+
 export function random(seed = 100) {
   return Math.ceil(Math.random() * seed);
 }

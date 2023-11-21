@@ -1,4 +1,4 @@
-import { enureReturnArr, noop, tryAlert } from 'helux-utils';
+import { enureReturnArr, noop, tryAlert } from '@helux/utils';
 import { EVENT_NAME, SCOPE_TYPE } from '../../consts';
 import { emitPluginEvent } from '../../factory/common/plugin';
 import { analyzeErrLog, dcErr, inDeadCycle } from '../../factory/creator/deadCycle';
@@ -127,7 +127,7 @@ export function watchAndCallMutateDict(options: IWatchAndCallMutateDictOptions) 
 
   keys.forEach((descKey) => {
     const item = mutateFnDict[descKey];
-    // 开始映射函数相关箭头关系
+    // 开始映射 mutate 函数相关数据依赖关系
     createWatchLogic(
       ({ sn, isFirstCall }) => {
         const { desc, fn, task, deps, immediate } = item;
