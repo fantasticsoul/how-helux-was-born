@@ -123,5 +123,5 @@ export function getRunninFn() {
   if (!runningFnKey) {
     return { fnCtx: null, depKeys };
   }
-  return { fnCtx: getFnCtx(runningFnKey), depKeys };;
+  return { fnCtx: getFnCtx(runningFnKey), depKeys };
 }

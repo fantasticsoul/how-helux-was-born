@@ -23,7 +23,7 @@ setTimeout(() => {
   someAsyncAction(6000);
 }, 6000)
 
-
+// someAction()
 // createAction3(numAtom, fnDef, desc)
 // createAction3(numAtom)(fnDef, desc) --> actionFn
 // createAction3(numAtom)<[...]>(fnDef, desc) --> actionFn

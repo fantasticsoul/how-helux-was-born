@@ -22,6 +22,7 @@ const witnessDict = mutateDict(sharedState)({
   key1: {
     deps: (state) => [state.a],
     fn: (draft, [a]) => { draft.b = a + 1 + random() },
+    // fn: (draft) => { draft.b = sharedState.a + 1 + random() },
   },
   key2: {
     deps: (state) => [state.b],
@@ -84,10 +85,19 @@ function Comp2() {
   );
 }
 
+function Comp3() {
+  return (
+    <MarkUpdate>
+      shared.d {$(sharedState.d)}
+    </MarkUpdate>
+  );
+}
+
 const Demo = () => (
   <Entry fns={[changeA, changeC]}>
     <Comp />
     <Comp2 />
+    <Comp3 />
   </Entry>
 );
 

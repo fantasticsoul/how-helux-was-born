@@ -82,7 +82,7 @@ declare module '*.module.sass' {
   export default classes;
 }
 
-declare module 'helux' {
+declare module 'helux22' {
   export const {
     atom,
     share,
@@ -125,9 +125,7 @@ declare module 'helux' {
     // signal api
     signal,
     block,
-    blockStatus,
     dynamicBlock,
-    dynamicBlockStatus,
     $,
     // emit api
     emit,

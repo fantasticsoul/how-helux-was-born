@@ -1,8 +1,8 @@
 import type { Atom, SharedDict } from '../types/base';
-import { createSyncFnBuilder, createSyncerBuilder } from './creator/sync';
 import { checkSharedStrict } from './common/check';
+import { createSyncerBuilder, createSyncFnBuilder } from './creator/sync';
 
-function innerCreate(target: any, options: { label: string, forAtom?: boolean; isSyncer?: boolean }) {
+function innerCreate(target: any, options: { label: string; forAtom?: boolean; isSyncer?: boolean }) {
   const { label, forAtom, isSyncer } = options;
   const { sharedKey, rawState, innerSetState } = checkSharedStrict(target, { label, forAtom });
   const fn = isSyncer ? createSyncerBuilder : createSyncFnBuilder;

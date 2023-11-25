@@ -1,8 +1,8 @@
-import { includeOne, noop, noopArr, nodupPush, matchDictKey } from '@helux/utils';
+import { includeOne, matchDictKey, nodupPush, noop, noopArr } from '@helux/utils';
 import { ASYNC_TYPE, NOT_MOUNT, RENDER_START } from '../consts';
 import { delHistoryUnmoutFnCtx, getCtxMap, getFnCtx, getFnKey, markFnKey, opUpstreamFnKey } from '../factory/common/fnScope';
 import { getFnScope } from '../factory/common/speedup';
-import type { Fn, Dict, IFnCtx, ScopeType } from '../types/base';
+import type { Dict, Fn, IFnCtx, ScopeType } from '../types/base';
 import { delFnDepData } from './fnDep';
 
 const { MAY_TRANSFER } = ASYNC_TYPE;
@@ -55,6 +55,7 @@ export function buildFnCtx(specificProps?: Partial<IFnCtx>): IFnCtx {
 export function markFnEnd() {
   const fnScope = getFnScope();
   const { runningFnKey } = fnScope;
+  if (!runningFnKey) return;
 
   // 针对 derive watch 函数，fnCtx.depKeys 只记录最长路径
   const fnCtx = getFnCtx(runningFnKey);
@@ -62,7 +63,7 @@ export function markFnEnd() {
     const { depKeys: afterRunDepKeys } = fnScope;
     const { depKeys } = fnCtx;
     const dict: Dict<number> = {};
-    afterRunDepKeys.forEach(k => dict[k] = 1);
+    afterRunDepKeys.forEach((k) => (dict[k] = 1));
     afterRunDepKeys.forEach((depKey, idx) => {
       const matched = matchDictKey(dict, depKey);
       // 匹配到了子串，就丢弃它
@@ -71,7 +72,7 @@ export function markFnEnd() {
       }
     });
     const validDepKeys = Object.keys(dict);
-    validDepKeys.forEach(depKey => nodupPush(depKeys, depKey))
+    validDepKeys.forEach((depKey) => nodupPush(depKeys, depKey));
   }
 
   fnScope.runningFnKey = '';
@@ -107,6 +108,8 @@ export function delFnCtx(fnCtx: IFnCtx) {
   const { fnKey } = fnCtx;
   delFnDepData(fnCtx);
   opUpstreamFnKey(fnCtx);
+  // 删除延迟的 watch 函数，严格模式下的下一次挂载无需再执行此函数
+  fnCtx.extra.deferedWatch = null;
   // 删除当前fnKey 与 hookFnCtx 的映射关系
   FNKEY_HOOK_CTX_MAP.delete(fnKey);
 

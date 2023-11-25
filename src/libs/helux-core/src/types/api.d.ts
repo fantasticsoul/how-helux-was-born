@@ -9,33 +9,34 @@ import type { MutableRefObject, ReactNode } from '@helux/types';
 import type { Draft, GenNewStateCb, ICreateDraftOptions } from 'limu';
 import type {
   Action,
+  ActionAsync,
+  ActionAsyncFnDef,
   ActionFnDef,
-  AsyncAction,
-  AsyncActionFnDef,
   Atom,
   AtomAction,
+  AtomActionAsync,
+  AtomActionAsyncFnDef,
   AtomActionFnDef,
-  AtomAsyncAction,
-  AtomAsyncActionFnDef,
   AtomMutateFn,
   AtomMutateFnLooseItem,
   AtomValType,
   BlockComponent,
-  BlockStatusComponent,
-  BlockStatusProps,
+  BlockParams,
   ChangeDraftCb,
+  DeriveAtomFn,
+  DeriveAtomFnItem,
   DerivedAtom,
   DerivedDict,
   DeriveFn,
   DeriveFnItem,
   Dict,
   EffectCb,
+  EnableStatus,
   Fn,
   IAtomCreateOptions,
   IAtomCtx,
   IBlockOptions,
   ICreateOptions,
-  IDeriveFnParams,
   IPlugin,
   IRenderInfo,
   IRunMutateOptions,
@@ -62,9 +63,9 @@ import type {
   SharedDict,
   SharedState,
   SingalVal,
-  WatchOptionsType,
-  SyncFnBuilder,
   Syncer,
+  SyncFnBuilder,
+  WatchOptionsType,
 } from './base';
 
 export declare const EVENT_NAME: {
@@ -119,7 +120,7 @@ export declare const LOADING_MODE: {
  * ```
  * 如需感知组件上下文，则需要`useService`接口去定义服务函数，可查看 useService 相关说明
  */
-export function share<T = Dict, O extends ICreateOptions<T> = ICreateOptions<T>>(
+export function share<T extends PlainObject = PlainObject, O extends ICreateOptions<T> = ICreateOptions<T>>(
   rawState: T | (() => T),
   createOptions?: O,
 ): readonly [SharedDict<T>, SetState<T>, ISharedCtx<T, O>];
@@ -168,9 +169,11 @@ export function shareAtom<T = Dict, O extends IAtomCreateOptions<T> = IAtomCreat
  *  const aPlusB2Result = derive({
  *    // 【可选】定义依赖项，会透传给 fn 和 task 的 input
  *    deps: () => [sharedState.a, sharedState.b.b1.b2, doubleAResult.val] as const,
- *    // 【可选】定义初始值函数
+ *    // 【可选】定义初始值函数，首次一定会执行
  *    fn: () => ({ val: 0 }),
- *    // 【可选】未显式定义 immediate 时，如定义了 fn，则 task 首次不执行，未定义则 task 首次执行
+ *    // 【可选】如定义了 task，则定义的 fn 后续不再执行
+ *    // 1 未显式定义 immediate 时，如定义了 fn，则 task 首次不执行，未定义则 task 首次执行
+ *    // 2 显式定义 immediate 时，为 true 则立即执行 task，为 false 则下次再执行
  *    task: async ({ input: [a, b2, val] }) => { // 定义异步运算任务，input 里可获取到 deps 返回的值
  *      await delay(1000);
  *      return { val: a + b2 + val + random() };
@@ -193,8 +196,13 @@ export function derive<T = PlainObject, I = readonly any[]>(deriveFnOrFnItem: De
 
 /**
  * 创建一个派生atom新结果的任务，支持返回 pritimive 类型
+ * ```ts
+ * const [numAtom] = atom(1);
+ * const doubleResult = deriveAtom(()=>numAtom.val*2);
+ * ```
  */
-export function deriveAtom<T = any>(deriveFn: (params: IDeriveFnParams<T>) => T): Atom<T>;
+// export function deriveAtom<T = any>(deriveFn: (params: IDeriveFnParams<T>) => T): Atom<T>;
+export function deriveAtom<T = any, I = readonly any[]>(deriveFnOrFnItem: DeriveAtomFn<T> | DeriveAtomFnItem<T, I>): Atom<T>;
 
 /**
  * 观察共享状态变化，默认 watchFn 立即执行
@@ -224,6 +232,21 @@ export function useShared<T = Dict>(sharedObject: T, IUseSharedOptions?: IUseSha
 
 /**
  * 组件使用 atom，注此接口只接受 atom 生成的对象，如传递 share 生成的对象会报错
+ * ```ts
+ * // 使用原始类型 atom
+ * const [num, setNum] = useAtom(numAtom);
+ * // 修改原始类型 atom
+ * setNum(num+1);
+ * setNum(draft=>{draft.val+=1});
+ *
+ * // 使用对象类型 atom
+ * const [obj, setObj] = useAtom(objAtom);
+ * // 修改对象类型 atom（ 可使用 share 接口生成对象并配合 useShared 则此处无 .val 操作 ）
+ * setNum(draft=>{
+ *   draft.val.a+=1;
+ *   draft.val.b+=2;
+ * });
+ * ```
  */
 export function useAtom<T = any>(sharedState: Atom<T>, options?: IUseSharedOptions<Atom<T>>): [T, SetAtom<T>, IRenderInfo];
 
@@ -310,7 +333,6 @@ export function useDerivedAtom<T = any>(resultOrFn: DerivedAtom<T>, options?: IU
  * 组件里监听来自 emit 接口发射的事件，会在组件销毁时自动取消监听
  */
 export function useOnEvent(name: string, cb: Fn): void;
-
 
 export interface IObjApi<T> {
   setState: (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void;
@@ -454,27 +476,19 @@ export function runDeriveAsync<T = SharedState>(result: T): Promise<T>;
  * 其他地方渲染User即可 <User />
  * ```
  */
-export function block<P = object>(cb: (props: P) => ReactNode, options?: IBlockOptions<P>): BlockComponent<P>;
+export function block<P = object, T = any>(
+  cb: (props: P, params: BlockParams<P, T>) => ReactNode,
+  options?: EnableStatus | IBlockOptions<P>,
+): BlockComponent<P>;
 
 /**
  * 功能同 block，适用于在组件里调用动态生成组件的场景，会在组件销毁后自动释放掉占用的内存
  * 如果在组件里使用 block 生成组件，也能正常工作，但会额外占用一些不会释放的内存
  */
-export function dynamicBlock<P = object>(cb: (props: P) => ReactNode, options: IBlockOptions<P>): BlockComponent<P>;
-
-/**
- * 生成会透传 isCommputing 表示计算状态的 Block 组件，会自动绑定视图中的状态依赖
- */
-export function blockStatus<P = object>(cb: (props: BlockStatusProps<P>) => ReactNode, options?: IBlockOptions<P>): BlockStatusComponent<P>;
-
-/**
- * 功能同 blockStatus，适用于在组件里调用动态生成组件的场景，会在组件销毁后自动释放掉占用的内存
- * 如果在组件里使用 blockStatus 生成组件，也能正常工作，但会额外占用一些不会释放的内存
- */
-export function dynamicBlockStatus<P = object>(
-  cb: (props: BlockStatusProps<P>) => ReactNode,
-  options: IBlockOptions<P>,
-): BlockStatusComponent<P>;
+export function dynamicBlock<P = object, Ref = any>(
+  cb: (props: P, params: BlockParams<P, Ref>) => ReactNode,
+  options?: EnableStatus | IBlockOptions<P>,
+): BlockComponent<P>;
 
 /**
  * 创建一个具有 signal 响应粒度的视图，仅当传入的值发生变化才渲染且只渲染 signal 区域，helux 同时也导出了 $ 符号表示 signal 函数
@@ -566,13 +580,13 @@ export function action<T = SharedDict>(sharedDict: T): <A extends any[] = any[]>
 
 export function actionAsync<T = SharedDict>(
   sharedDict: T,
-): <A extends any[] = any[]>(fn: AsyncActionFnDef<A, T>, desc?: string) => AsyncAction<A, T>;
+): <A extends any[] = any[]>(fn: ActionAsyncFnDef<A, T>, desc?: string) => ActionAsync<A, T>;
 
 export function atomAction<T = any>(atom: Atom<T>): <A extends any[] = any[]>(fn: AtomActionFnDef<A, T>, desc?: string) => AtomAction<A, T>;
 
 export function atomActionAsync<T = any>(
   atom: Atom<T>,
-): <A extends any[] = any[]>(fn: AtomAsyncActionFnDef<A, T>, desc?: string) => AtomAsyncAction<A, T>;
+): <A extends any[] = any[]>(fn: AtomActionAsyncFnDef<A, T>, desc?: string) => AtomActionAsync<A, T>;
 
 // ----------- shallowCompare isDiff produce 二次重导出会报错，这里手动声明一下 --------------
 // err: 如果没有引用 "../../helux-core/node_modules/limu/lib"，则无法命名 "produce" 的推断类型。这很可能不可移植。需要类型注释

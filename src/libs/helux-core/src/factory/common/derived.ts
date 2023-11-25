@@ -6,7 +6,7 @@ import { ensureFnDepData, recordFnDepKeys } from '../../helpers/fnDep';
 import { runFn } from '../../helpers/fnRunner';
 import { createOb } from '../../helpers/obj';
 import { getSharedKey } from '../../helpers/state';
-import type { AsyncType, Dict, Fn, IFnCtx, ScopeType } from '../../types/base';
+import type { Dict, Fn, ICreateDeriveLogicOptions, IFnCtx } from '../../types/base';
 import { recordLastest } from './blockScope';
 import { getFnCtxByObj, getFnKey, markFnKey } from './fnScope';
 
@@ -48,7 +48,7 @@ export function attachStaticProxyResult(fnCtx: IFnCtx, forAtom: boolean) {
       // copy depKeys
       recordFnDepKeys(fnCtx.depKeys, { belongCtx: fnCtx });
       // transfer depKeys for block or signal
-      recordBlockDepKey(proxyResult, fnCtx.depKeys);
+      recordBlockDepKey(fnCtx.depKeys, proxyResult);
       recordLastest(0, val, proxyResult, '', [key], true, forAtom);
       return val;
     },
@@ -57,21 +57,11 @@ export function attachStaticProxyResult(fnCtx: IFnCtx, forAtom: boolean) {
   return proxyResult;
 }
 
-interface IInitDeriveFnOptions {
+interface IInitDeriveFnOptions extends ICreateDeriveLogicOptions {
   fn?: Fn;
   task?: Fn;
   deps?: Fn;
   sourceFn?: Fn;
-  showLoading?: boolean;
-  scopeType?: ScopeType;
-  fnCtxBase?: IFnCtx;
-  isAsync?: boolean;
-  asyncType?: AsyncType;
-  isAsyncTransfer?: boolean;
-  returnUpstreamResult?: boolean;
-  runAsync?: boolean;
-  forAtom?: boolean;
-  immediate?: boolean;
 }
 
 function transferDep(fnCtx: IFnCtx, options: any) {
@@ -104,8 +94,8 @@ export function initDeriveFn(options: IInitDeriveFnOptions) {
     forAtom = false,
     immediate,
   } = options;
-  if (!isFn(options.fn) && !isFn(options.deps)) {
-    throw new Error('ERR_NON_FN: derive need fn or deps arg at least!');
+  if (!isFn(options.fn)) {
+    throw new Error('ERR_NON_FN: derive need fn arg!');
   }
   const { fn = noop, deps = noop, task } = options;
   const deriveFn = (params: Dict) => {

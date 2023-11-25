@@ -1,4 +1,4 @@
-import { $, share, derive, useDerived, blockStatus } from 'helux';
+import { $, share, derive, useDerived, block } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { delay } from "./logic/util";
@@ -22,11 +22,11 @@ function changeA() {
   });
 }
 
-const RetBlock = blockStatus((props) => {
-  const [val] = props.read(result.val);
+const RetBlock = block((props, params) => {
+  const [val] = params.read(result.val);
   return (
     <MarkUpdate>
-      {props.status.loading ? 'loading' : <>ret.val {val}</>}
+      {params.status.loading ? 'loading' : <>ret.val {val}</>}
     </MarkUpdate>
   )
 });

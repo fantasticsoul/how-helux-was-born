@@ -7,7 +7,9 @@ import type { CoreApiCtx } from '../../types/api-ctx';
 import type {
   AtomMutateFnStdDict,
   AtomMutateFnStdItem,
+  BlockOptionsType,
   Dict,
+  IBlockOptions,
   ICreateOptions,
   IInnerCreateOptions,
   IRuleConf,
@@ -118,7 +120,9 @@ export function parseMutate(mutate?: IInnerCreateOptions['mutate'] | null, cache
 
   if (Array.isArray(mutate)) {
     if (mutate.length === 1) {
-      handleItem(mutate[0], SINGLE_MUTATE); // 标记为单函数
+      const singleFn: any = mutate[0];
+      const desc = (isObj(singleFn) ? singleFn.desc : '') || SINGLE_MUTATE;
+      handleItem(mutate[0], desc); // 标记为单函数
     } else {
       mutate.forEach((item) => handleItem(item));
     }
@@ -149,6 +153,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const stopArrDep = options.stopArrDep ?? true;
   const stopDepth = options.stopDepth || STOP_DEPTH;
   const sharedKeyStr = `${sharedKey}`;
+  const rootValKey = forAtom ? `${sharedKey}/val` : sharedKeyStr;
   const usefulName = moduleName || sharedKeyStr;
   const loc = tryGetLoc(moduleName);
   const mutateFnDict = parseMutate(mutate);
@@ -158,6 +163,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
     rawState,
     sharedKey,
     sharedKeyStr,
+    rootValKey,
     moduleName,
     usefulName,
     forAtom,
@@ -267,7 +273,8 @@ export function parseRules(options: ParsedOptions): IRuleConf {
 }
 
 export function parseCreateMutateOpt(descOrOptions?: string | IRunMutateOptions) {
-  const { out = true, desc = '', strict = false } = {};
+  // 不设定 desc 的话，默认指向可能存在的单函数
+  const { out = true, desc = SINGLE_MUTATE, strict = false } = {};
   if (typeof descOrOptions === 'string') {
     return { out, desc: descOrOptions, strict };
   }
@@ -285,4 +292,15 @@ export function parseWatchOptions(options?: WatchOptionsType) {
     immediate = options.immediate ?? false;
   }
   return { immediate, deps };
+}
+
+export function parseBlockOptions(options?: BlockOptionsType): IBlockOptions {
+  if (!options) return {};
+  if (typeof options === 'boolean') {
+    return { enableStatus: options };
+  }
+  if (isObj(options)) {
+    return options;
+  }
+  return {};
 }

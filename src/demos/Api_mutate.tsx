@@ -28,6 +28,13 @@ function changePrice() {
   setPrice(draft => { draft.a = random() });
 }
 
+function changePrev() {
+  setPrice(draft => {
+    const { a } = draft;
+    draft.a = a;
+  });
+}
+
 function forceRunMutate() {
   witness.call();
 };
@@ -50,13 +57,12 @@ function FinalPrice() {
 }
 
 const Demo = () => (
-  <Entry fns={[forceRunMutate, changePrice]}>
+  <Entry fns={[forceRunMutate, changePrev, changePrice]}>
     <Price />
     <Price />
     <FinalPrice />
     <FinalPrice />
   </Entry>
 );
-
 
 export default Demo;

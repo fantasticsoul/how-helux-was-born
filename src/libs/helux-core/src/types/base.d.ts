@@ -32,15 +32,32 @@ export type From = 'Mutate' | 'Action' | 'SetState';
 
 export interface IBlockCtx {
   key: string;
-  /** key: sharedState, value: depKeys */
-  map: Map<SharedState, string[]>;
+  results: DerivedDict[];
+  /** all depKeys */
+  depKeys: string[];
+  /** 是否开启响应 status 功能 */
+  enableStatus: boolean;
   collected: boolean;
   mounted: boolean;
   time: number;
   renderAtomOnce: boolean;
+  /** for helping store ref temporarily */
+  ref?: any;
+  /** for helping store status temporarily */
+  status: LoadingStatus;
 }
 
+/**
+ * default: false ，是否启用响应 status 变化的功能
+ * ```text
+ * 为了性能考虑，默认 false 表示没有启用（内部会少调用一些钩子）
+ * 如确认 block 组件内部有任何异步数据获取逻辑且需要使用透传的 status 做加载中判断，设置此选项为 true 即可
+ * ```
+ */
+export type EnableStatus = boolean;
+
 export interface IBlockOptions<P = object> {
+  enableStatus?: EnableStatus;
   /**
    * default: true
    * block()返回组件实是否包裹React.memo，默认包裹
@@ -48,10 +65,12 @@ export interface IBlockOptions<P = object> {
   memo?: boolean;
   /**
    * default: undefined
-   * memo 的比较函数，默认走 react 内置的浅比较规则，如确定 lock 不传递任何 props，建议设置为 ()=>true
+   * memo 的比较函数，默认走 react 内置的浅比较规则，如确定 block 不传递任何 props，建议设置为 ()=>true
    */
   compare?: (prevProps: Readonly<PropsWithChildren<P>>, nextProps: Readonly<PropsWithChildren<P>>) => boolean;
 }
+
+export type BlockOptionsType = EnableStatus | IBlockOptions;
 
 /**
  * block 渲染函数内部存在判断逻辑时，可使用 read 提前锁定住相关依赖
@@ -62,15 +81,14 @@ export interface IBlockOptions<P = object> {
  */
 export type Read = <A extends readonly any[] = readonly any[]>(...args: A) => A;
 
-export type BlockStatusProps<P = object> = P & { status: LoadingStatus; read: Read };
+export type BlockParams<P = object, T = any> = { props: P; status: LoadingStatus; read: Read; ref?: ForwardedRef<T> };
 
-export type BlockStatusCb<P = object> = (props: BlockStatusProps<P>, ref?: ForwardedRef<any>) => ReactNode;
+export type BlockCb<P = object, T = any> = (props: P, params?: BlockParams<T>) => ReactNode;
 
-export type BlockCb<P = object> = (props: P, ref?: ForwardedRef<any>) => ReactNode;
+// maybe add a new interface that pass 3 args in the future ?
+// export type BlockCbV2<P = object> = (props: P, ref?: ForwardedRef<any>, blockCtx: BlockCbCtx) => ReactNode;
 
-export type BlockComponent<P = object> = FunctionComponent<P>;
-
-export type BlockStatusComponent<P = object> = FunctionComponent<P>;
+export type BlockComponent<P = object> = FunctionComponent<P & { ref?: any }>;
 
 export type Srv<S = Dict, P = Dict, E = Dict> = S & { inner: { getProps: () => P; getExtra: () => E } };
 
@@ -137,7 +155,7 @@ export type AtomDraft<T = any> = { val: T };
 export type SharedState = SharedDict | Atom;
 
 /** can pass to signal fn */
-export type SingalVal = Atom | DerivedAtom | NumStrSymbol | ReactNode | BlockComponent | BlockStatusComponent;
+export type SingalVal = Atom | DerivedAtom | NumStrSymbol | ReactNode | BlockComponent;
 
 export type AtomValType<T> = T extends Atom<infer V> ? V : T;
 
@@ -160,23 +178,23 @@ export type ActionFnDef<A = any[], T = SharedState> = (param: ActionFnParam<A, T
 
 export type Action<A extends any[] = any[], T = SharedState> = (...args: A) => NextSharedDict<T>;
 
-export type AsyncActionFnDef<A = any[], T = SharedState> = (param: AsyncActionFnParam<A, T>) => void;
+export type ActionAsyncFnDef<A = any[], T = SharedState> = (param: AsyncActionFnParam<A, T>) => void;
 
-export type AsyncAction<A extends any[] = any[], T = SharedState> = (...args: A) => Promise<NextSharedDict<T>>;
+export type ActionAsync<A extends any[] = any[], T = SharedState> = (...args: A) => Promise<NextSharedDict<T>>;
 
 // atom action series
 
 export type AtomActionFnParam<A = any[], T = any> = { draft: AtomDraft<T>; setState: SetAtom<T>; desc: string; args: A };
 
-export type AtomAsyncActionFnParam<A = any[], T = any> = { setState: SetAtom<T>; desc: string; args: A };
+export type AtomActionAsyncFnParam<A = any[], T = any> = { setState: SetAtom<T>; desc: string; args: A };
 
 export type AtomActionFnDef<A = any[], T = any> = (param: AtomActionFnParam<A, T>) => Partial<T> | void;
 
 export type AtomAction<A extends any[] = any[], T = any> = (...args: A) => NextAtom<T>;
 
-export type AtomAsyncActionFnDef<A = any[], T = any> = (param: AtomAsyncActionFnParam<A, T>) => void;
+export type AtomActionAsyncFnDef<A = any[], T = any> = (param: AtomActionAsyncFnParam<A, T>) => void;
 
-export type AtomAsyncAction<A extends any[] = any[], T = any> = (...args: A) => Promise<NextAtom<T>>;
+export type AtomActionAsync<A extends any[] = any[], T = any> = (...args: A) => Promise<NextAtom<T>>;
 
 export type ReadOnlyArr = readonly any[];
 
@@ -225,7 +243,7 @@ export type MutateWitness<T = any> = {
 export type MutateTask<T = SharedDict, A = ReadOnlyArr> = (param: IMutateTaskParam<T, A>) => Promise<void>;
 
 /** 如定义了 task 函数，则 fn 在异步函数执行之前回执行一次，且只在首次执行一次，后续不会执行 */
-export type MutateFn<T = SharedDict, A = ReadOnlyArr> = (draft: Draft<T>, input: A) => void;
+export type MutateFn<T = SharedDict, A = ReadOnlyArr> = (draft: Draft<T>, input: A) => Partial<T> | void;
 
 export type MutateFnItem<T = SharedDict, A = ReadOnlyArr> = {
   /** 异步 mutate 的依赖项列表 */
@@ -262,7 +280,7 @@ export type MutateFnList<T = SharedDict> = Array<MutateFn<T> | MutateFnLooseItem
 export type AtomMutateTask<T = any, A = ReadOnlyArr> = (param: IAtomMutateTaskParam<T, A>) => Promise<void>;
 
 /** 如定义了 task 函数，则 atom fn 在异步函数执行之前回执行一次，且只在首次执行一次，后续不会执行 */
-export type AtomMutateFn<T = any, A = ReadOnlyArr> = (draft: AtomDraft<T>, input: A) => void;
+export type AtomMutateFn<T = any, A = ReadOnlyArr> = (draft: AtomDraft<T>, input: A) => T | void;
 
 export type AtomMutateFnItem<T = any, A = ReadOnlyArr> = {
   /** 如定义了 task，fn 只会执行一次 */
@@ -387,9 +405,9 @@ export interface ISharedCtx<T = SharedState, O extends ICreateOptions<T> = ICrea
   runMutate: (descOrOptions: string | IRunMutateOptions) => T;
   runMutateTask: (descOrOptions: string | IRunMutateOptions) => T;
   call: Call<T>;
-  asyncCall: AsyncCall<T>;
+  callAsync: AsyncCall<T>;
   action: <A extends any[] = any[]>(fn: ActionFnDef<A, T>, desc?: FnDesc) => Action<A, T>;
-  asyncAction: <A extends any[] = any[]>(fn: AsyncActionFnDef<A, T>, desc?: FnDesc) => AsyncAction<A, T>;
+  actionAsync: <A extends any[] = any[]>(fn: ActionAsyncFnDef<A, T>, desc?: FnDesc) => ActionAsync<A, T>;
   state: SharedDict<T>;
   setState: SetState<T>;
   sync: SyncFnBuilder<T>;
@@ -408,9 +426,9 @@ export interface ISharedCtx<T = SharedState, O extends ICreateOptions<T> = ICrea
 export interface IAtomCtx<T = any, O extends IAtomCreateOptions<T> = IAtomCreateOptions<T>> {
   mutate: <A extends ReadOnlyArr = ReadOnlyArr>(fnItem: AtomMutateFnLooseItem<T, A> | AtomMutateFn<T, A>) => MutateWitness<T>;
   call: AtomCall<T>;
-  asyncCall: AtomAsyncCall<T>;
+  callAsync: AtomAsyncCall<T>;
   action: <A extends any[] = any[]>(fn: AtomActionFnDef<A, T>, desc?: FnDesc) => AtomAction<A, T>;
-  asyncAction: <A extends any[] = any[]>(fn: AtomAsyncActionFnDef<A, T>, desc?: FnDesc) => AtomAsyncAction<A, T>;
+  actionAsync: <A extends any[] = any[]>(fn: AtomActionAsyncFnDef<A, T>, desc?: FnDesc) => AtomActionAsync<A, T>;
   state: Atom<T>;
   setState: SetAtom<T>;
   sync: SyncFnBuilder<Atom<T>>;
@@ -560,14 +578,16 @@ export interface IInnerCreateOptions<T = SharedState> extends ICreateOptionsFull
 
 export interface IUseSharedOptionsBase {
   /**
-   * default: true，设置为false可以进一步提高组件渲染性能，但需要注意如果组件的依赖时变化的，
-   * 会造成依赖丢失的情况产生，触发组件不会重渲染的bug
+   * default: every ，设置为 first 或 no 可以进一步提高组件渲染性能，但需要注意
+   * first 时如果组件的依赖是变化的，会造成依赖丢失的情况产生，触发组件不会重渲染的bug，
+   * no 时不会从ui渲染力收集到依赖，需 deps 函数补充依赖
    * ```txt
-   * true，每一轮渲染都实时收集最新的依赖项
-   * false，仅首轮渲染收集依赖，后续渲染流程不收集
+   * no ，此时依赖仅靠 deps 提供
+   * first ，仅首轮渲染收集依赖，后续渲染流程不收集
+   * every ，每一轮渲染流程都实时收集
    * ```
    */
-  collect?: boolean;
+  collectType?: 'no' | 'first' | 'every';
   /**
    * 视图的id，在 ICreateOptionsFull.rules 里配置更新的 ids 包含的值指的就是此处配置的id，
    * 此id属于传入的 sharedState ，即和共享状态绑定了对应关系，意味着组件使用不同的 sharedState，
@@ -661,18 +681,20 @@ export interface IWatchOptions {
 
 export type WatchOptionsType = WatchDepFn | IWatchOptions;
 
-export interface IDeriveFnParams<T = Dict, I = readonly any[]> {
+export interface IDeriveFnParamsBase<I = readonly any[]> {
+  /** 函数的运行编号，每次自增1 */
+  sn: number;
   isFirstCall: boolean;
-  prevResult: T | null;
   triggerReasons: TriggerReason[];
   input: I;
 }
 
-export interface IDeriveAtomFnParams<R = any, I = readonly any[]> {
-  isFirstCall: boolean;
+export interface IDeriveFnParams<T = Dict, I = readonly any[]> extends IDeriveFnParamsBase<I> {
+  prevResult: T | null;
+}
+
+export interface IDeriveAtomFnParams<R = any, I = readonly any[]> extends IDeriveFnParamsBase<I> {
   prevResult: Atom<R> | null;
-  triggerReasons: TriggerReason[];
-  input: I;
 }
 
 export interface IUnmountInfo {
@@ -823,10 +845,10 @@ export interface IInsCtx<T = Dict> {
   /** 全局id，此属性只服务于 useGlobaId 设定的 globalId */
   globalId: NumStrSymbol;
   /**
-   * default: true
+   * default: every
    * 使用钩子函数时透传的能否收集依赖的标记
    */
-  collectFlag: boolean;
+  collectType: 'no' | 'first' | 'every';
   /**
    * default: true
    * 计算出的能否收集依赖标记，如透传了 options.collect=false，会在首轮渲染结束后标记为 false

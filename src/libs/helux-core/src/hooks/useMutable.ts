@@ -17,7 +17,7 @@ export function useMutable<T extends object = PlainObject>(apiCtx: CoreApiCtx, i
       final = { ...prevState, ...partialStateOrCb };
     }
     return final;
-  }
+  };
 
   return apiCtx.hookImpl.useObjectLogic(initialState, handleState, true);
 }

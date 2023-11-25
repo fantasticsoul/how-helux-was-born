@@ -1,14 +1,19 @@
-import { isDebug, isFn, isObj, isProxyAvailable, prefixValKey, getVal } from '@helux/utils';
+import { getVal, isDebug, isFn, isObj, isProxyAvailable, prefixValKey } from '@helux/utils';
 import { immut, IOperateParams } from 'limu';
 import { KEY_SPLITER, STATE_TYPE } from '../../consts';
 import { createOb } from '../../helpers/obj';
 import type { Dict, ISetStateOptions, NumStrSymbol, TriggerReason } from '../../types/base';
-import type { TInternal } from '../creator/buildInternal';
 import { DepKeyInfo } from '../../types/inner';
+import type { TInternal } from '../creator/buildInternal';
 
 const { USER_STATE } = STATE_TYPE;
 
 export interface IMutateCtx {
+  /**
+   * 为 shared 记录一个第一层的 key 值，用于刷新 immut 生成的 代理对象，
+   * 刷新时机和具体解释见 factory/creator/commitState 逻辑
+   */
+  level1Key: string;
   depKeys: string[];
   triggerReasons: TriggerReason[];
   ids: NumStrSymbol[];
@@ -27,7 +32,11 @@ export function tryGetLoc(moduleName: string, startCutIdx = 4) {
     try {
       throw new Error('loc');
     } catch (err: any) {
-      loc = err.stack.split('\n').slice(startCutIdx, 8).join('|');
+      const arr = err.stack.split('\n');
+      const pureArr = arr.map((codeLoc: string) => {
+        return codeLoc.substring(0, codeLoc.indexOf('(')).trim();
+      });
+      loc = pureArr.slice(startCutIdx, 8).join(' -> ');
     }
   }
   return loc;
@@ -36,6 +45,7 @@ export function tryGetLoc(moduleName: string, startCutIdx = 4) {
 export function newMutateCtx(options: ISetStateOptions): IMutateCtx {
   const { ids = [], globalIds = [] } = options; // 用户 setState 可能设定了 ids globalIds
   return {
+    level1Key: '',
     depKeys: [],
     triggerReasons: [],
     ids,
@@ -62,10 +72,13 @@ export function getDepKeyByPath(fullKeyPath: string[], sharedKey: number) {
 }
 
 export function isValChanged(internal: TInternal, depKey: string) {
-  const { snap, prevSnap, stateType } = internal;
+  const { snap, prevSnap, stateType, rootValKey } = internal;
   // 非用户状态，都返回 true（伴生状态有自己的key规则）
   if (USER_STATE !== stateType) {
     return true;
+  }
+
+  if (depKey === rootValKey) {
   }
 
   const { keyPath } = getDepKeyInfo(depKey);

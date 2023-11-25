@@ -1,4 +1,4 @@
-import { $, share, atom, derive, deriveAtom, block, blockStatus, useShared } from 'helux';
+import { $, share, atom, derive, deriveAtom, block, useShared } from 'helux';
 import React from 'react';
 import { Entry } from './comps';
 import { random, delay } from "./logic/util";
@@ -37,8 +37,7 @@ function changeAtom() {
   setAtom(numAtom.val + 100);
 }
 
-const AsyncBlock = blockStatus((props) => {
-  const { status } = props;
+const AsyncBlock = block((props, { status }) => {
   const val1 = doubleNum.val;
   const val2 = numAtom.val;
   const val3 = sharedState.a;

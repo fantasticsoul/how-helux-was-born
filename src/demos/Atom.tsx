@@ -7,7 +7,6 @@ import {
   useAtom,
   deriveAtom,
   atomAction,
-  WAY,
 } from "helux";
 import { MarkUpdate, Entry } from './comps';
 import { random } from './logic/util';
@@ -53,7 +52,7 @@ watch((params) => {
 });
 
 function NumAtom() {
-  const [num, setNum, info] = useAtom(numAtom, { collect: false });
+  const [num, setNum, info] = useAtom(numAtom, { collectType: 'first' });
   const changeNum = () => setNum(num + 1);
   const changeNumByDraft = () => setNum((d) => (d.val += 2));
 

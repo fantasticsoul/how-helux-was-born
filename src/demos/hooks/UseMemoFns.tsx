@@ -5,7 +5,8 @@ import { random } from "../logic/util";
 
 export function useMemoFns<T extends Record<string, Fn>>(fns: T): T {
   const srvRef = React.useRef(fns);
-  srvRef.current = fns;
+  // srvRef.current = fns;
+  srvRef.current = React.useMemo(() => fns, [fns]);
   const [srvWrap] = React.useState(() => {
     const srvWrap = {} as T;
     Object.keys(fns).forEach((key) => {
@@ -24,14 +25,24 @@ const Child = React.memo((props: any) => {
   </MarkUpdate>
 });
 
+// SDN
+// 1 Stable Ref
+// 2 Data reliable
+// 3 No deps
+
 function Comp(props: any) {
-  const [obj, setObj] = useObject({ num: 1 });
+  // const [obj, setObj] = useObject({ num: 1 });
+  const [obj, setObj] = React.useState({ num: 1 });
+
   const srv = useMemoFns({
     readState() {
       console.log(`%c read state num ${obj.num}`, `color:green`);
     },
     readProps() {
       console.log(`%c read props num ${props.num}`, `color:green`);
+    },
+    changeNum() {
+      setObj({ num: obj.num + 1 });
     },
   });
 
@@ -42,7 +53,8 @@ function Comp(props: any) {
     readProps() {
       console.log(`%c read props num ${props.num}`, `color:red`);
     },
-  }), [obj.num, props.num]);
+  // }), [obj.num, props.num]);
+  }), []);
 
 
   return (
@@ -50,6 +62,7 @@ function Comp(props: any) {
       <button onClick={() => setObj({ num: random() })}>change local num</button><br />
       <button style={{ color: 'green' }} onClick={() => srv.readState()}>call readState</button>
       <button style={{ color: 'green' }} onClick={() => srv.readProps()}>call readProps</button><br />
+      <button style={{ color: 'green' }} onClick={() => srv.changeNum()}>call changeNum</button><br />
       <button style={{ color: 'red' }} onClick={() => srv2.readState()}>call readState</button>
       <button style={{ color: 'red' }} onClick={() => srv2.readProps()}>call readProps</button>
       <h3>state num {obj.num}</h3>
