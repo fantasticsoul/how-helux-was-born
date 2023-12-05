@@ -7,22 +7,13 @@ import {
 import * as util from './logic/util';
 import * as limu from 'limu';
 
-
 const draft = limu.createDraft({ key: 1 }, { readOnly: true });
 draft.key = 2;
 const final = limu.finishDraft(draft);
 console.log('draft.key ---> ', final);
 
 const ori = { a: 50, b: 2, c: { c1: 100, c2: 1000 }, list: [{ name: 'one', age: 1 }] };
-const [ret, setState] = share(ori, {
-  moduleName: 'st2',
-  exact: true,
-  rules: [
-    { when: (state) => [state.list, state.c.c1, state.c.c2], ids: ['list'] },
-    // { when: (state) => state.list, ids: ['list'] },
-    // { when: (state) => state, ids: ['list'] },
-  ],
-});
+const [ret, setState] = share(ori, { moduleName: 'st2' });
 util.bindToWindow({ IsStatle: { ori, ret } });
 
 watch((params) => {
@@ -31,13 +22,7 @@ watch((params) => {
 });
 
 // will cause error: ERR_ALREADY_SHARED: pass a shared object to createShared!
-// const { state: ret2 } = createDeepShared(ret, { moduleName: 'st2' });
-// window.ret2 = ret2;
-// window.raw2 = getRawState(ret2);
-
-// const { state: ret2 } = createDeepShared(ori, { moduleName: 'st2' });
-// window.ret2 = ret2;
-// window.raw2 = getRawState(ret2);
+// const { state: ret2 } = share(ret, { moduleName: 'st2' });
 
 function COMP_C() {
   const [state, , info] = useShared(ret);

@@ -37,37 +37,32 @@ export function clearDep(insCtx: InsCtxDef) {
   internal.delInsCtx(insKey);
 }
 
+/**
+ * 每轮渲染完毕的 effect 里触发依赖数据更新
+ */
 export function updateDep(insCtx: InsCtxDef) {
-  const { insKey, readMap, readMapPrev, internal, canCollect } = insCtx;
+  const { canCollect, isFirstRender, currentDepKeys } = insCtx;
   // 标记了不能收集依赖，则运行期间不做更新依赖的动作
   if (!canCollect) {
+    if (isFirstRender) {
+      insCtx.depKeys = currentDepKeys.slice();
+    }
     return;
   }
-  Object.keys(readMapPrev).forEach((prevKey) => {
-    if (!readMap[prevKey]) {
-      // lost dep
-      internal.delDep(prevKey, insKey);
-    }
-  });
-  insCtx.readMapStrict = null;
+  insCtx.depKeys = currentDepKeys.slice();
 }
 
 /**
- * 重置读依赖 map
+ * 重置记录读依赖需要的辅助数据
  */
-export function resetReadMap(insCtx: InsCtxDef) {
-  const { readMap, readMapStrict, canCollect } = insCtx;
+export function resetDepHelpData(insCtx: InsCtxDef) {
+  const { canCollect } = insCtx;
   // 标记了不能收集依赖，则运行期间不做重置依赖的动作
   if (!canCollect) {
     return;
   }
-  if (readMapStrict) {
-    // second call
-    insCtx.readMapPrev = readMapStrict;
-    insCtx.readMapStrict = null;
-  } else {
-    insCtx.readMapPrev = readMap;
-    insCtx.readMapStrict = readMap;
-    insCtx.readMap = {}; // reset read map
-  }
+  insCtx.readMap = {}; // reset read map
+  insCtx.delReadMap = {};
+  insCtx.depKeys = insCtx.currentDepKeys.slice();
+  insCtx.currentDepKeys.length = 0;
 }

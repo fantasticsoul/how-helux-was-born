@@ -8,6 +8,7 @@ import { mapSharedState } from '../../helpers/state';
 import type { Dict } from '../../types/base';
 import { getMarkAtomMap } from '../common/atom';
 import { recordLastest } from '../common/blockScope';
+import { callOnRead, newOpParams } from '../common/util';
 import type { ParsedOptions } from './parse';
 
 /**
@@ -15,11 +16,11 @@ import type { ParsedOptions } from './parse';
  */
 export function buildSharedState(options: ParsedOptions) {
   let sharedState: any = {};
-  const { rawState, sharedKey, deep, forAtom } = options;
+  const { rawState, sharedKey, deep, forAtom, onRead } = options;
   const collectDep = (valKey: string, keyPath: string[], val: any) => {
     const depKey = prefixValKey(valKey, sharedKey);
     // using shared state in derived/watch callback
-    recordFnDepKeys([depKey], { sharedKey, sharedState });
+    recordFnDepKeys([depKey], { sharedKey });
     recordBlockDepKey([depKey]);
     recordLastest(sharedKey, val, sharedState, depKey, keyPath);
   };
@@ -29,11 +30,17 @@ export function buildSharedState(options: ParsedOptions) {
       customKeys: [IS_ATOM as symbol],
       customGet: () => forAtom,
       onOperate: (params) => {
-        const { isBuiltInFnKey, fullKeyPath } = params;
-        !isBuiltInFnKey && collectDep(fullKeyPath.join(KEY_SPLITER), fullKeyPath, params.value);
+        const { isBuiltInFnKey } = params;
+        if (!isBuiltInFnKey) {
+          const { fullKeyPath } = params;
+          const { proxyValue, rawVal } = callOnRead(params, onRead);
+          collectDep(fullKeyPath.join(KEY_SPLITER), fullKeyPath, rawVal);
+          return proxyValue;
+        }
       },
     });
   } else {
+    // TODO 为{}对象型的 atom.val 再包一层监听
     sharedState = createOb(rawState, {
       set: () => {
         warn('changing shared state is invalid');
@@ -47,8 +54,10 @@ export function buildSharedState(options: ParsedOptions) {
         if (isSymbol(key)) {
           return val;
         }
-        collectDep(key, [key], val);
-        return val;
+
+        const { rawVal } = callOnRead(newOpParams(key, val, false), onRead);
+        collectDep(key, [key], rawVal);
+        return rawVal;
       },
     });
   }

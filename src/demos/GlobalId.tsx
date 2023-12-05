@@ -1,6 +1,5 @@
 import React from 'react';
 import { share, atom, watch, useDerivedAtom, useShared, useAtom, useForceUpdate, deriveAtom, useGlobalId } from 'helux';
-import * as util from './logic/util';
 import { MarkUpdate, Entry } from './comps';
 
 const keySym = Symbol('keySym');
@@ -11,7 +10,7 @@ const [sharedState, setState] = share({ a: { a1: 1 }, b: { b1: 1 } });
 const [numAtom, setAtom] = atom(1, {
   moduleName: 'GlobalId',
   rules: [
-    { when: (state) => state.val, globalIds: ['JustUpdateMe', keySym, keyNum] }
+    { when: (state) => [state], globalIds: ['JustUpdateMe', keySym, keyNum] }
   ]
 });
 
@@ -31,7 +30,7 @@ watch((params) => {
 function NumAtom() {
   const [num, setNum, info] = useAtom(numAtom);
   const changeNum = () => setNum(num + 1);
-  const changeNumByDraft = () => setNum(d => d.val += 2);
+  const changeNumByDraft = () => setNum(val => val + 2);
 
   return (
     <MarkUpdate info={info}>
@@ -99,7 +98,7 @@ function UpdateForNumId() {
 }
 
 function addNumByDraft() {
-  setAtom(draft => draft.val += 1);
+  setAtom(val => val += 1);
 }
 
 function addNum() {

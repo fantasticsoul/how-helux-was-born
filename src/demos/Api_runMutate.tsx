@@ -18,7 +18,7 @@ const [idealPriceState, , ctx] = share({ loading: false, retA: 0, retB: 1 }, {
 const witness = mutate(idealPriceState)({
   desc: 'retA',
   deps: () => [priceState.a, numAtom.val] as const,
-  fn: (draft, [a, b]) => draft.retA = a + b,
+  fn: (draft, { input: [a, b] }) => draft.retA = a + b,
   task: async ({ setState, input: [a, b] }) => {
     console.log('call mutate retA task');
     setState({ loading: true });

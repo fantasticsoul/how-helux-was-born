@@ -47,8 +47,8 @@ export function getKeyPath(draftNode: any, curKey: string, apiCtx: IApiCtx) {
   return pathArr;
 }
 
-export function newMeta(baseData: any, options: any) {
-  const { ver, parentMeta = null, key, immutBase, compareVer, apiCtx } = options;
+export function newMeta(key: any, baseData: any, options: any) {
+  const { ver, parentMeta = null, immutBase, compareVer, apiCtx, hasOnOperate } = options;
   const dataType = getDataType(baseData);
 
   let keyPath: string[] = [];
@@ -88,6 +88,8 @@ export function newMeta(baseData: any, options: any) {
     ver,
     compareVer,
     revoke: noop,
+    hasOnOperate,
+    execOnOperate: noop,
   };
   if (level === 0) {
     meta.rootMeta = meta;
@@ -128,7 +130,7 @@ export function getNextMetaLevel(mayContainMetaObj: any, apiCtx: IApiCtx) {
   return meta ? meta.level + 1 : 1;
 }
 
-export function getSafeDraftMeta<T extends ObjectLike = ObjectLike>(proxyDraft: T, apiCtx: IApiCtx): DraftMeta<T> {
+export function getSafeDraftMeta<T = ObjectLike>(proxyDraft: T, apiCtx: IApiCtx): DraftMeta<T> {
   // @ts-ignore
   return apiCtx.metaMap.get(proxyDraft);
 }

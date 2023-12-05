@@ -37,14 +37,14 @@ import type {
   IAtomCtx,
   IBlockOptions,
   ICreateOptions,
+  IInsRenderInfo,
   IPlugin,
   IRenderInfo,
   IRunMutateOptions,
   ISharedCtx,
   IUseDerivedOptions,
-  IUseSharedOptions,
+  IUseSharedStateOptions,
   IWatchFnParams,
-  LoadingNone,
   LoadingState,
   LoadingStatus,
   Middleware,
@@ -52,11 +52,14 @@ import type {
   MutateFnDict,
   MutateFnLooseItem,
   MutateWitness,
+  NoRecord,
   NumStrSymbol,
   Off,
   PartialStateCb,
   PlainObject,
   ReadOnlyArr,
+  ReadonlyAtom,
+  ReadOnlyDict,
   SafeLoading,
   SetAtom,
   SetState,
@@ -73,10 +76,10 @@ export declare const EVENT_NAME: {
   ON_SHARE_CREATED: 'ON_SHARE_CREATED';
 };
 
-export declare const LOADING_MODE: {
-  NONE: LoadingNone;
-  PRIVATE: 'PRIVATE';
-  GLOBAL: 'GLOBAL';
+export declare const RECORD_LOADING: {
+  NONE: NoRecord;
+  PRIVATE: 'private';
+  GLOBAL: 'global';
 };
 
 /**
@@ -123,7 +126,7 @@ export declare const LOADING_MODE: {
 export function share<T extends PlainObject = PlainObject, O extends ICreateOptions<T> = ICreateOptions<T>>(
   rawState: T | (() => T),
   createOptions?: O,
-): readonly [SharedDict<T>, SetState<T>, ISharedCtx<T, O>];
+): readonly [ReadOnlyDict<T>, SetState<T>, ISharedCtx<T, O>];
 
 /**
  * 支持共享 primitive 类型值的接口
@@ -131,7 +134,7 @@ export function share<T extends PlainObject = PlainObject, O extends ICreateOpti
 export function atom<T = any, O extends IAtomCreateOptions<T> = IAtomCreateOptions<T>>(
   rawState: T | (() => T),
   createOptions?: O,
-): readonly [Atom<T>, SetAtom<T>, IAtomCtx<T, O>];
+): readonly [ReadonlyAtom<T>, SetAtom<T>, IAtomCtx<T, O>];
 
 /**
  * for compatible wit v2 helux
@@ -228,7 +231,7 @@ export function watch(watchFn: (fnParams: IWatchFnParams) => void, options?: Wat
  * const [ obj, setObj ] = useShared(sharedObj);
  * ```
  */
-export function useShared<T = Dict>(sharedObject: T, IUseSharedOptions?: IUseSharedOptions<T>): [SharedDict<T>, SetState<T>, IRenderInfo];
+export function useShared<T = Dict>(sharedObject: T, options?: IUseSharedStateOptions<T>): [SharedDict<T>, SetState<T>, IInsRenderInfo];
 
 /**
  * 组件使用 atom，注此接口只接受 atom 生成的对象，如传递 share 生成的对象会报错
@@ -248,7 +251,7 @@ export function useShared<T = Dict>(sharedObject: T, IUseSharedOptions?: IUseSha
  * });
  * ```
  */
-export function useAtom<T = any>(sharedState: Atom<T>, options?: IUseSharedOptions<Atom<T>>): [T, SetAtom<T>, IRenderInfo];
+export function useAtom<T = any>(sharedState: Atom<T>, options?: IUseSharedStateOptions<T>): [T, SetAtom<T>, IInsRenderInfo];
 
 /**
  * 使用普通对象，需注意此接口只接受普通对象
@@ -398,13 +401,13 @@ export function useStable<T = any>(data: T): T;
  * loading['whatever-key']; // 均能返回 status 对象，对于不存在的 mutate key，返回的 status 不变
  * ```
  */
-export function useMutateLoading<T = SharedState>(target?: T): [SafeLoading, SetState<LoadingState>, IRenderInfo];
+export function useMutateLoading<T = SharedState>(target?: T): [SafeLoading, SetState<LoadingState>, IInsRenderInfo];
 
 /** 组件外部读取 Mutate loading */
 export function getMutateLoading<T = SharedState>(target?: T): SafeLoading;
 
 /** 组件外部读取 Action loading */
-export function useActionLoading<T = SharedState>(target?: T): [SafeLoading, SetState<LoadingState>, IRenderInfo];
+export function useActionLoading<T = SharedState>(target?: T): [SafeLoading, SetState<LoadingState>, IInsRenderInfo];
 
 /** 组件外部读取 loading */
 export function getActionLoading<T = SharedState>(target?: T): SafeLoading;
@@ -587,6 +590,27 @@ export function atomAction<T = any>(atom: Atom<T>): <A extends any[] = any[]>(fn
 export function atomActionAsync<T = any>(
   atom: Atom<T>,
 ): <A extends any[] = any[]>(fn: AtomActionAsyncFnDef<A, T>, desc?: string) => AtomActionAsync<A, T>;
+
+/**
+ * get current draft root
+ * here pass state just for get return type
+ */
+export function currentDraftRoot<T = any>(state?: T): T extends Atom ? { val: T['val'] } : T;
+
+/**
+ * setAtomVal('xx') 等效于 currentDraftRoot().val = 'xx';
+ */
+export function setAtomVal<T = any>(val?: T): T;
+
+/**
+ * test if the input arg is a result returned by atom()
+ */
+export function isAtom(mayAtom: any): boolean;
+
+/**
+ * test if the input arg is a result returned by driveAtom()
+ */
+export function isDerivedAtom(mayDerivedAtom: any): boolean;
 
 // ----------- shallowCompare isDiff produce 二次重导出会报错，这里手动声明一下 --------------
 // err: 如果没有引用 "../../helux-core/node_modules/limu/lib"，则无法命名 "produce" 的推断类型。这很可能不可移植。需要类型注释

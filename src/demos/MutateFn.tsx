@@ -2,6 +2,13 @@ import React from 'react';
 import { atom, share, useShared } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 
+
+const [aAtom] = atom({ a: 1, b: 2 }, {
+  mutate: {
+    changeB: (draft, params) => draft.b = params.state.a + 1,
+  },
+});
+
 const [numAtom] = atom(3000);
 const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'MutateFn' });
 const [idealPriceState] = share({ idealPrice: 0, retB: 1 }, {

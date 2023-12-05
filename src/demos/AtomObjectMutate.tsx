@@ -13,28 +13,28 @@ const [funnyAtom] = atom({
   mutate: [
     (draft) => {
       console.log('double mutate');
-      draft.val.double = infoAtom.val.price * 2;
+      draft.double = infoAtom.val.price * 2;
     },
-    ({ val }) => {
+    (draft) => {
       console.log('funnyName mutate');
       const { from, detail } = infoAtom.val.info;
-      val.funnyName = `${from}_${detail.street}`;
+      draft.funnyName = `${from}_${detail.street}`;
     },
   ]
 });
 const [nickAtom] = atom({ nickName: '' }, {
-  mutate: ({ val }) => {
+  mutate: (draft) => {
     const { owner } = infoAtom.val.info;
-    val.nickName = `${funnyAtom.val.funnyName}|owner:${owner}`;
+    draft.nickName = `${funnyAtom.val.funnyName}|owner:${owner}`;
   },
 });
 
 function changePrice() {
-  setAtom(draft => { draft.val.price += 100 }, { desc: 'changePrice' });
+  setAtom(draft => { draft.price += 100 }, { desc: 'changePrice' });
 }
 
 function changeStreet() {
-  setAtom(draft => { draft.val.info.detail.street = `${randomStr()}` }, { desc: 'changeStreet' });
+  setAtom(draft => { draft.info.detail.street = `${randomStr()}` }, { desc: 'changeStreet' });
 }
 
 function InfoAtom() {

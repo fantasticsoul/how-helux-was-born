@@ -65,7 +65,7 @@ function useMarkUpdate(info: IRenderInfo | Array<IRenderInfo>) {
   useEffect(() => {
     setDepStr(getInfoData(info, true).depStr); // 此时调用获取到当前的渲染依赖
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sn]);
+  }, [sn, info]);
   let snLabel = Array.isArray(info) ? "sn sum" : "sn";
   const snNode = sn ? `(${snLabel} ${sn})` : "";
   return { depStr, snNode, sn };

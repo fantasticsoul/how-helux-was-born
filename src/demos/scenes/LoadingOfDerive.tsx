@@ -3,7 +3,7 @@ import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
 import { random, delay } from "../logic/util";
 
-const [sharedState, setState] = share({ a: 1, b: { b1: { b2: 200 } } }, { moduleName: 'LoadingOfMutate' });
+const [sharedState, setState] = share({ a: 1, b: { b1: { b2: 200 } } }, { moduleName: 'LoadingOfDerive' });
 const changeA = () => setState(draft => { draft.a = random() });
 
 const result = derive({

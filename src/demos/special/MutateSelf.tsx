@@ -21,16 +21,16 @@ const witnessDict = mutateDict(sharedState)({
   // },
   key1: {
     deps: (state) => [state.a],
-    fn: (draft, [a]) => { draft.b = a + 1 + random() },
+    fn: (draft, { input: [a] }) => { draft.b = a + 1 + random() },
     // fn: (draft) => { draft.b = sharedState.a + 1 + random() },
   },
   key2: {
     deps: (state) => [state.b],
-    fn: (draft, [b]) => { draft.c = b + 1 + random() },
+    fn: (draft, { input: [b] }) => { draft.c = b + 1 + random() },
   },
   key3: {
     deps: (state) => [state.c],
-    fn: (draft, [c]) => { draft.d = c + 1 + random() },
+    fn: (draft, { input: [c] }) => { draft.d = c + 1 + random() },
   },
   // key4: {
   //   deps: (state) => [state.d],

@@ -3,11 +3,11 @@ import { atom, useAtom, shallowCompare } from "helux";
 import { MarkUpdate, Entry } from './comps';
 
 const [listAtom, setAtom] = atom({ list: [{ name: 1 }, { name: 2 }] }, {
-  rules: [{ when: state => state.val.list, stopDep: true }]
+  rules: [{ when: state => state.list, stopDep: true }]
 });
 
 const changeItem1 = () => {
-  setAtom(state => { state.val.list[0].name = Date.now() });
+  setAtom(state => { state.list[0].name = Date.now() });
 };
 
 const ListItem = React.memo(function (props: any) {

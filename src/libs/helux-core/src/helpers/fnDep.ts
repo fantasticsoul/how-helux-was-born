@@ -1,20 +1,27 @@
 import { delListItem, nodupPush, safeMapGet } from '@helux/utils';
 import { PROTO_KEY } from '../consts';
-import { getFnCtx, getRunninFn, opUpstreamFnKey } from '../factory/common/fnScope';
-import { diffVal } from '../factory/common/sharedScope';
+import { getFnCtx, getRunningFn, opUpstreamFnKey } from '../factory/common/fnScope';
+import { hasChangedNode } from '../factory/common/sharedScope';
 import { getFnScope } from '../factory/common/speedup';
 import type { TInternal } from '../factory/creator/buildInternal';
 import type { Dict, IFnCtx } from '../types/base';
 import { getInternalByKey } from './state';
 
+export function markTaskRunning() {
+  const fnScope = getFnScope();
+  fnScope.isTaskRunning = true;
+}
+
+export function markIgnore(isIgnore = true) {
+  const fnScope = getFnScope();
+  fnScope.isIgnore = isIgnore;
+}
+
 /**
  * 自动记录当前正在运行的函数对 depKey 的依赖，以及 depKey 对应的函数记录
  */
-export function recordFnDepKeys(
-  inputDepKeys: string[],
-  options: { sharedKey?: number; specificCtx?: IFnCtx | null; belongCtx?: IFnCtx; sharedState?: any },
-) {
-  const { fnCtx: runningFnCtx, depKeys } = getRunninFn();
+export function recordFnDepKeys(inputDepKeys: string[], options: { sharedKey?: number; specificCtx?: IFnCtx | null; belongCtx?: IFnCtx }) {
+  const { fnCtx: runningFnCtx, depKeys, isTaskRunning, isIgnore, runningSharedKey } = getRunningFn();
   const fnCtx: IFnCtx | null | undefined = options.specificCtx || runningFnCtx;
   if (!fnCtx) {
     return;
@@ -38,16 +45,18 @@ export function recordFnDepKeys(
   }
 
   const { fnKey } = fnCtx;
+  // 一些异步 task 里的 depKey 需丢弃
+  const canRecordDepKey = runningSharedKey ? runningFnCtx && !isIgnore && !isTaskRunning : runningFnCtx;
+
   inputDepKeys.forEach((depKey: string) => {
     if (PROTO_KEY === depKey) {
       return;
     }
     // 注意此处暂不记录到 fnCtx.depKeys 里，而是记录到 fnScope.depKeys 里
     // 等到 markFnEnd 时再按最长路径提取出所有 depKeys 转移到 fnCtx.depKeys 里
-    if (runningFnCtx) {
+    if (canRecordDepKey) {
       nodupPush(depKeys, depKey); // here depKeys is come from fnScope
     }
-
     const fnKeys = safeMapGet(DEPKEY_FNKEYS_MAP, depKey, []);
     nodupPush(fnKeys, fnKey);
   });
@@ -103,19 +112,8 @@ export function getDepFnStats(internal: TInternal, depKey: string, runCountStats
   fnKeys.forEach((fnKey) => {
     const fnCtx = getFnCtx(fnKey);
     if (!fnCtx) return;
-    const { depKeys } = fnCtx;
-
-    let subValChanged = false;
-    for (const storedDepKey of depKeys) {
-      // TODO 此处可优化，按执行批次 sn 缓存比较过的结果，进一步提高性能
-      // 是 key 的子串，比较值是否有变化
-      if (storedDepKey.startsWith(depKey) && diffVal(internal, storedDepKey)) {
-        subValChanged = true;
-      }
-    }
-
     // 子串对应值变化才加入到 firstLevelFnKeys
-    if (subValChanged) {
+    if (hasChangedNode(internal, fnCtx.depKeys, depKey)) {
       if (fnCtx.isFirstLevel) {
         firstLevelFnKeys.push(fnKey);
       }

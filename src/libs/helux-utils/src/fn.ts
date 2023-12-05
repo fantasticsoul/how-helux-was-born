@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-export function noop(...args: any[]): undefined { }
+export function noop(...args: any[]): undefined {}
 
 export const noopVoid: (...args: any[]) => void = noop;
 

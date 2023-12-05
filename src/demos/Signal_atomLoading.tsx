@@ -11,7 +11,6 @@ const [numAtom, setAtom] = atom(100);
 //   return numAtom.val * 2 + sharedState.a;
 // });
 
-// 出现了 4/val 依赖是错误的
 const aPlusB2Result = derive({
   deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
   fn: () => ({ val: 0 }),
@@ -22,7 +21,7 @@ const aPlusB2Result = derive({
   },
 });
 
-// 放这里引起 loading 不消失
+// 放这里引起 loading 不消失（问题已修复）
 const doubleNum = deriveAtom(() => {
   return numAtom.val * 2 + sharedState.a;
 });
@@ -69,8 +68,8 @@ const AsyncBlock = block<{ a: number }, { sayHello: any }>((props, params) => {
       </div> */}
     </div>
   );
-// }, false);
-}, false);
+  // }, false);
+}, true);
 AsyncBlock.displayName = 'AsyncBlock';
 
 const Demo = () => {

@@ -13,7 +13,15 @@ export type ObjectLike = AnyObject | AnyArray | Map<any, any> | Set<any>;
 export type Op = 'del' | 'set' | 'get';
 export type DataType = 'Map' | 'Set' | 'Array' | 'Object';
 export type FastModeRange = 'array' | 'all' | 'none';
-export interface DraftMeta<T extends AnyObject = AnyObject> {
+
+export interface IExecOnOptions {
+  parentMeta: DraftMeta | null;
+  value: any;
+  isChanged?: boolean;
+  mayProxyVal?: any;
+}
+
+export interface DraftMeta<T = AnyObject> {
   rootMeta: DraftMeta;
   parentMeta: null | DraftMeta;
   parent: null | ObjectLike;
@@ -24,6 +32,8 @@ export interface DraftMeta<T extends AnyObject = AnyObject> {
   modified: boolean;
   /** 记录数组顺序是否发生变化，辅助数组结构的数据在 clearScopes 阶段决策如何重赋值 */
   isArrOrderChanged: boolean;
+  hasOnOperate: boolean;
+  execOnOperate: (op: Op, key: string, options: IExecOnOptions) => any;
   isImmutBase: boolean;
   isDel: boolean;
   isFast: boolean;
@@ -45,7 +55,8 @@ export interface DraftMeta<T extends AnyObject = AnyObject> {
 }
 
 export interface IOperateParams {
-  parentType: DataType;
+  /** 父亲节点的类型，零长字符串表示无父亲节点 */
+  parentType: DataType | '';
   key: string;
   /**
    * key path contains parent node key
@@ -60,11 +71,23 @@ export interface IOperateParams {
    */
   isBuiltInFnKey: boolean;
   /**
-   * is current operation a operation that will directly change data node
+   * is data node changed by current operation
    */
-  isChange: boolean;
+  isChanged: boolean;
   op: Op;
+  /** raw value */
   value: any;
+  /** proxy value */
+  proxyValue: any;
+  /**
+   * when get op triggered, user can pass a new value to replace the inner returned value,
+   * this is a dangerous behavior, the caller is responsible for the consequences
+   */
+  replaceValue: (newValue: any) => void;
+  /**
+   * get replaced info
+   */
+  getReplaced: <T = any>() => { isReplaced: boolean; replacedValue: T };
 }
 
 export interface ICreateDraftOptions {
@@ -73,12 +96,10 @@ export interface ICreateDraftOptions {
    * allow user overwrite global autoFreeze setting in current call process
    */
   autoFreeze?: boolean;
-  /** it does't works currently */
-  usePatches?: boolean;
   /**
    * any draft operation will trigger this callback
    */
-  onOperate?: (params: IOperateParams) => void;
+  onOperate?: (params: IOperateParams) => any;
   /**
    * default: 'array', this param means fastMode effect range,
    * set this param 'all' only if need extremly fast performance,

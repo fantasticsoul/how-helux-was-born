@@ -20,14 +20,14 @@ const witnessDict = mutateDict(sharedState)({
 
   key1: {
     deps: (state) => [state.a],
-    fn: (draft, [a]) => {
+    fn: (draft, { input: [a] }) => {
       // window.a.b = 1; // mock err
       draft.c = a + 1 + random()
     },
   },
   // key2: {
   //   deps: (state) => [state.c],
-  //   fn: (draft, [c]) => { draft.a = c + 1 + random() },
+  //   fn: (draft, { input: [c] }) => { draft.a = c + 1 + random() },
   // },
 
 

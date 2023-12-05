@@ -5,24 +5,24 @@ import { MarkUpdate, Entry } from './comps';
 const [numAtom, setAtom] = atom({ a: 1, b: 2 }, { moduleName: 'AtomExact' });
 
 function changeA() {
-  setAtom(draft => { draft.val.a += 100 });
+  setAtom(draft => { draft.a += 100 });
 }
 
 function changeB() {
-  setAtom(draft => { draft.val.b += 1 });
+  setAtom(draft => { draft.b += 1 });
 }
 
 function changeAB() {
   setAtom(draft => {
-    draft.val.a += 100;
-    draft.val.b += 1;
+    draft.a += 100;
+    draft.b += 1;
   });
 }
 
 function changeABWithNewObj() {
   setAtom(draft => {
-    const { a, b } = draft.val;
-    draft.val = { a: a + 100, b: b + 1 };
+    const { a, b } = draft;
+    return { a: a + 100, b: b + 1 };
   });
 }
 

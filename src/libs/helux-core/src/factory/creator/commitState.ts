@@ -4,7 +4,7 @@ import { createOb } from '../../helpers/obj';
 import type { Dict, IInnerSetStateOptions } from '../../types/base';
 import { getDepKeyByPath, IMutateCtx } from '../common/util';
 import type { TInternal } from './buildInternal';
-import { execDepFnAndInsUpdater } from './updater';
+import { execDepFns } from './notify';
 
 export interface ICommitStateOptions extends IInnerSetStateOptions {
   state: Dict;
@@ -54,6 +54,7 @@ export function commitState(opts: ICommitStateOptions) {
   const { state, internal, isAsync, mutateCtx } = opts;
   const { rawState, isDeep } = internal;
 
+  // 当前此特性暂不支持，后续考虑移除这段逻辑
   if (isAsync) {
     // for dangerous async mutate
     mutateCtx.keyPathValue.forEach((keyPath, value) => {
@@ -72,5 +73,5 @@ export function commitState(opts: ICommitStateOptions) {
   }
   interveneDeps(true, opts);
   interveneDeps(false, opts);
-  execDepFnAndInsUpdater(opts);
+  execDepFns(opts);
 }

@@ -2,6 +2,13 @@ import type { Dict, Fn } from '@helux/types';
 import { DEV_FLAG, GLOBAL_REF } from './cst';
 import { noop } from './fn';
 
+const toString = Object.prototype.toString;
+const MAP_DESC = '[object Map]';
+
+export function isMap(mayMap: any) {
+  return toString.call(mayMap) === MAP_DESC;
+}
+
 export function isMax(input: number) {
   return input === Number.MAX_SAFE_INTEGER;
 }
@@ -19,6 +26,10 @@ export function isDebug() {
 
 export function isObj(mayObj: any): mayObj is Dict {
   return mayObj && typeof mayObj === 'object' && !Array.isArray(mayObj);
+}
+
+export function isJsObj(mayObj: any): mayObj is Dict {
+  return mayObj && typeof mayObj === 'object';
 }
 
 export function isFn(mayFn: any): mayFn is Fn {

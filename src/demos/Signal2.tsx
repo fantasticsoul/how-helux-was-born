@@ -42,7 +42,7 @@ const AsyncBlock = block((props, { status }) => {
   const val2 = numAtom.val;
   const val3 = sharedState.a;
   const val4 = aPlusB2Result.val;
-  if (status.loading) return 'is commputing2';
+  if (status.loading) return 'is loading...';
 
   return (
     <div className="box">
@@ -55,7 +55,7 @@ const AsyncBlock = block((props, { status }) => {
       </div>
     </div>
   );
-});
+}, true);
 
 
 const UserBlock = block(() => <>

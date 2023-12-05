@@ -18,7 +18,7 @@ export const [idealPriceState, , idealPriceCtx] = share({ loading: false, retA: 
     retB: (draft) => draft.retB = priceState.b + 2 + baseAtom.val,
     retA: {
       deps: () => [priceState.a, baseAtom.val] as const,
-      fn: (draft, [a, b]) => draft.retA = a + b,
+      fn: (draft, { input: [a, b] }) => draft.retA = a + b,
       task: async ({ setState, input: [a, b] }) => {
         setState({ loading: true });
         await delay(1000);

@@ -44,6 +44,6 @@ function renderBy18Strict() {
   );
 }
 
-// renderBy16();
+renderBy16();
 // renderBy18();
-renderBy18Strict();
+// renderBy18Strict();

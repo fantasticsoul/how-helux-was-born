@@ -1,6 +1,7 @@
 // export { default as Atom } from './Atom';
 // export { default as AtomExact } from './AtomExact';
 // export { default as AtomAction } from './AtomAction';
+// export { default as AtomSyncer } from './AtomSyncer';
 // export { default as Signal } from './Signal';
 // export { default as Signal_atomLoading } from './Signal_atomLoading';
 // export { default as Signal2 } from './Signal2';
@@ -29,6 +30,7 @@
 // export { default as Produce } from './Produce';
 // export { default as CreateModel } from './CreateModel';
 // export { default as MutateTask } from './MutateTask';
+// export { default as MutateTask3_detectShareDc } from './MutateTask3_detectShareDc';
 // export { default as AtomMutate } from './AtomMutate';
 // export { default as AtomObjectMutate } from './AtomObjectMutate';
 // export { default as Api_mutate } from './Api_mutate';
@@ -36,14 +38,14 @@
 // export { default as Api_mutate2 } from './Api_mutate2';
 // export { default as Feat_arrStopDep } from './Feat_arrStopDep';
 // export { default as UseService } from './UseService';
-export { default as UseWatch } from './UseWatch';
-// export * from './scenes';
-// export { default as UseMemoFns } from './hooks/UseMemoFns';
-// export { default as UseStable } from './hooks/UseStable';
-// export { default as MutateSelf } from './special/MutateSelf';
+// export { default as UseWatch } from './UseWatch';
+export * from './scenes';
+export { default as UseMemoFns } from './hooks/UseMemoFns';
+export { default as UseStable } from './hooks/UseStable';
+export { default as MutateSelf } from './special/MutateSelf';
 
 // // 检查 M2 取draft为何没拦住
-// export { default as M2 } from './special/M2';
+export { default as M2 } from './special/M2';
 export { default as AtomItemChange } from './special/AtomItemChange';
 
-export const INITIAL_KEY = 'AtomItemChange';
+export const INITIAL_KEY = 'ReplaceFnToValue';

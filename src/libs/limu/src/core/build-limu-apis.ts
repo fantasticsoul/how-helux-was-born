@@ -3,7 +3,7 @@
  *
  *  @Author: fantasticsoul
  *--------------------------------------------------------------------------------------------*/
-import type { DraftMeta, IApiCtx, IInnerCreateDraftOptions, ObjectLike, Op } from '../inner-types';
+import type { DraftMeta, IApiCtx, IExecOnOptions, IInnerCreateDraftOptions, ObjectLike, Op } from '../inner-types';
 import { ARRAY, CAREFUL_FNKEYS, CAREFUL_TYPES, CHANGE_FNKEYS, IMMUT_BASE, MAP, META_VER, SET } from '../support/consts';
 import { conf } from '../support/inner-data';
 import { canBeNum, has, isFn, isPrimitive, isSymbol } from '../support/util';
@@ -18,7 +18,7 @@ import { extractFinalData, isInSameScope, recordVerScope } from './scope';
 // 避免 Cannot set property size of #<Set> which has only a getter
 const PROPERTIES_BLACK_LIST = ['length', 'constructor', 'asymmetricMatch', 'nodeType', 'size'] as const;
 const PBL_DICT: Record<string, number> = {}; // for perf
-PROPERTIES_BLACK_LIST.forEach(item => PBL_DICT[item] = 1);
+PROPERTIES_BLACK_LIST.forEach((item) => (PBL_DICT[item] = 1));
 
 const TYPE_BLACK_DICT: Record<string, number> = { [ARRAY]: 1, [SET]: 1, [MAP]: 1 }; // for perf
 export const FNIISH_HANDLER_MAP = new Map();
@@ -26,6 +26,7 @@ export const FNIISH_HANDLER_MAP = new Map();
 export function buildLimuApis(options?: IInnerCreateDraftOptions) {
   const opts = options || {};
   const onOperate = opts.onOperate;
+  const hasOnOperate = !!onOperate;
   const customKeys = opts.customKeys || [];
   const customGet = opts.customGet;
   const fastModeRange = opts.fastModeRange || conf.fastModeRange;
@@ -39,7 +40,6 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
   // allow user overwrite autoFreeze setting in current call process
   const autoFreeze = opts.autoFreeze ?? conf.autoFreeze;
   // 暂未实现 to be implemented in the future
-  const usePatches = opts.usePatches ?? conf.usePatches;
   const metaVer = genMetaVer();
   const apiCtx: IApiCtx = { metaMap: new Map(), newNodeMap: new Map(), debug, metaVer };
   ROOT_CTX.set(metaVer, apiCtx);
@@ -51,40 +51,54 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
     return true;
   };
 
-  const execOnOperate = (op: Op, key: string, options: { parentMeta: DraftMeta; isChange?: boolean; value?: any }) => {
-    const { parentMeta } = options;
-    if (!parentMeta || !onOperate) return;
-    const { selfType, keyPath, self, copy } = parentMeta;
+  const execOnOperate = (op: Op, key: string, options: IExecOnOptions) => {
+    const { mayProxyVal, parentMeta: inputPMeta, value } = options;
+    let isChanged = false;
+    if (!onOperate) return { isChanged, mayProxyVal };
+    const parentMeta = (inputPMeta || {}) as DraftMeta;
+    const { selfType = '', keyPath = [], copy, self, modified } = parentMeta || {};
 
-    let value: any = null;
-    let isChange = false;
     let isBuiltInFnKey = false;
     // 优先采用显式传递的 isChange
-    if (options.isChange !== undefined) {
-      // 内部调用时 isChange 和 value 总是一起设定
-      isChange = options.isChange;
-      value = options.value;
+    if (options.isChanged !== undefined) {
+      isChanged = options.isChanged;
     } else {
       const fnKeys = CAREFUL_FNKEYS[selfType] || [];
-      isChange = op !== 'get';
       if (fnKeys.includes(key)) {
         isBuiltInFnKey = true;
         const changeFnKeys = CHANGE_FNKEYS[selfType] || [];
-        isChange = changeFnKeys.includes(key);
+        isChanged = changeFnKeys.includes(key);
+      } else if (op !== 'get') {
+        // 变化之后取 copy 比较
+        const node = modified ? copy : self;
+        isChanged = inputPMeta ? node[key] !== value : true;
       }
-      value = copy[key] || self[key];
     }
 
+    let replacedValue: any = null;
+    let isReplaced = false;
+    const replaceValue = (value) => {
+      isReplaced = true;
+      replacedValue = value;
+    };
+    const getReplaced = () => ({ isReplaced, replacedValue });
     onOperate({
       parentType: selfType,
       op,
+      replaceValue,
+      getReplaced,
       isBuiltInFnKey,
-      isChange,
+      isChanged,
       key,
       keyPath,
       fullKeyPath: keyPath.concat(key),
       value,
+      proxyValue: mayProxyVal,
     });
+    return {
+      mayProxyVal: isReplaced ? replacedValue : mayProxyVal,
+      isChanged,
+    };
   };
 
   const limuApis = (() => {
@@ -95,8 +109,6 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
      * 如果数据节点上人工赋值了其他 draft 的话，当前 draft 结束后不能够被冻结（ 见set逻辑 ）
      */
     let canFreezeDraft = true;
-    const patches: any[] = [];
-    const inversePatches: any[] = [];
 
     // >= 3.0+ ver, shadow copy on read, mark modified on write
     const limuTraps = {
@@ -105,11 +117,11 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
         if (META_VER === key) {
           return metaVer;
         }
-        let currentChildVal = parent[key];
-
+        /** current child value, it may been replaced to a proxy value later */
+        const currentVal = parent[key];
         // 判断 toJSON 是为了兼容 JSON.stringify 调用, https://javascript.info/json#custom-tojson
         if (key === '__proto__' || (key === 'toJSON' && !has(parent, key))) {
-          return currentChildVal;
+          return currentVal;
         }
 
         if (isSymbol(key)) {
@@ -118,12 +130,13 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           }
           // 防止直接对 draft 时报错：Method xx.yy called on incompatible receiver
           // 例如 Array.from(draft)
-          if (isFn(currentChildVal)) {
-            return currentChildVal.bind(parent);
+          if (isFn(currentVal)) {
+            return currentVal.bind(parent);
           }
-          return currentChildVal;
+          return currentVal;
         }
 
+        let mayProxyVal = currentVal;
         const parentMeta = getSafeDraftMeta(parent, apiCtx) as DraftMeta;
         const parentType = parentMeta?.selfType;
         // copyWithin、sort 、valueOf... will hit the keys of 'asymmetricMatch', 'nodeType',
@@ -132,50 +145,45 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           return parentMeta.copy[key];
         }
         // 可能会指向代理对象
-        currentChildVal = getMayProxiedVal(currentChildVal, {
+        mayProxyVal = getMayProxiedVal(currentVal, {
           key,
           parentMeta,
           parentType,
           ver: metaVer,
           traps: limuTraps,
           parent,
-          patches,
           fastModeRange,
           immutBase,
           readOnly,
-          inversePatches,
-          usePatches, // not implement currently
           apiCtx,
+          hasOnOperate,
         });
 
         // 用下标取数组时，可直接返回
         // 例如数组操作: arrDraft[0].xxx = 'new'， 此时 arrDraft[0] 需要操作的是代理对象
         if (parentType === ARRAY && canBeNum(key)) {
-          execOnOperate('get', key, { parentMeta });
-          return currentChildVal;
+          const ret = execOnOperate('get', key, { parentMeta, mayProxyVal, value: currentVal });
+          return ret.mayProxyVal;
         }
 
         // @ts-ignore
         if (CAREFUL_TYPES[parentType]) {
-          currentChildVal = handleDataNode(parent, {
+          mayProxyVal = handleDataNode(parent, {
             op: key,
             key,
-            value: currentChildVal,
+            value: currentVal,
             metaVer,
             calledBy: 'get',
-            patches,
-            inversePatches,
-            usePatches,
             parentType,
             parentMeta,
             apiCtx,
           });
-          execOnOperate('get', key, { parentMeta });
-          return currentChildVal;
+          const ret = execOnOperate('get', key, { parentMeta, mayProxyVal, value: currentVal });
+          return ret.mayProxyVal;
         }
 
-        execOnOperate('get', key, { parentMeta });
-        return currentChildVal;
+        const ret = execOnOperate('get', key, { parentMeta, mayProxyVal, value: currentVal });
+        return ret.mayProxyVal;
       },
       // parent 指向的是代理之前的对象
       set: (parent: any, key: any, value: any) => {
@@ -198,44 +206,55 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
         }
 
         if (readOnly) {
-          execOnOperate('set', key, { parentMeta, isChange: false, value: targetValue });
+          execOnOperate('set', key, { parentMeta, isChanged: false, value: targetValue });
           return warnReadOnly();
         }
 
         // speed up array operation
-        // implement this in the future
-        // recordPatch({ meta, patches, inversePatches, usePatches, op: key, value });
         if (parentMeta && parentMeta.selfType === ARRAY) {
           // @ts-ignore
           if (parentMeta.copy && parentMeta.__callSet && canBeNum(key)) {
+            execOnOperate('set', key, { parentMeta, value: targetValue });
             parentMeta.copy[key] = targetValue;
-            execOnOperate('set', key, { parentMeta });
             return true;
           }
           // @ts-ignore, mark is set called on parent node
           parentMeta.__callSet = true;
         }
 
-        handleDataNode(parent, {
-          parentMeta,
-          key,
-          value: targetValue,
-          metaVer,
-          calledBy: 'set',
-          apiCtx,
-        });
-        execOnOperate('set', key, { parentMeta });
+        let isChanged = false;
+        if (!onOperate) {
+          // 变化之后取 copy 比较
+          const node = parentMeta.modified ? parentMeta.copy : parentMeta.self;
+          isChanged = node[key] !== value;
+        } else {
+          const ret = execOnOperate('set', key, { parentMeta, value: targetValue });
+          isChanged = ret.isChanged;
+        }
+
+        if (isChanged) {
+          handleDataNode(parent, {
+            parentMeta,
+            key,
+            value: targetValue,
+            metaVer,
+            calledBy: 'set',
+            apiCtx,
+          });
+        }
 
         return true;
       },
       // delete or Reflect.deleteProperty will trigger this trap
       deleteProperty: (parent: any, key: any) => {
         const parentMeta = getSafeDraftMeta(parent, apiCtx);
+        const value = parent[key];
         if (readOnly) {
-          execOnOperate('del', key, { parentMeta, isChange: false });
+          execOnOperate('del', key, { parentMeta, isChanged: false, value });
           return warnReadOnly();
         }
 
+        execOnOperate('del', key, { parentMeta, isChanged: true, value });
         handleDataNode(parent, {
           parentMeta,
           op: 'del',
@@ -245,7 +264,6 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           calledBy: 'deleteProperty',
           apiCtx,
         });
-        execOnOperate('del', key, { parentMeta });
 
         return true;
       },
@@ -256,7 +274,7 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
     };
 
     return {
-      createDraft: <T extends ObjectLike>(mayDraft: T): T => {
+      createDraft: <T = ObjectLike>(mayDraft: T): T => {
         if (isPrimitive(mayDraft)) {
           throw new Error('base state can not be primitive');
         }
@@ -271,16 +289,17 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           oriBase = draftMeta.self;
         }
 
-        const meta = createScopedMeta(oriBase, {
-          key: '',
+        const meta = createScopedMeta('', oriBase, {
           ver: metaVer,
           traps: limuTraps,
           immutBase,
           readOnly,
           compareVer,
           apiCtx,
+          hasOnOperate,
         });
         recordVerScope(meta);
+        meta.execOnOperate = execOnOperate;
         FNIISH_HANDLER_MAP.set(meta.proxyVal, limuApis.finishDraft);
 
         return meta.proxyVal as T;
@@ -311,10 +330,6 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
         }
         ROOT_CTX.delete(metaVer);
 
-        // limu doesn't need this currently
-        // if (usePatches) {
-        //   return [final, patches, inversePatches];
-        // }
         return final;
       },
     };

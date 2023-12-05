@@ -326,6 +326,7 @@ module.exports = function (webpackEnv) {
         '@helux/hooks-impl': path.resolve(__dirname, '../src/libs/helux-hooks-impl/src'),
         '@helux/utils': path.resolve(__dirname, '../src/libs/helux-utils/src'),
         '@helux/types': path.resolve(__dirname, '../src/libs/helux-types/src'),
+        '@helux/plugin-devtool': path.resolve(__dirname, '../src/libs/helux-plugin-devtool/src'),
 
         // Support React Native Web
         // https://www.smashingmagazine.com/2016/08/a-glimpse-into-the-future-with-react-native-for-web/

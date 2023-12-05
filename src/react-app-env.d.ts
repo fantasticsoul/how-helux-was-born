@@ -82,7 +82,7 @@ declare module '*.module.sass' {
   export default classes;
 }
 
-declare module 'helux22' {
+declare module 'helux' {
   export const {
     atom,
     share,
@@ -131,6 +131,8 @@ declare module 'helux22' {
     emit,
     on,
     produce,
+    currentDraftRoot,
+    setAtomVal,
     shallowCompare,
     isDiff,
     getMutateLoading,

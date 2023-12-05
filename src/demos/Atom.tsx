@@ -30,11 +30,11 @@ function changeNumOutOfCompWithCb() {
 }
 
 function changeNumByDraftOutOfComp() {
-  setAtom((d) => (d.val += 2));
+  setAtom((val) => (val + 2));
 }
 
-const hiAction = atomAction(numAtom)<[number, string]>(({ draft, args }) => {
-  draft.val += 100;
+const hiAction = atomAction(numAtom)<[number, string]>(({ draftRoot, args }) => {
+  draftRoot.val += 100;
 }, 'hi action');
 
 // const aciton2 = createAtomAction(numAtom)<[number, string]>(({ draft, args }) => {
@@ -42,8 +42,8 @@ const hiAction = atomAction(numAtom)<[number, string]>(({ draft, args }) => {
 // }, 'hi action');
 // console.log('aciton ', aciton);
 
-const someAction = ctx.action(({ draft, args }) => {
-  draft.val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
+const someAction = ctx.action(({ draftRoot, args }) => {
+  draftRoot.val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
 }, 'someAction');
 
 watch((params) => {
@@ -54,7 +54,7 @@ watch((params) => {
 function NumAtom() {
   const [num, setNum, info] = useAtom(numAtom, { collectType: 'first' });
   const changeNum = () => setNum(num + 1);
-  const changeNumByDraft = () => setNum((d) => (d.val += 2));
+  const changeNumByDraft = () => setNum((val) => (val + 2));
 
   return (
     <MarkUpdate info={info}>

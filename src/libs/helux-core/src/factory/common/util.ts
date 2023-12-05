@@ -1,13 +1,13 @@
-import { getVal, isDebug, isFn, isObj, isProxyAvailable, prefixValKey } from '@helux/utils';
+import { getVal, isDebug, isFn, isObj, isProxyAvailable, prefixValKey, isMap, noop } from '@helux/utils';
 import { immut, IOperateParams } from 'limu';
-import { KEY_SPLITER, STATE_TYPE } from '../../consts';
+import { KEY_SPLITER, STATE_TYPE, MAP, ARR } from '../../consts';
 import { createOb } from '../../helpers/obj';
 import type { Dict, ISetStateOptions, NumStrSymbol, TriggerReason } from '../../types/base';
 import { DepKeyInfo } from '../../types/inner';
 import type { TInternal } from '../creator/buildInternal';
 
 const { USER_STATE } = STATE_TYPE;
-
+const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any })
 export interface IMutateCtx {
   /**
    * 为 shared 记录一个第一层的 key 值，用于刷新 immut 生成的 代理对象，
@@ -21,8 +21,21 @@ export interface IMutateCtx {
   writeKeys: Dict;
   arrKeyDict: Dict;
   writeKeyPathInfo: Dict<TriggerReason>;
-  /** TODO ：记录变化值的路径，用于异步执行环境合并到 rawState 时，仅合并变化的那一部分节点，避免数据脏写 */
+  /**
+   * default: true
+   * 是否处理 atom setState((draft)=>xxx) 返回结果xxx，
+   * 目前规则是修改了 draft 则 handleAtomCbReturn 被会置为 false，
+   * 避免无括号写法 draft=>draft.xx = 1 隐式返回的结果 1 被写入到草稿，
+   * 备注：安全写法应该是draft=>{draft.xx = 1}
+   */
+  handleAtomCbReturn: boolean;
+  /**
+   * TODO ：记录变化值的路径，用于异步执行环境合并到 rawState 时，仅合并变化的那一部分节点，避免数据脏写
+   * 但异步执行环境直接修改 draft 本身就是很危险的行为，该特性需要慎重考虑是否要实现
+   */
   keyPathValue: Map<string[], any>;
+  /** 为 atom 记录的 draft.val 引用 */
+  draftVal: any;
 }
 
 // for hot reload of buildShared
@@ -51,14 +64,28 @@ export function newMutateCtx(options: ISetStateOptions): IMutateCtx {
     ids,
     globalIds,
     writeKeys: {},
-    arrKeyDict: {}, // 记录读取过程中遇到的数组key
+    arrKeyDict: {}, // 记录读取过程中遇到的数组 key
     writeKeyPathInfo: {},
     keyPathValue: new Map(),
+    handleAtomCbReturn: true,
+    draftVal: null,
   };
 }
 
-export function newOpParams(key: string, value: any, isChange = true): IOperateParams {
-  return { isChange, op: 'set', key, value, parentType: 'Object', keyPath: [], fullKeyPath: [key], isBuiltInFnKey: false };
+export function newOpParams(key: string, value: any, isChanged = true): IOperateParams {
+  return {
+    isChanged,
+    op: 'set',
+    key,
+    value,
+    proxyValue: value,
+    parentType: 'Object',
+    keyPath: [],
+    fullKeyPath: [key],
+    isBuiltInFnKey: false,
+    replaceValue: noop,
+    getReplaced: fakeGetReplaced,
+  };
 }
 
 export function getDepKeyInfo(depKey: string): DepKeyInfo {
@@ -67,18 +94,24 @@ export function getDepKeyInfo(depKey: string): DepKeyInfo {
   return { sharedKey: Number(sharedKey), keyPath, depKey };
 }
 
+/** 获取根值依赖 key 信息 */
+export function getRootValDepKeyInfo(internal: TInternal) {
+  const { sharedKey, forAtom } = internal;
+  // deps 列表里的 atom 结果自动拆箱
+  const suffix = forAtom ? '/val' : '';
+  const keyPath = forAtom ? ['val'] : [];
+  return { depKey: `${sharedKey}${suffix}`, keyPath, sharedKey };
+}
+
 export function getDepKeyByPath(fullKeyPath: string[], sharedKey: number) {
   return prefixValKey(fullKeyPath.join(KEY_SPLITER), sharedKey);
 }
 
 export function isValChanged(internal: TInternal, depKey: string) {
-  const { snap, prevSnap, stateType, rootValKey } = internal;
+  const { snap, prevSnap, stateType } = internal;
   // 非用户状态，都返回 true（伴生状态有自己的key规则）
   if (USER_STATE !== stateType) {
     return true;
-  }
-
-  if (depKey === rootValKey) {
   }
 
   const { keyPath } = getDepKeyInfo(depKey);
@@ -112,7 +145,7 @@ export function createImmut(obj: Dict, onOperate: (op: IOperateParams) => void) 
  * 区分是 atom 还是 shared 返回的部分状态，atom 返回要自动装箱为 { val: T }
  */
 export function wrapPartial(forAtom: boolean, val: any) {
-  if (val === undefined) return; // undefined 丢弃，如真需要赋值 undefined，对 draft 操作即可
+  if (val === undefined) return; // undefined 丢弃，如真需要赋值 undefined，调用 setAtomVal
   if (forAtom) return { val };
   if (isObj(val)) return val;
 }
@@ -123,4 +156,27 @@ export function wrapPartial(forAtom: boolean, val: any) {
 export function runPartialCb(forAtom: boolean, mayCb: any, draft: any) {
   const val = !isFn(mayCb) ? mayCb : mayCb(draft);
   return wrapPartial(forAtom, val);
+}
+
+export function callOnRead(opParams: IOperateParams, onRead: any) {
+  let { value, proxyValue } = opParams;
+  // 触发用户定义的钩子函数
+  if (onRead) {
+    onRead(opParams);
+    const { replacedValue, isReplaced } = opParams.getReplaced();
+    if (isReplaced) {
+      proxyValue = replacedValue;
+      value = replacedValue;
+    }
+  }
+  return { rawVal: value, proxyValue };
+}
+
+export function isArrLike(parentType?: string) {
+  // @ts-ignore
+  return [ARR, MAP].includes(parentType);
+}
+
+export function isArrLikeVal(val: any) {
+  return Array.isArray(val) || isMap(val);
 }

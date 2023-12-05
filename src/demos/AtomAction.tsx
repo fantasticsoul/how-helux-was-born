@@ -10,14 +10,15 @@ import { random, delay } from './logic/util';
 
 const [numAtom, , ctx] = atom(1, { moduleName: 'AtomAction' });
 
-const someAction = ctx.action(({ draft, args }) => {
-  draft.val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
+const someAction = ctx.action(({ draftRoot, args }) => {
+  draftRoot.val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
 }, 'someAction');
 
-const someAsyncAction = ctx.asyncAction<[number]>(async ({ setState, args }) => {
+const someAsyncAction = ctx.actionAsync<[number]>(async ({ setState, args }) => {
   await delay(2000);
   const val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
-  setState(draft => draft.val = val);
+  // setState((_, draftRoot) => draftRoot.val = val);
+  setState(val);
 }, 'someAsyncAction');
 setTimeout(() => {
   someAsyncAction(6000);
@@ -29,9 +30,9 @@ setTimeout(() => {
 // createAction3(numAtom)<[...]>(fnDef, desc) --> actionFn
 
 const normalAction = atomAction(numAtom)<[number, string]>(
-  ({ setState, args, draft }) => {
+  ({ setState, args }) => {
     const val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
-    draft.val = val;
+    return val;
   },
   'normalAction'
 );
@@ -40,14 +41,14 @@ const asyncAction = atomActionAsync(numAtom)<[number, string]>(
   async ({ setState, args }) => {
     await delay(2000);
     const val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
-    setState(draft => draft.val = val);
+    setState(val);
   }, 'asyncAction'
 );
 
 function NumAtom() {
   const [num, setNum, info] = useAtom(numAtom);
   const changeNum = () => setNum(num + 1);
-  const changeNumByDraft = () => setNum((d) => (d.val += 2));
+  const changeNumByDraft = () => setNum((val) => (val + 2));
 
   return (
     <MarkUpdate info={info}>

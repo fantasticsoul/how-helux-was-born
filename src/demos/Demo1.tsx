@@ -18,7 +18,7 @@ const [a2, seAtom, atomCtx] = atom(
   { a: 1, b: { b1: { b2: 200 } } },
   {
     mutate: {
-      xx: ({ val: draft }) => { draft.a += 1 },
+      xx: (draft) => { draft.a += 1 },
     }
   }
 );

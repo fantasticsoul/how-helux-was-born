@@ -5,10 +5,10 @@ import { log, delay } from './logic/util';
 
 const [baseAtom, setAtom] = atom(3000, { moduleName: 'baseAtom' });
 const [doubleAtom] = atom(0, {
-  mutate: (draft) => draft.val = baseAtom.val * 2,
+  mutate: () => baseAtom.val * 2,
 });
 const [minus10Atom] = atom(0, {
-  mutate: (draft) => draft.val = doubleAtom.val - 10,
+  mutate: () => doubleAtom.val - 10,
 });
 
 function Price() {

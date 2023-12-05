@@ -1,6 +1,6 @@
-import { canUseDeep, isFn, isObj, nodupPush, noop, noopArr, safeObjGet, setNoop } from '@helux/utils';
+import { canUseDeep, enureReturnArr, isFn, isJsObj, isObj, nodupPush, noop, noopArr, safeObjGet, setNoop } from '@helux/utils';
 import { immut } from 'limu';
-import { FROM, LOADING_MODE, SINGLE_MUTATE, STATE_TYPE, STOP_ARR_DEP, STOP_DEPTH } from '../../consts';
+import { FROM, RECORD_LOADING, SINGLE_MUTATE, STATE_TYPE, STOP_ARR_DEP, STOP_DEPTH } from '../../consts';
 import { createOb, injectHeluxProto } from '../../helpers/obj';
 import { getSharedKey, markSharedKey } from '../../helpers/state';
 import type { CoreApiCtx } from '../../types/api-ctx';
@@ -56,8 +56,12 @@ export function parseRawState(innerOptions: IInnerOptions) {
   const { forAtom = false } = innerOptions;
   let rawState: any = innerOptions.rawState;
   const isStateFn = isFn(rawState);
+  let isPrimitive = false;
   if (forAtom) {
     rawState = isStateFn ? { val: rawState() } : { val: rawState };
+    // 记录 atom 值的最初类型，如果是 undefined null 也当做原始类型记录
+    // TODO disscussion 这里后续是否需要进一步细分待用户讨论
+    isPrimitive = !rawState.val || !isJsObj(rawState.val);
   } else {
     rawState = isStateFn ? rawState() : rawState;
     if (!isObj(rawState)) {
@@ -67,7 +71,7 @@ export function parseRawState(innerOptions: IInnerOptions) {
       throw new Error('ERR_ALREADY_SHARED: pass a shared object to createShared!');
     }
   }
-  return rawState;
+  return { isPrimitive, rawState };
 }
 
 export function parseDesc(fnKey: any, itemDesc?: any) {
@@ -139,13 +143,12 @@ export function parseMutate(mutate?: IInnerCreateOptions['mutate'] | null, cache
 
 export function parseOptions(innerOptions: IInnerOptions, options: ICreateOptions = {}) {
   const { forAtom = false, forGlobal = false, stateType = STATE_TYPE.USER_STATE } = innerOptions;
-  const rawState = parseRawState(innerOptions);
+  const { rawState, isPrimitive } = parseRawState(innerOptions);
   const sharedKey = markSharedKeyOnState(rawState);
   const moduleName = options.moduleName || '';
   const deep = options.deep ?? true;
-  const exact = options.exact ?? true;
-  const enableLoading = options.enableLoading ?? true;
-  const loadingMode = options.loadingMode || LOADING_MODE.PRIVATE;
+  const enableDraftDep = options.enableDraftDep ?? false;
+  const recordLoading = options.recordLoading || RECORD_LOADING.PRIVATE;
   const rules = options.rules || [];
   const before = options.before || noop;
   const mutate = options.mutate || noop;
@@ -159,7 +162,6 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const mutateFnDict = parseMutate(mutate);
 
   return {
-    enableLoading,
     rawState,
     sharedKey,
     sharedKeyStr,
@@ -170,15 +172,17 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
     forGlobal,
     loc,
     deep,
-    exact,
     rules,
     before,
     mutate,
     mutateFnDict,
+    onRead: null as any, // 等待 setOnReadHook 写入
     stateType,
-    loadingMode,
+    recordLoading,
     stopArrDep,
     stopDepth,
+    isPrimitive,
+    enableDraftDep,
   };
 }
 
@@ -188,7 +192,7 @@ export type ParsedOptions = ReturnType<typeof parseOptions>;
  * 解析出 createShared 里配置的 rules
  */
 export function parseRules(options: ParsedOptions): IRuleConf {
-  const { rawState, sharedKey, deep, rules, stopDepth, stopArrDep } = options;
+  const { rawState, sharedKey, rootValKey, deep, rules, stopDepth, stopArrDep, forAtom } = options;
   const idsDict: KeyIdsDict = {};
   const globalIdsDict: KeyIdsDict = {};
   const stopDepInfo: IRuleConf['stopDepInfo'] = { keys: [], isArrDict: {}, arrKeyStopDcit: {}, depth: stopDepth, stopArrDep };
@@ -202,7 +206,6 @@ export function parseRules(options: ParsedOptions): IRuleConf {
     const { when, ids = [], globalIds = [], stopDep } = rule;
 
     let state: any;
-    let keyReaded = false;
     if (isDeep) {
       let pervKey = '';
       state = immut(rawState, {
@@ -219,7 +222,6 @@ export function parseRules(options: ParsedOptions): IRuleConf {
           confKeys.push(confKey);
           isArrDict[confKey] = Array.isArray(value);
           pervKey = confKey;
-          keyReaded = true;
         },
       });
     } else {
@@ -230,19 +232,23 @@ export function parseRules(options: ParsedOptions): IRuleConf {
           confKeys.push(confKey);
           const value = target[key];
           isArrDict[confKey] = Array.isArray(value);
-          keyReaded = true;
           return value;
         },
       });
     }
 
-    const result = when(state);
-    // record id, globalId, stopDep
-    const setRuleConf = (confKey: string) => {
+    // atom 自动拆箱
+    const stateNode = forAtom ? state.val : state;
+    const result = enureReturnArr(when, stateNode);
+    const pushId = (idsDict: KeyIdsDict, ids: NumStrSymbol[], confKey: string) => {
       const idList = safeObjGet(idsDict, confKey, [] as NumStrSymbol[]);
       ids.forEach((id) => nodupPush(idList, id));
-      const globalIdList = safeObjGet(globalIdsDict, confKey, [] as NumStrSymbol[]);
-      globalIds.forEach((id) => nodupPush(globalIdList, id));
+    };
+
+    // record id, globalId, stopDep
+    const setRuleConf = (confKey: string) => {
+      pushId(idsDict, ids, confKey);
+      pushId(globalIdsDict, globalIds, confKey);
 
       let stopKeyDep;
       if (isArrDict[confKey]) {
@@ -259,17 +265,15 @@ export function parseRules(options: ParsedOptions): IRuleConf {
     };
     confKeys.forEach(setRuleConf);
 
-    // 为让 globalId 机制能够正常工作，需要补上 sharedKey
-    if (
-      keyReaded
-      || result === state // 返回了state自身
-      || (Array.isArray(result) && result.includes(state)) // 返回了数组，包含有state自身
-    ) {
-      setRuleConf(`${sharedKey}`);
+    // 返回的数组包含有根状态自身时，需补上 rootValKey
+    if (result.includes(stateNode)) {
+      setRuleConf(rootValKey);
     }
   });
 
-  return { idsDict, globalIdsDict, stopDepInfo };
+  const hasIds = Object.keys(idsDict).length > 0;
+  const hasGlobalIds = Object.keys(globalIdsDict).length > 0;
+  return { hasIds, idsDict, hasGlobalIds, globalIdsDict, stopDepInfo };
 }
 
 export function parseCreateMutateOpt(descOrOptions?: string | IRunMutateOptions) {

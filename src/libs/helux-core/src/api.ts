@@ -1,6 +1,6 @@
 import { limuUtils, produce } from 'limu';
-import { EVENT_NAME, LOADING_MODE } from './consts/user';
-import { getAtom } from './factory/common/atom';
+import { EVENT_NAME, RECORD_LOADING } from './consts/user';
+import { getAtom, isAtom, isDerivedAtom } from './factory/common/atom';
 import { addMiddleware } from './factory/common/middleware';
 import { addPlugin } from './factory/common/plugin';
 import { emit, on } from './factory/common/userBus';
@@ -10,6 +10,7 @@ import { atomMutate, mutate, mutateDict, runMutate, runMutateTask } from './fact
 import { atom, share, shareAtom, shareState } from './factory/createShared';
 import { sync, syncer } from './factory/createSync';
 import { watch } from './factory/createWatch';
+import { currentDraftRoot, setAtomVal } from './factory/creator/current';
 import { getDeriveLoading, runDerive, runDeriveAsync } from './helpers/fnRunner';
 import { getRawState, getSnap } from './helpers/state';
 import { useDerived, useDerivedAtom } from './hooks/useDerived';
@@ -74,6 +75,10 @@ export {
   emit,
   on,
   // util api
+  currentDraftRoot,
+  setAtomVal,
+  isAtom,
+  isDerivedAtom,
   storeSrv,
   produce,
   shallowCompare,
@@ -87,5 +92,5 @@ export {
   addMiddleware,
   addPlugin,
   EVENT_NAME,
-  LOADING_MODE,
+  RECORD_LOADING,
 };
