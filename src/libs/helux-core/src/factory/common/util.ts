@@ -1,13 +1,13 @@
-import { getVal, isDebug, isFn, isObj, isProxyAvailable, prefixValKey, isMap, noop } from '@helux/utils';
+import { getVal, isDebug, isFn, isMap, isObj, isProxyAvailable, noop, prefixValKey } from '@helux/utils';
 import { immut, IOperateParams } from 'limu';
-import { KEY_SPLITER, STATE_TYPE, MAP, ARR } from '../../consts';
+import { ARR, KEY_SPLITER, MAP, STATE_TYPE } from '../../consts';
 import { createOb } from '../../helpers/obj';
 import type { Dict, ISetStateOptions, NumStrSymbol, TriggerReason } from '../../types/base';
 import { DepKeyInfo } from '../../types/inner';
 import type { TInternal } from '../creator/buildInternal';
 
 const { USER_STATE } = STATE_TYPE;
-const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any })
+const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any });
 export interface IMutateCtx {
   /**
    * 为 shared 记录一个第一层的 key 值，用于刷新 immut 生成的 代理对象，

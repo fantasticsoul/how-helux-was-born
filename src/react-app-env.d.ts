@@ -149,8 +149,10 @@ declare module 'helux' {
     addMiddleware,
     addPlugin,
     EVENT_NAME,
-    WAY,
-    LOADING_MODE,
+    RECORD_LOADING,
+    VER,
+    LIMU_VER,
+    limu,
   } = heluxApi;
 
   export const {

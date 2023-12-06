@@ -1,8 +1,10 @@
-import { share, deriveAtom, useShared, watch, shallowCompare, $, useWatch, currentDraftRoot } from 'helux';
+import { share, useShared, limu } from 'helux';
 import { getVal } from '@helux/utils';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
 import { random, delay, noop } from "../logic/util";
+
+console.log('limu', limu);
 
 const [shared, setShared, ctx] = share({
   a: {
@@ -34,6 +36,7 @@ ctx.setOnReadHook((params) => {
       params.value(draft, shared);
     });
     params.replaceValue(getVal(witness.snap, params.fullKeyPath));
+    // return getVal(witness.snap, params.fullKeyPath);
   }
 });
 
@@ -45,6 +48,7 @@ const changeABC = () => {
 
 function Info() {
   const [state, , info] = useShared(shared, { pure: true, arrIndexDep: false });
+  console.log('typeof state.extra.c', typeof state.extra.c);
 
   return <MarkUpdate info={info}>
     <h2>state.extra.c {state.extra.c}</h2>
