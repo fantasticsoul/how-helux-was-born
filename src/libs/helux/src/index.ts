@@ -20,6 +20,7 @@ export const {
   // hooks api
   useAtom,
   useShared,
+  useReactive,
   useDerived,
   useDerivedAtom,
   useWatch,
@@ -80,6 +81,4 @@ export const {
   RECORD_LOADING,
   VER,
   LIMU_VER,
-  // reexport limu
-  limu,
 } = api;

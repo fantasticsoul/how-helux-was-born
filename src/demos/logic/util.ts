@@ -63,3 +63,17 @@ export function bindToWindow(obj: any) {
   // @ts-ignore
   Object.assign(window.see, obj);
 }
+
+export function dictFctory() {
+  return {
+    a: {
+      b: { c: 1 },
+      b1: { c1: 1 },
+    },
+    info: { name: 'helux', age: 1 },
+    desc: 'awesome lib',
+    extra: {
+      mark: 'extra',
+    }
+  };
+}

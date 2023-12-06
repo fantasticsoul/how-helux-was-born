@@ -98,6 +98,7 @@ declare module 'helux' {
     createShared,
     useAtom,
     useShared,
+    useReactive,
     // use derived state
     useDerived,
     // use derived atom

@@ -1,5 +1,5 @@
-import * as limu from 'limu';
-import { EVENT_NAME, RECORD_LOADING, VER, LIMU_VER } from './consts/user';
+import { limuUtils, produce } from 'limu';
+import { EVENT_NAME, LIMU_VER, RECORD_LOADING, VER } from './consts/user';
 import { getAtom, isAtom, isDerivedAtom } from './factory/common/atom';
 import { addMiddleware } from './factory/common/middleware';
 import { addPlugin } from './factory/common/plugin';
@@ -20,10 +20,10 @@ import { useMutable } from './hooks/useMutable';
 import { useOnEvent } from './hooks/useOnEvent';
 import { storeSrv, useService } from './hooks/useService';
 import { useAtom, useShared } from './hooks/useShared';
+import { useReactive } from './hooks/useReactive';
 import { useWatch } from './hooks/useWatch';
 import { block, dynamicBlock, signal } from './signal';
 
-const { limuUtils, produce } = limu;
 const { shallowCompare, isDiff } = limuUtils;
 const createShared = share; // for compatible wit v2 helux
 const $ = signal; // signal api alias
@@ -44,6 +44,7 @@ export {
   // hooks api
   useAtom,
   useShared,
+  useReactive,
   useDerived,
   useDerivedAtom,
   useWatch,
@@ -96,6 +97,4 @@ export {
   RECORD_LOADING,
   VER,
   LIMU_VER,
-  // reexport limu
-  limu,
 };
