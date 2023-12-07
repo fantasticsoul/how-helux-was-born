@@ -1,8 +1,8 @@
 import { canUseDeep } from '@helux/utils';
 import { createOb } from '../../helpers/obj';
-import { INS_ON_READ } from './current';
 import type { OnOperate } from '../../types/base';
 import type { TInternal } from './buildInternal';
+import { INS_ON_READ } from './current';
 
 interface IReactive {
   timer: any;

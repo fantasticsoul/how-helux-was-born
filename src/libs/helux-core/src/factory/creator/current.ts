@@ -32,7 +32,7 @@ let CURRENT_INS_ON_READ: any = null;
 
 export const INS_ON_READ = {
   current: () => CURRENT_INS_ON_READ,
-  set: (onRead: any) => CURRENT_INS_ON_READ = onRead,
+  set: (onRead: any) => (CURRENT_INS_ON_READ = onRead),
 };
 
 export const INS_CTX = {

@@ -1,15 +1,15 @@
 import { getVal, matchDictKey, nodupPush } from '@helux/utils';
 import { IOperateParams } from 'limu';
-import { recordFnDepKeys } from '../../helpers/fnDep';
 import { recordBlockDepKey } from '../../helpers/blockDep';
+import { recordFnDepKeys } from '../../helpers/fnDep';
 import type { KeyIdsDict, NumStrSymbol } from '../../types/base';
+import { recordLastest } from '../common/blockScope';
 import { getRunningFn } from '../common/fnScope';
 import { cutDepKeyByStop } from '../common/stopDep';
-import { recordLastest } from '../common/blockScope';
 import { getDepKeyByPath, IMutateCtx, isArrLike } from '../common/util';
+import type { TInternal } from './buildInternal';
 import { flush } from './buildReactive';
 import { INS_ON_READ } from './current';
-import type { TInternal } from './buildInternal';
 
 /**
  * 如果变化命中了 rules[].ids 或 globaIds 规则，则添加到 mutateCtx.ids 或 globalIds 里

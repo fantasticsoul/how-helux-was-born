@@ -2,16 +2,20 @@ import * as helux from 'helux';
 import { getVal } from '@helux/utils';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
-import { dictFctory } from "../logic/util";
+import { dictFctory, delay } from "../logic/util";
 
 const { share, atom, useReactive } = helux;
-const [shared, , sctx] = share(dictFctory);
+const [shared, , sctx] = share(dictFctory, { moduleName: 'ReactiveAndLoding' });
 const [atomDict, , ctx] = atom(dictFctory);
+const { reactive } = sctx;
 
-function updateC1() {
-  sctx.reactive.a.b.c++;
-  sctx.reactive.a.b.c++;
-  sctx.reactive.a.b.c++;
+async function updateC1() {
+  reactive.a.b.c++;
+  reactive.a.b.c++;
+  reactive.a.b.c++;
+  reactive.loading = true;
+  await delay(3000);
+  reactive.loading = false;
 }
 function Info1() {
   const [reactiveShared] = useReactive(shared);
@@ -22,6 +26,7 @@ function Info1() {
 
   return <MarkUpdate>
     <button onClick={add}>add</button>
+    <h3>{reactiveShared.loading ? '....' : 'done'}</h3>
     <h2>reactiveShared.a.b.c {reactiveShared.a.b.c}</h2>
   </MarkUpdate>;
 }

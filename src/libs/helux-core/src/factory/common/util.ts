@@ -5,7 +5,6 @@ import { createOb } from '../../helpers/obj';
 import type { Dict, IInnerSetStateOptions, NumStrSymbol, TriggerReason } from '../../types/base';
 import { DepKeyInfo } from '../../types/inner';
 import type { TInternal } from '../creator/buildInternal';
-import { OnOperate } from 'helux';
 
 const { USER_STATE } = STATE_TYPE;
 const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any });

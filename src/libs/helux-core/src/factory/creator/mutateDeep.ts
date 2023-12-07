@@ -1,5 +1,5 @@
 import { isJsObj, isObj, noop } from '@helux/utils';
-import { IOperateParams, createDraft, finishDraft, limuUtils } from 'limu';
+import { createDraft, finishDraft, IOperateParams, limuUtils } from 'limu';
 import type { Dict, Ext, IInnerSetStateOptions } from '../../types/base';
 import { genRenderSN } from '../common/key';
 import { runMiddlewares } from '../common/middleware';
@@ -96,7 +96,7 @@ export function prepareDeepMutate(opts: IPrepareDeepMutateOpts) {
   const draftRoot = createDraft(internal.rawState, {
     onOperate: (opParams: IOperateParams) => {
       handleOperate(opParams, { internal, mutateCtx });
-    }
+    },
   });
 
   const { forAtom, isPrimitive } = internal;

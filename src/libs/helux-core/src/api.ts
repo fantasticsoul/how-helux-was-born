@@ -18,9 +18,9 @@ import { useGlobalId } from './hooks/useGlobalId';
 import { getActionLoading, getMutateLoading, useActionLoading, useMutateLoading } from './hooks/useLoading';
 import { useMutable } from './hooks/useMutable';
 import { useOnEvent } from './hooks/useOnEvent';
+import { useReactive } from './hooks/useReactive';
 import { storeSrv, useService } from './hooks/useService';
 import { useAtom, useShared } from './hooks/useShared';
-import { useReactive } from './hooks/useReactive';
 import { useWatch } from './hooks/useWatch';
 import { block, dynamicBlock, signal } from './signal';
 

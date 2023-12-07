@@ -23,9 +23,7 @@ const changeABC = () => {
 
 setInterval(() => reactive.a.b.c++, 1000);
 
-
 function Info() {
-  console.log(reactive.a.b.c);
   return <MarkUpdate>
     <h2>reactive.a.b.c {$(reactive.a.b.c)}</h2>
   </MarkUpdate>;

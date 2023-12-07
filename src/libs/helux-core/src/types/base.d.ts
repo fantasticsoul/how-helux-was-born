@@ -169,7 +169,6 @@ export type InsReactiveDict<T = SharedDict> = T;
 
 export type InsReactiveAtom<T = Atom<any>> = T;
 
-
 /** can pass to signal fn */
 export type SingalVal = Atom | DerivedAtom | NumStrSymbol | ReactNode | BlockComponent;
 
@@ -459,6 +458,7 @@ export interface ISharedStateCtxBase<T = any> {
   sharedKeyStr: string;
   rootValKey: string;
   reactive: T;
+  useReactive: (options?: IUseSharedStateOptions<T>) => [InsReactiveState<T>, IInsRenderInfo];
 }
 
 export interface ISharedCtx<T = SharedDict, O extends ICreateOptions<T> = ICreateOptions<T>> extends ISharedStateCtxBase<T> {

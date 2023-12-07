@@ -7,3 +7,4 @@
 // export { default as ReplaceFnToValue } from './ReplaceFnToValue';
 // export { default as Reactive } from './Reactive';
 export { default as ReactiveIns } from './ReactiveIns';
+export { default as ReactiveAndLoding } from './ReactiveAndLoading';

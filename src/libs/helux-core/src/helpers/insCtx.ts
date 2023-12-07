@@ -64,9 +64,7 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
       return proxyValue;
     };
 
-    insCtx.proxyState = isReactive
-      ? buildReactive(internal, onOperate)
-      : immut(rawState, { onOperate, compareVer: true });
+    insCtx.proxyState = isReactive ? buildReactive(internal, onOperate) : immut(rawState, { onOperate, compareVer: true });
   } else {
     insCtx.proxyState = createOb(rawState, {
       set: () => {
@@ -90,8 +88,15 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
 
 export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
   const {
-    updater, sharedState, id = '', globalId = '', collectType = 'every', deps,
-    pure = true, arrDep = true, isReactive = false,
+    updater,
+    sharedState,
+    id = '',
+    globalId = '',
+    collectType = 'every',
+    deps,
+    pure = true,
+    arrDep = true,
+    isReactive = false,
   } = options;
   const arrIndexDep = !arrDep ? true : options.arrIndexDep ?? true;
   const internal = getInternal(sharedState);

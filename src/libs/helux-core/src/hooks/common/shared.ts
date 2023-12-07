@@ -43,7 +43,10 @@ export function checkAtom(mayAtom: any, forAtom?: boolean) {
 }
 
 export function checkStateVer(insCtx: InsCtxDef) {
-  const { ver, internal: { ver: dataVer } } = insCtx;
+  const {
+    ver,
+    internal: { ver: dataVer },
+  } = insCtx;
   if (ver === dataVer) {
     return;
   }

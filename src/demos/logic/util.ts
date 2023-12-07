@@ -66,6 +66,7 @@ export function bindToWindow(obj: any) {
 
 export function dictFctory() {
   return {
+    loading: false,
     a: {
       b: { c: 1 },
       b1: { c1: 1 },
