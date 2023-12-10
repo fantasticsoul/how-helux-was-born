@@ -1,23 +1,31 @@
 import React from "react";
 import {
   AtomValType,
+  share,
   atom,
   watch,
-  useDerivedAtom,
+  useDerived,
   useAtom,
-  deriveAtom,
-  atomAction,
+  derive,
+  action,
 } from "helux";
 import { MarkUpdate, Entry } from './comps';
 import { random } from './logic/util';
 
 const [numAtom, setAtom, ctx] = atom(1, { moduleName: 'Atom' });
+const [numAtom2, setAtom2, ctx2] = atom({ a: 2, b: 2 }, { moduleName: 'Atom2' });
+const [numAtom3, setAtom3, ctx3] = share({ a: 2, b: 2 }, { moduleName: 'Atom3' });
 
-const numPlusAtom = deriveAtom(() => {
+const n1 = setAtom2(draft => { draft.a = 1 })
+const n2 = setAtom3(draft => { draft.a = 2 })
+const n3 = ctx2.setState(draft => { draft.a = 1 })
+const n4 = ctx3.setState(draft => { draft.a = 2 })
+
+const numPlusAtom = derive(() => {
   return numAtom.val + 100;
 });
 
-const numPlus200Atom = deriveAtom(() => {
+const numPlus200Atom = derive(() => {
   return numPlusAtom.val + 200;
 });
 
@@ -31,20 +39,24 @@ function changeNumOutOfCompWithCb() {
 
 function changeNumByDraftOutOfComp() {
   setAtom((val) => (val + 2));
+  ctx.setState(val => val + 2)
 }
 
-const hiAction = atomAction(numAtom)<[number, string]>(({ draftRoot, args }) => {
+const hiAction = action(numAtom)<[number, string]>(({ draftRoot, payload }) => {
   draftRoot.val += 100;
 }, 'hi action');
 
-// const aciton2 = createAtomAction(numAtom)<[number, string]>(({ draft, args }) => {
+// const aciton2 = createAtomAction(numAtom)<[number, string]>(({ draft, payload }) => {
 //   draft.val += 100;
 // }, 'hi action');
 // console.log('aciton ', aciton);
 
-const someAction = ctx.action(({ draftRoot, args }) => {
-  draftRoot.val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
+const someAction = ctx.action<number>(({ draftRoot, payload, draft }) => {
+  draftRoot.val = (payload && Number.isInteger(payload)) ? payload : random();
 }, 'someAction');
+const someActionTop = action(numAtom)<number>(({ draftRoot, payload }) => {
+  draftRoot.val = (payload && Number.isInteger(payload)) ? payload : random();
+}, 'someActionTop');
 
 watch((params) => {
   const { val } = numAtom;
@@ -66,7 +78,7 @@ function NumAtom() {
 }
 
 function NumPlusAtom() {
-  const [num, , info] = useDerivedAtom(numPlusAtom);
+  const [num, , info] = useDerived(numPlusAtom);
 
   return (
     <MarkUpdate info={info}>
@@ -76,7 +88,7 @@ function NumPlusAtom() {
 }
 
 function NumPlus200Atom() {
-  const [num, , info] = useDerivedAtom(numPlus200Atom);
+  const [num, , info] = useDerived(numPlus200Atom);
 
   return (
     <MarkUpdate info={info}>
@@ -87,7 +99,7 @@ function NumPlus200Atom() {
 
 function Demo(props: any) {
   return (
-    <Entry fns={[changeNumOutOfComp, changeNumOutOfCompWithCb, changeNumByDraftOutOfComp, someAction, hiAction]}>
+    <Entry fns={[changeNumOutOfComp, changeNumOutOfCompWithCb, changeNumByDraftOutOfComp, someAction, someActionTop, hiAction]}>
       <NumAtom />
       <NumAtom />
       <NumPlusAtom />

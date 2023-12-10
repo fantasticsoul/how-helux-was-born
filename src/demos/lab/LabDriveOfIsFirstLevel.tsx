@@ -1,10 +1,10 @@
-import { $, share, derive, useDerived } from 'helux';
+import { $, share, deriveDict, useDerived } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
 import { random, delay } from "../logic/util";
 
 const [sharedState, setState] = share({ a: 1, b: { b1: { b2: 200 } } });
-const result = derive({
+const result = deriveDict({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, sharedState.b],
   task: async () => {
@@ -15,7 +15,7 @@ const result = derive({
   immediate: true,
 });
 
-const result2 = derive({
+const result2 = deriveDict({
   fn: () => ({ val: sharedState.a + result.val }),
   task: async () => {
     await delay(1000);

@@ -1,10 +1,10 @@
 import React from 'react';
-import { mutate, share, useShared } from 'helux';
+import { mutate, share, useAtom } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from './logic/util';
 
-const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'Api_mutate' });
-const [finalPriceState, , ctx] = share({ retA: 0, time: 0 }, { moduleName: 'Api_mutate_finalPriceState' });
+const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'Api_mutate2' });
+const [finalPriceState, , ctx] = share({ retA: 0, time: 0 }, { moduleName: 'Api_mutate_finalPriceState2' });
 
 // 外部定义 mutate 函数
 const witness = mutate(finalPriceState)({
@@ -23,12 +23,12 @@ function forceRunMutate() {
 };
 
 function Price() {
-  const [price, , info] = useShared(priceState);
+  const [price, , info] = useAtom(priceState);
   return <MarkUpdate name="Price" info={info}>{price.a}</MarkUpdate>;
 }
 
 function FinalPrice() {
-  const [finalPrice, , info] = useShared(finalPriceState);
+  const [finalPrice, , info] = useAtom(finalPriceState);
   const [loading] = ctx.useMutateLoading();
   const status = loading[witness.desc];
 

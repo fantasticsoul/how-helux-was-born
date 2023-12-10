@@ -9,11 +9,11 @@ import { getInternal } from '../../helpers/state';
 import type { Dict, Fn, IInsRenderInfo } from '../../types/base';
 
 /**
- * 记录一些必要的辅助数据，返回 useAtom useShared 需要的元组数据
+ * 记录一些必要的辅助数据，返回 useAtom 需要的元组数据
  */
-export function prepareTuple(insCtx: InsCtxDef, forAtom?: boolean): [any, Fn, IInsRenderInfo] {
+export function prepareTuple(insCtx: InsCtxDef): [any, Fn, IInsRenderInfo] {
   const { proxyState, internal, renderInfo, canCollect, isReactive } = insCtx;
-  const { sharedKey, sharedKeyStr, setDraft } = internal;
+  const { sharedKey, sharedKeyStr, setState, forAtom } = internal;
   renderInfo.snap = internal.snap;
   // atom 自动拆箱，注意这里  proxyState.val 已触发记录根值依赖
   const rootVal = forAtom ? proxyState.val : proxyState;
@@ -27,13 +27,13 @@ export function prepareTuple(insCtx: InsCtxDef, forAtom?: boolean): [any, Fn, II
     INS_CTX.set(insCtx.rootVal, insCtx);
   }
   if (!forAtom && canCollect) {
-    // 记录一次根值依赖，让未对 useAtom useShared 返回值有任何读操作的组件也响应更新
+    // 记录一次根值依赖，让未对 useAtom 返回值有任何读操作的组件也响应更新
     insCtx.recordDep({ depKey: sharedKeyStr, keyPath: [], sharedKey }, DICT);
   }
 
-  // 提供给 useReactive 使用的响应对象无拆箱行为
+  // 提供给 useReactive 的拆箱行为在 useDrived 里单独处理
   const finalRoot = isReactive ? proxyState : rootVal;
-  return [finalRoot, setDraft, renderInfo];
+  return [finalRoot, setState, renderInfo];
 }
 
 export function checkAtom(mayAtom: any, forAtom?: boolean) {

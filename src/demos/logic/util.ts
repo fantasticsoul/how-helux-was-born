@@ -64,7 +64,7 @@ export function bindToWindow(obj: any) {
   Object.assign(window.see, obj);
 }
 
-export function dictFctory() {
+export function dictFactory() {
   return {
     loading: false,
     a: {
@@ -75,6 +75,9 @@ export function dictFctory() {
     desc: 'awesome lib',
     extra: {
       mark: 'extra',
+      toBeDrive: 0,
+      prefixedMark: '',
+      newName: '',
     }
   };
 }

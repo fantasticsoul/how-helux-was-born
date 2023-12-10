@@ -1,9 +1,9 @@
 import { includeOne, matchDictKey, nodupPush, noop, noopArr } from '@helux/utils';
 import { ASYNC_TYPE, NOT_MOUNT, RENDER_START } from '../consts';
-import { delHistoryUnmoutFnCtx, getCtxMap, getFnCtx, getFnKey, markFnKey, opUpstreamFnKey } from '../factory/common/fnScope';
+import { getCtxMap, getFnCtx, getFnKey, markFnKey } from '../factory/common/fnScope';
 import { getFnScope } from '../factory/common/speedup';
 import type { Dict, Fn, IFnCtx, ScopeType } from '../types/base';
-import { delFnDepData } from './fnDep';
+import { delFnDep, delHistoryUnmoutFnCtx } from './fnDep';
 
 const { MAY_TRANSFER } = ASYNC_TYPE;
 
@@ -78,7 +78,7 @@ export function markFnEnd() {
 
   fnScope.runningFnKey = '';
   fnScope.depKeys = [];
-  fnScope.isTaskRunning = false;
+  // fnScope.isTaskRunning = false;
   fnScope.runningSharedKey = 0;
 }
 
@@ -87,7 +87,7 @@ export function markFnStart(fnKey: string, sharedKey: number) {
   fnScope.runningFnKey = fnKey;
   fnScope.runningSharedKey = sharedKey;
   /** 待到 task 运行时会被标记为 true */
-  fnScope.isTaskRunning = false;
+  // fnScope.isTaskRunning = false;
   fnScope.isIgnore = false;
 }
 
@@ -113,8 +113,7 @@ export function delFn(fn: Fn) {
 export function delFnCtx(fnCtx: IFnCtx) {
   const { FNKEY_HOOK_CTX_MAP, UNMOUNT_INFO_MAP } = getFnScope();
   const { fnKey } = fnCtx;
-  delFnDepData(fnCtx);
-  opUpstreamFnKey(fnCtx);
+  delFnDep(fnCtx);
   // 删除延迟的 watch 函数，严格模式下的下一次挂载无需再执行此函数
   fnCtx.extra.deferedWatch = null;
   // 删除当前fnKey 与 hookFnCtx 的映射关系

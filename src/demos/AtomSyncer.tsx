@@ -1,7 +1,9 @@
-import { $, atom, currentDraftRoot } from 'helux';
+import { $, share, atom, currentDraftRoot, useAtom, sync } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from './comps';
-import { random, delay } from "./logic/util";
+import { dictFactory } from "./logic/util";
+
+const [shared] = share(dictFactory);
 
 const [objAtom, setAtom, ctx] = atom({ a: 1, b: { b1: { b2: '200' } } }, {
   moduleName: 'DeriveTask',
@@ -25,6 +27,7 @@ function changeA() {
 }
 
 function SharedAtom() {
+  const [stateDict] = useAtom(shared);
   const [state] = ctx.useState();
   const [num] = numCtx.useState();
   return (
@@ -42,6 +45,8 @@ function SharedAtom() {
       syncer no {'{}'}<input value={state.a} onChange={(e: any) => ctx.setState(draft => draft.a = e.target.value)} />
       <br />
       syncer.a<input value={state.a} onChange={ctx.syncer.a} />
+      <br />
+      stateDict.a.b.c <input value={stateDict.a.b.c} onChange={sync(stateDict)(to => to.a.b.c)} />
       <br />
 
       syncer.b<input value={state.b.b1.b2} onChange={ctx.sync(to => to.b.b1.b2)} />

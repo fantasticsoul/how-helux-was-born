@@ -1,12 +1,12 @@
-import { share, derive, useShared, useDerived, runDerive } from "helux";
+import { share, deriveDict, useAtom, useDerived, runDerive } from "helux";
 import { random } from "./logic/util";
 import { MarkUpdate, Entry } from "./comps";
 
 const delay = (ms = 1000) => new Promise((r) => setTimeout(r, ms));
 
 const [sharedState, setState, call] = share({ a: 1, b: { b1: { b2: 200 } } });
-const doubleAResult = derive(() => ({ val: sharedState.a * 2 + random() }));
-const aPlusB2Result = derive({
+const doubleAResult = deriveDict(() => ({ val: sharedState.a * 2 + random() }));
+const aPlusB2Result = deriveDict({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
   task: async ({ input: [a, b2] }) => {
@@ -14,9 +14,9 @@ const aPlusB2Result = derive({
     return { val: a + b2 + random() };
   },
 });
-// const transResult1 = derive(() => aPlusB2Result);
-// const transResult2 = derive(() => transResult1);
-const transResult1 = derive({
+// const transResult1 = deriveDict(() => aPlusB2Result);
+// const transResult2 = deriveDict(() => transResult1);
+const transResult1 = deriveDict({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, aPlusB2Result.val] as const,
   task: async ({ input: [a, val] }) => {
@@ -24,7 +24,7 @@ const transResult1 = derive({
     return { val: a + val + random() };
   },
 });
-const transResult2 = derive({
+const transResult2 = deriveDict({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, transResult1.val] as const,
   task: async ({ input: [a, val] }) => {
@@ -32,10 +32,10 @@ const transResult2 = derive({
     return { val: a + val + random() };
   },
 });
-// const transResult3 = derive(() => {
+// const transResult3 = deriveDict(() => {
 //   return { val: transResult2.val + 5 };
 // });
-const transResult3 = derive({
+const transResult3 = deriveDict({
   fn: () => {
     console.error('run transResult3');
     return { val: transResult2.val + 5 };

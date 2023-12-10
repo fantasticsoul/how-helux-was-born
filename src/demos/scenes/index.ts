@@ -6,5 +6,8 @@
 // export { default as ExactTrigger2Share } from './ExactTrigger2Share';
 // export { default as ReplaceFnToValue } from './ReplaceFnToValue';
 // export { default as Reactive } from './Reactive';
-export { default as ReactiveIns } from './ReactiveIns';
-export { default as ReactiveAndLoding } from './ReactiveAndLoading';
+// export { default as ReactiveIns } from './ReactiveIns';
+// export { default as ReactiveAndLoding } from './ReactiveAndLoading';
+// export { default as DefineApi } from './DefineApi';
+// export { default as DefineMutateDerive } from './DefineMutateDerive';
+export { default as DefineMutateSelf } from './DefineMutateSelf';

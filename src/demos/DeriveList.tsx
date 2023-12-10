@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  useShared, share, shallowCompare, useForceUpdate, derive, useDerived,
+  useAtom, share, shallowCompare, useForceUpdate, deriveDict, useDerived,
 } from 'helux';
 import * as util from './logic/util';
 import { MarkUpdate, Entry } from './comps';
@@ -18,7 +18,7 @@ const [ret, setState] = share(stateFn, {
   ],
 });
 
-const lenMarkRet = derive(() => {
+const lenMarkRet = deriveDict(() => {
   const { list } = ret;
   const idx = list.findIndex(item => item.name === 'xxx');
   // return { val: `len is ${list.length} (${util.timemark()})` };
@@ -96,7 +96,7 @@ const ListItem = React.memo(function (props: any) {
 
 function List() {
   console.log('Render List');
-  const [state] = useShared(ret, { id: 'list' });
+  const [state] = useAtom(ret, { id: 'list' });
   return (
     <div>
       {state.list.map((item, idx) => <ListItem key={idx} item={item} idx={idx} />)}
@@ -116,7 +116,7 @@ function ListLen() {
 
 function NestedList() {
   console.log('Render NestedList');
-  const [state] = useShared(ret, { id: 'list1' });
+  const [state] = useAtom(ret, { id: 'list1' });
 
   return (
     <div>

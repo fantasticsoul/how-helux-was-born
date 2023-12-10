@@ -1,4 +1,4 @@
-import { share, derive, useShared, useDerived, runDerive, atom } from "helux";
+import { share, deriveDict, derive, useAtom, useDerived, runDerive, atom } from "helux";
 import { random } from "./logic/util";
 import { MarkUpdate } from "./comps";
 
@@ -23,11 +23,12 @@ const [a2, seAtom, atomCtx] = atom(
   }
 );
 
-// create sync derive result with one shared state
-const doubleAResult = derive(() => ({ val: sharedState.a * 2 + random() }));
+// create sync deriveDict result with one shared state
+const doubleAResult = deriveDict(() => ({ val: sharedState.a * 2 + random() }));
+const doubleAResultAtom = derive(() => sharedState.a * 2 + random());
 
-// create async derive result with multi shared state
-const aPlusB2Result = derive({
+// create async deriveDict result with multi shared state
+const aPlusB2Result = deriveDict({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
   task: async ({ input: [a, b2] }) => {
@@ -42,7 +43,7 @@ window.rr = () => runDerive(doubleAResult);
 window.rr2 = () => runDerive(aPlusB2Result);
 
 // use derived result to generate another result
-const cu2Ret = derive(() => ({ val: doubleAResult.val + 100 }));
+const cu2Ret = deriveDict(() => ({ val: doubleAResult.val + 100 }));
 
 // mutate state out of react component
 function changeA() {
@@ -59,7 +60,7 @@ function changeAWithCall(num?: number) {
 
 function DemoReadShareState() {
   // read shared state
-  const [state, setState, info] = useShared(sharedState);
+  const [state, setState, info] = useAtom(sharedState);
   // mutate in compoment
   const mutableSet = () =>
     setState((draft) => {
@@ -84,6 +85,7 @@ function DemoReadRerivedResult() {
   const [doubleA, , info] = useDerived(doubleAResult);
   const [cu2, , info2] = useDerived(cu2Ret);
   const [aPlusB2, status, info3] = useDerived(aPlusB2Result);
+  const [aPlusB2_unboxed, status4, info4] = useDerived(doubleAResultAtom);
 
   return (
     <MarkUpdate info={[info, info2, info3]}>

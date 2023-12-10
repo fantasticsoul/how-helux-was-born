@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { atom, share, useShared, runMutateFn } from 'helux';
+import { atom, share, useAtom, runMutateFn } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { log, delay } from './logic/util';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
-  useShared, share, watch, useForceUpdate, useDerived,
-  derive, runDerive, runDeriveAsync,
+  useAtom, share, watch, useForceUpdate, useDerived,
+  deriveDict, runDerive, runDeriveTask,
 } from 'helux';
 import * as util from './logic/util';
 import { MarkUpdate, Entry } from './comps';
@@ -15,12 +15,12 @@ watch(() => {
   setState(draft => { draft.doubleA = a * 2 });
 }, () => [ret.a]);
 
-const coolWrap = derive(() => {
+const coolWrap = deriveDict(() => {
   const { doubleA } = ret;
   return { cool: doubleA + 19 }
 });
 
-const outRet = derive({
+const outRet = deriveDict({
   deps: () => [ret.doubleA] as const,
   fn: () => ({ val: 0 + util.random() }),
   task: async ({ input: [doubleA] }) => {
@@ -32,7 +32,7 @@ const outRet = derive({
 
 // @ts-ignore
 const rerun = () => runDerive(outRet);
-const rerunAsync = () => runDeriveAsync(outRet);
+const rerunAsync = () => runDeriveTask(outRet);
 
 function change_a() {
   setState(draft => {
@@ -44,7 +44,7 @@ function change_a() {
 
 function SharedA() {
   console.log('Render A', ret);
-  const [state] = useShared(ret);
+  const [state] = useAtom(ret);
   return (
     <div>
       {state.a}
@@ -54,7 +54,7 @@ function SharedA() {
 
 function DoubleA() {
   console.log('Render DoubleA');
-  const [state] = useShared(ret);
+  const [state] = useAtom(ret);
   return (
     <div>
       state.doubleA：{state.doubleA}

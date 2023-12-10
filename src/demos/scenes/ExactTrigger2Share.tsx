@@ -1,4 +1,4 @@
-import { share, deriveAtom, useShared, watch, shallowCompare, $, useWatch, currentDraftRoot } from 'helux';
+import { share, derive, useAtom, watch, shallowCompare, $, useWatch, currentDraftRoot } from 'helux';
 import { getVal } from '@helux/utils';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
@@ -60,7 +60,7 @@ const changeExtra = () => {
 // 💢 触发执行，因为 info 引用已变化
 function Info() {
   console.log('----------------------------------------');
-  const [state, , info] = useShared(shared, { deps: state => [] });
+  const [state, , info] = useAtom(shared, { deps: state => [] });
   React.useEffect(() => {
     console.log('Info React.useEffect state changed');
   }, [state]);
@@ -83,7 +83,7 @@ function Info() {
 
 function Info1() {
   console.log('%c Render Info1', 'color:blue;');
-  const [state, , info] = useShared(shared, { pure: true, arrDep: false });
+  const [state, , info] = useAtom(shared, { pure: true, arrDep: false });
   const { age } = state.info;
   noop(state.extra.list[0].name);
   noop(state.extra.list[1]);
@@ -102,7 +102,7 @@ function Info1() {
 }
 
 function Info2() {
-  const [state, , info] = useShared(shared, { pure: true, arrIndexDep: false });
+  const [state, , info] = useAtom(shared, { pure: true, arrIndexDep: false });
   noop(state.info);
 
   if (state.info.age === 2) {

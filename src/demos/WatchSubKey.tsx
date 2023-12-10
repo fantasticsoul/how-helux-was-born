@@ -1,5 +1,5 @@
 import React from "react";
-import { atom, share, watch, useShared, getSnap, derive } from "helux";
+import { atom, share, watch, useAtom, getSnap, deriveDict } from "helux";
 import { MarkUpdate, Entry } from "./comps";
 import { noop, random } from "./logic/util";
 
@@ -58,8 +58,8 @@ function changeB() {
   );
 }
 
-// const result = derive(() => {
-//   console.log('trigger derive');
+// const result = deriveDict(() => {
+//   console.log('trigger deriveDict');
 //   return { num: priceState.a.a1.a2 + 100 };
 // })
 
@@ -97,7 +97,7 @@ watch(
 );
 
 function Price() {
-  const [price, , info] = useShared(priceState);
+  const [price, , info] = useAtom(priceState);
   noop(price.a);
   return (
     <MarkUpdate name="Price" info={info}>
@@ -107,7 +107,7 @@ function Price() {
 }
 
 function Books() {
-  const [price, , info] = useShared(priceState);
+  const [price, , info] = useAtom(priceState);
   return (
     <MarkUpdate name="Price" info={info}>
       price.a.a1.a2: {price.a.a1.a2}

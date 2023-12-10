@@ -12,17 +12,15 @@ export const {
   createShared,
   // derive api
   derive,
-  deriveAtom,
+  deriveDict,
   runDerive,
-  runDeriveAsync,
+  runDeriveTask,
   // watch api
   watch,
   // hooks api
   useAtom,
-  useShared,
   useReactive,
   useDerived,
-  useDerivedAtom,
   useWatch,
   useGlobalId,
   useService,
@@ -37,9 +35,6 @@ export const {
   useObject,
   // action api
   action,
-  actionAsync,
-  atomAction,
-  atomActionAsync,
   // signal api
   signal,
   block,
@@ -48,7 +43,6 @@ export const {
   // mutate api
   mutate,
   mutateDict,
-  atomMutate,
   runMutate,
   runMutateTask,
   // sync api
@@ -61,6 +55,8 @@ export const {
   emit,
   on,
   // util api
+  reactiveDesc,
+  flush,
   currentDraftRoot,
   setAtomVal,
   isAtom,

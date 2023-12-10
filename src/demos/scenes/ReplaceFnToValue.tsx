@@ -1,8 +1,7 @@
-import { share, useShared, limu } from 'helux';
+import { share, useAtom, limu } from 'helux';
 import { getVal } from '@helux/utils';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
-import { random, delay, noop } from "../logic/util";
 
 console.log('limu', limu);
 
@@ -47,7 +46,7 @@ const changeABC = () => {
 };
 
 function Info() {
-  const [state, , info] = useShared(shared, { pure: true, arrIndexDep: false });
+  const [state, , info] = useAtom(shared, { pure: true, arrIndexDep: false });
   console.log('typeof state.extra.c', typeof state.extra.c);
 
   return <MarkUpdate info={info}>

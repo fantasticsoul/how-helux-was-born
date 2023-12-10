@@ -2,21 +2,8 @@
 import React from 'react';
 import ReactDOMLegacy from "react-dom";
 import ReactDOM from "react-dom/client";
+import './addPluginAndMid';
 import App from './App';
-import { HeluxPluginDevtool } from '@helux/plugin-devtool';
-import { addPlugin, addMiddleware, Middleware } from 'helux';
-
-addPlugin(HeluxPluginDevtool);
-addMiddleware((mid) => {
-  // console.log(mid);
-});
-
-
-// const markTimeMiddleWare : Middleware = (params)=>{
-//   const { sharedKey, moduleName, draft } = params;
-//   draft.time = Date.now();
-// }
-// addPlugin(HeluxPluginReduxDevtool);
 
 let rootNode = document.getElementById('root') as HTMLElement;
 if (!rootNode) {

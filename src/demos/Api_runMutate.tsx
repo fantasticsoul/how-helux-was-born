@@ -1,9 +1,9 @@
 import React from 'react';
-import { atom, share, useShared, runMutate, runMutateTask, mutate } from 'helux';
+import { atom, share, useAtom, runMutate, runMutateTask, mutate } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { log, delay } from './logic/util';
 
-console.log('useShared', useShared.name);
+console.log('useAtom', useAtom.name);
 
 const [numAtom] = atom(3000);
 const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'MutateTask' });
@@ -79,12 +79,12 @@ function runMutateRetA2Async() {
 }
 
 function Price() {
-  const [price, , info] = useShared(priceState);
+  const [price, , info] = useAtom(priceState);
   return <MarkUpdate name="Price" info={info}>{price.a}</MarkUpdate>;
 }
 
 function IdealPrice() {
-  const [idealPrice, , info] = useShared(idealPriceState);
+  const [idealPrice, , info] = useAtom(idealPriceState);
   const [loading] = ctx.useMutateLoading();
 
   return <MarkUpdate name="IdealPrice" info={info}>
@@ -94,7 +94,7 @@ function IdealPrice() {
 }
 
 function FinalPrice() {
-  const [finalPrice, , info] = useShared(finalPriceState);
+  const [finalPrice, , info] = useAtom(finalPriceState);
   return <MarkUpdate name="FinalPrice" info={info}>
     {finalPrice.loading ? 'loading' : finalPrice.retA}
   </MarkUpdate>;

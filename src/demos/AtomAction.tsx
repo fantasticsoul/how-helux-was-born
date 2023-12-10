@@ -1,22 +1,24 @@
 import React from "react";
 import {
   atom,
+  share,
   useAtom,
   atomAction,
-  atomActionAsync,
+  action,
 } from "helux";
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from './logic/util';
 
 const [numAtom, , ctx] = atom(1, { moduleName: 'AtomAction' });
+const [shared, , ctx2] = share({ a: 1, b: 2 }, { moduleName: 'AtomAction2' });
 
-const someAction = ctx.action(({ draftRoot, args }) => {
-  draftRoot.val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
+const someAction = ctx.action(({ draftRoot, payload }) => {
+  draftRoot.val = (payload && Number.isInteger(payload)) ? payload : random();
 }, 'someAction');
 
-const someAsyncAction = ctx.actionAsync<[number]>(async ({ setState, args }) => {
+const someAsyncAction = ctx.action<number>(async ({ setState, payload }) => {
   await delay(2000);
-  const val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
+  const val = (payload && Number.isInteger(payload)) ? payload : random();
   // setState((_, draftRoot) => draftRoot.val = val);
   setState(val);
 }, 'someAsyncAction');
@@ -29,16 +31,17 @@ setTimeout(() => {
 // createAction3(numAtom)(fnDef, desc) --> actionFn
 // createAction3(numAtom)<[...]>(fnDef, desc) --> actionFn
 
-const normalAction = atomAction(numAtom)<[number, string]>(
-  ({ setState, args }) => {
+const normalAction = action(numAtom)<[number, string]>(
+  ({ setState, payload: args }) => {
     const val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
-    return val;
+    // return val;
+    setState(val);
   },
   'normalAction'
 );
 
-const asyncAction = atomActionAsync(numAtom)<[number, string]>(
-  async ({ setState, args }) => {
+const asyncAction = action(numAtom)<[number, string]>(
+  async ({ setState, payload: args }) => {
     await delay(2000);
     const val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
     setState(val);
@@ -47,14 +50,18 @@ const asyncAction = atomActionAsync(numAtom)<[number, string]>(
 
 function NumAtom() {
   const [num, setNum, info] = useAtom(numAtom);
+  const [shared2, setNum2, info2] = useAtom(shared);
   const changeNum = () => setNum(num + 1);
   const changeNumByDraft = () => setNum((val) => (val + 2));
+  const changeNumByDraft2 = () => setNum2((draft) => { draft.a += 1 });
 
   return (
-    <MarkUpdate info={info}>
+    <MarkUpdate info={[info, info2]}>
       <pre>num: {num}</pre>
+      <pre>num2: {shared2.a}</pre>
       <button onClick={changeNum}>changeNum</button>
       <button onClick={changeNumByDraft}>changeNumByDraft</button>
+      <button onClick={changeNumByDraft2}>changeNumByDraft2</button>
     </MarkUpdate>
   );
 }

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { useShared, createShared, useForceUpdate } from 'helux';
+import { useAtom, createShared, useForceUpdate } from 'helux';
 import * as util from './logic/util';
 
 const ori = { a: 50, doubleA: 0, b: 2, c: { c1: 100, c2: 1000 }, list: [{ name: 'one', age: 1 }] };
@@ -25,7 +25,7 @@ function change_a_noExtraDeps() {
 
 function A() {
   console.log('Render A');
-  const [state] = useShared(ret);
+  const [state] = useAtom(ret);
   return (
     <div>
       {state.a} update at: {util.timemark()}
@@ -35,7 +35,7 @@ function A() {
 
 function B() {
   console.log('Render B');
-  const [state] = useShared(ret);
+  const [state] = useAtom(ret);
   return (
     <div>
       {state.b} update at: {util.timemark()}

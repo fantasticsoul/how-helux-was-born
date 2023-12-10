@@ -1,16 +1,16 @@
-import { share, useService, useShared, storeSrv } from 'helux';
+import { share, useService, useAtom, storeSrv } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 
 const [priceState, setPrice, ctx] = share({ a: 1, b: 100 });
 
-const changeA = ctx.action<[number]>((params) => {
-  params.draft.a += params.args[0];
+const changeA = ctx.action<number>((params) => {
+  params.draft.a += params.payload;
 }, 'changeA');
 
 
 function useSomeLogic(props: { a: number }) {
-  const [state, setState] = useShared(priceState);
+  const [state, setState] = useAtom(priceState);
   const srv = useService({
     someCall() {
       console.log('props.a', props.a);

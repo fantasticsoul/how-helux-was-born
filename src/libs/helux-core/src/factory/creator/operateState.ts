@@ -8,7 +8,7 @@ import { getRunningFn } from '../common/fnScope';
 import { cutDepKeyByStop } from '../common/stopDep';
 import { getDepKeyByPath, IMutateCtx, isArrLike } from '../common/util';
 import type { TInternal } from './buildInternal';
-import { flush } from './buildReactive';
+import { nextTickFlush } from './buildReactive';
 import { INS_ON_READ } from './current';
 
 /**
@@ -37,13 +37,18 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   const arrLike = isArrLike(parentType);
 
   if (!isChanged) {
+    if (arrLike) {
+      arrKeyDict[getDepKeyByPath(keyPath, sharedKey)] = 1;
+    }
     if (enableDraftDep || mutateCtx.enableDraftDep) {
       // 支持对draft操作时可以收集到依赖： draft.a = draft.b + 1
       // atom 判断一下长度，避免记录根值依赖导致死循环
       const canRecord = internal.forAtom ? fullKeyPath.length > 1 : true;
       if (canRecord) {
-        const currentOnRead = INS_ON_READ.current();
-        // 来自实例响应式对象的定制读行为
+        // 来自实例的定制读行为，目前主要是响应式对象会有此操作，
+        // 因为多个实例共享了一个响应式对象，但需要有自己的读行为操作来为实例本身收集依赖
+        // 注：全局响应式对象的读行为已将 currentOnRead 置空
+        const currentOnRead = INS_ON_READ.current(sharedKey);
         if (isReactive && currentOnRead) {
           currentOnRead(opParams);
         } else {
@@ -53,9 +58,6 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
           recordLastest(sharedKey, value, internal.sharedState, depKey, fullKeyPath);
         }
       }
-    }
-    if (arrLike) {
-      arrKeyDict[getDepKeyByPath(keyPath, sharedKey)] = 1;
     }
     return;
   }
@@ -108,6 +110,6 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
 
   // 来自响应对象的变更操作，主动 flush 状态
   if (isReactive) {
-    flush(sharedKey);
+    nextTickFlush(sharedKey);
   }
 }

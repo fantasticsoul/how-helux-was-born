@@ -1,4 +1,4 @@
-import { $, share, atom, deriveAtom, derive, block } from 'helux';
+import { $, share, atom, derive, deriveDict, block } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from "./logic/util";
@@ -7,18 +7,18 @@ const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 }, b12: 10
 const [numAtom, setAtom] = atom(100);
 
 
-const doubleNum = deriveAtom(() => {
-  console.log('deriveAtom doubleNum', numAtom.val * 2 + sharedState.a);
+const doubleNum = derive(() => {
+  console.log('derive doubleNum', numAtom.val * 2 + sharedState.a);
   return numAtom.val * 2 + sharedState.a;
 });
 
-const stateResult = derive(() => {
+const stateResult = deriveDict(() => {
   return {
     a: sharedState.a * 100,
     b: sharedState.b.b1.b2 * 100,
   };
 });
-const aPlusB2Result = derive({
+const aPlusB2Result = deriveDict({
   deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
   fn: () => ({ val: 0 }),
   task: async ({ input: [a, b] }) => {

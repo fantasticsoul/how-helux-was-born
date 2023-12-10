@@ -1,12 +1,12 @@
-import { share, derive, useDerived } from "helux";
+import { share, deriveDict, useDerived } from "helux";
 import { random } from "./logic/util";
 import { MarkUpdate, Entry } from "./comps";
 
 const delay = (ms = 1000) => new Promise((r) => setTimeout(r, ms));
 
 const [sharedState, setState, call] = share({ a: 1, b: { b1: { b2: 200 } } });
-const doubleAResult = derive(() => ({ val: sharedState.a * 2 + random() }));
-const aPlusB2Result = derive({
+const doubleAResult = deriveDict(() => ({ val: sharedState.a * 2 + random() }));
+const aPlusB2Result = deriveDict({
   deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
   fn: () => ({ val: 0 }),
   task: async ({ input: [a, b] }) => {

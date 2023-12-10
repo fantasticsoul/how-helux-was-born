@@ -33,9 +33,7 @@
 // export { default as MutateTask3_detectShareDc } from './MutateTask3_detectShareDc';
 // export { default as AtomMutate } from './AtomMutate';
 // export { default as AtomObjectMutate } from './AtomObjectMutate';
-// export { default as Api_mutate } from './Api_mutate';
 // export { default as Api_runMutate } from './Api_runMutate';
-// export { default as Api_mutate2 } from './Api_mutate2';
 // export { default as Feat_arrStopDep } from './Feat_arrStopDep';
 // export { default as UseService } from './UseService';
 // export { default as UseWatch } from './UseWatch';
@@ -48,4 +46,8 @@ export * from './scenes';
 // export { default as M2 } from './special/M2';
 // export { default as AtomItemChange } from './special/AtomItemChange';
 
-export const INITIAL_KEY = 'ReactiveIns';
+export { default as Api_mutate } from './Api_mutate';
+// export { default as Api_mutate2 } from './Api_mutate2';
+// export { default as FailAtReactiveRecover } from './user-case/FailAtReactiveRecover';
+
+export const INITIAL_KEY = 'DefineMutateSelf';

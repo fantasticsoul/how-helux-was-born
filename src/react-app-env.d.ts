@@ -4,7 +4,7 @@
 
 import * as heluxApi from './libs/helux-core/src/types/api';
 import * as heluxModelApi from './libs/helux-core/src/types/model';
-
+import * as base from './libs/helux-core/src/types/base';
 
 declare namespace NodeJS {
   interface ProcessEnv {
@@ -91,18 +91,15 @@ declare module 'helux' {
     // derive for shared state
     derive,
     // derive for shared atom
-    deriveAtom,
+    deriveDict,
     watch,
     runDerive,
     runDeriveAsync,
     createShared,
     useAtom,
-    useShared,
     useReactive,
     // use derived state
     useDerived,
-    // use derived atom
-    useDerivedAtom,
     useWatch,
     useGlobalId,
     useObject,
@@ -129,6 +126,8 @@ declare module 'helux' {
     dynamicBlock,
     $,
     // emit api
+    reactiveDesc,
+    flush,
     emit,
     on,
     produce,

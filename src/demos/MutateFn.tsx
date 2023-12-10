@@ -1,5 +1,5 @@
 import React from 'react';
-import { atom, share, useShared } from 'helux';
+import { atom, share, useAtom } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 
 
@@ -32,17 +32,17 @@ function changePrice() {
 }
 
 function Price() {
-  const [price, , info] = useShared(priceState);
+  const [price, , info] = useAtom(priceState);
   return <MarkUpdate name="Price" info={info}>{price.a}</MarkUpdate>;
 }
 
 function IdealPrice() {
-  const [idealPrice, , info] = useShared(idealPriceState);
+  const [idealPrice, , info] = useAtom(idealPriceState);
   return <MarkUpdate name="IdealPrice" info={info}>{idealPrice.idealPrice}</MarkUpdate>;
 }
 
 function FinalPrice() {
-  const [finalPrice, , info] = useShared(finalPriceState);
+  const [finalPrice, , info] = useAtom(finalPriceState);
   return <MarkUpdate name="FinalPrice" info={info}>{finalPrice.finalPrice}</MarkUpdate>;
 }
 

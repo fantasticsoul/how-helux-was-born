@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dict, mutate, share, useShared, shallowCompare, $ } from 'helux';
+import { Dict, mutate, share, useAtom, shallowCompare, $ } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { randomStr, delay, random } from './logic/util';
 

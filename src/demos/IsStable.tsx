@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import {
-  useShared, share, watch,
+  useAtom, share, watch,
   getRawState, shallowCompare, useForceUpdate,
 } from 'helux';
 import * as util from './logic/util';
@@ -25,7 +25,7 @@ watch((params) => {
 // const { state: ret2 } = share(ret, { moduleName: 'st2' });
 
 function COMP_C() {
-  const [state, , info] = useShared(ret);
+  const [state, , info] = useAtom(ret);
   console.log('info', info.sharedKey);
   const c = state.c;
   return (
@@ -36,7 +36,7 @@ function COMP_C() {
 }
 
 const COMP_C_C1 = React.memo(function () {
-  const [state, , info] = useShared(ret);
+  const [state, , info] = useAtom(ret);
   console.log(' COMP_C_C1..ee', info.sharedKey);
   return (
     <pre>
@@ -47,7 +47,7 @@ const COMP_C_C1 = React.memo(function () {
 });
 
 const COMP_C_C2 = React.memo(function () {
-  const [state] = useShared(ret);
+  const [state] = useAtom(ret);
   return (
     <pre>
       state.c.c2: {state.c.c2}
@@ -114,7 +114,7 @@ const ListItem = React.memo(function (props: any) {
 
 function List() {
   console.log('Render List');
-  const [state] = useShared(ret, { id: 'list' });
+  const [state] = useAtom(ret, { id: 'list' });
   return (
     <div>
       {state.list.map((item, idx) => <ListItem key={idx} item={item} idx={idx} />)}
@@ -125,7 +125,7 @@ function List() {
 
 function ListLen() {
   console.log('Render ListLen');
-  const [state] = useShared(ret, { id: 'list' });
+  const [state] = useAtom(ret, { id: 'list' });
   return (
     <div>
       {state.list.length}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { atom, share, useShared, useForceUpdate, useAtom } from 'helux';
+import { atom, share, useAtom, useForceUpdate } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { log, delay } from './logic/util';
 

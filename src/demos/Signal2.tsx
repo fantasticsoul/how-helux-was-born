@@ -1,11 +1,11 @@
-import { $, share, atom, derive, deriveAtom, block, useShared } from 'helux';
+import { $, share, atom, deriveDict, derive, block, useAtom } from 'helux';
 import React from 'react';
 import { Entry } from './comps';
 import { random, delay } from "./logic/util";
 
 
 const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 }, b12: 100 }, name: Date.now() }, { moduleName: 'Signal' });
-const aPlusB2Result = derive({
+const aPlusB2Result = deriveDict({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, sharedState.b.b1.b2],
   task: async () => {
@@ -16,7 +16,7 @@ const aPlusB2Result = derive({
 });
 
 const [numAtom, setAtom] = atom(100);
-const doubleNum = deriveAtom(() => {
+const doubleNum = derive(() => {
   return numAtom.val * 2 + sharedState.a;
 });
 
@@ -95,7 +95,7 @@ function RuiKun3() {
 
 function RuiKun4() {
   // const [state] = ctx.useState();
-  const [state] = useShared(sharedState);
+  const [state] = useAtom(sharedState);
   console.error('Render RuiKun4');
   return <div>
     <h4>RuiKun3 long content</h4>

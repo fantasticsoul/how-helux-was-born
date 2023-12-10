@@ -1,5 +1,5 @@
 import React from 'react';
-import { share, atom, watch, useDerivedAtom, useShared, useAtom, useForceUpdate, deriveAtom, useGlobalId } from 'helux';
+import { share, atom, watch, useDerived, useAtom, useForceUpdate, derive, useGlobalId } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 
 const keySym = Symbol('keySym');
@@ -18,7 +18,7 @@ function changeA() {
   setState(draft => { draft.a.a1 += 1 }, { globalIds: ['test'] })
 }
 
-const numPlusAtom = deriveAtom(() => {
+const numPlusAtom = derive(() => {
   return numAtom.val + 100;
 });
 
@@ -42,7 +42,7 @@ function NumAtom() {
 }
 
 function NumPlusAtom() {
-  const [num, , info] = useDerivedAtom(numPlusAtom);
+  const [num, , info] = useDerived(numPlusAtom);
 
   return (
     <MarkUpdate info={info}>
@@ -54,7 +54,7 @@ function NumPlusAtom() {
 
 function NumPlusAtom2(props: any) {
   const forceUpdate = useForceUpdate();
-  const [state, , info] = useShared(sharedState);
+  const [state, , info] = useAtom(sharedState);
 
   return (
     <MarkUpdate info={info} name="no useGlobalId">

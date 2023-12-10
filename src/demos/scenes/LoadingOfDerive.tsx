@@ -1,4 +1,4 @@
-import { share, derive, useDerived } from 'helux';
+import { share, deriveDict, useDerived } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
 import { random, delay } from "../logic/util";
@@ -6,7 +6,7 @@ import { random, delay } from "../logic/util";
 const [sharedState, setState] = share({ a: 1, b: { b1: { b2: 200 } } }, { moduleName: 'LoadingOfDerive' });
 const changeA = () => setState(draft => { draft.a = random() });
 
-const result = derive({
+const result = deriveDict({
   deps: () => [sharedState.a, sharedState.b.b1.b2] as const,
   fn: () => ({ a: 0, b2: 0 }),
   task: async ({ input: [a, b2] }) => {

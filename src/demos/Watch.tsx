@@ -1,5 +1,5 @@
 import React from "react";
-import { atom, share, watch, useShared, getSnap } from "helux";
+import { atom, share, watch, useAtom, getSnap } from "helux";
 import { MarkUpdate, Entry } from "./comps";
 
 const [priceState, setPrice] = share(
@@ -26,12 +26,20 @@ function addBooks() {
   setPrice((draft) => { draft.books.push(1) });
 }
 
-watch(
+const w1 = watch(
   () => {
     console.log("books changed ", priceState.books);
   },
   () => [priceState.books]
 );
+
+setTimeout(() => {
+  console.log('rerun watch', w1.run());
+}, 6000);
+
+setTimeout(() => {
+  console.log('unwatch', w1.unwatch());
+}, 12000);
 
 watch(
   () => {
@@ -64,7 +72,7 @@ watch(
 );
 
 function Price() {
-  const [price, , info] = useShared(priceState);
+  const [price, , info] = useAtom(priceState);
   return (
     <MarkUpdate name="Price" info={info}>
       {price.a}
@@ -73,7 +81,7 @@ function Price() {
 }
 
 function Books() {
-  const [price, , info] = useShared(priceState);
+  const [price, , info] = useAtom(priceState);
   return (
     <MarkUpdate name="Price" info={info}>
       price.books.length: {price.books.length}

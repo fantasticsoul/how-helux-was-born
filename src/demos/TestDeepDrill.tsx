@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import {
-  useShared, share, watch, useForceUpdate, useDerived
+  useAtom, share, watch, useForceUpdate, useDerived
 } from 'helux';
 import * as util from './logic/util';
 import { MarkUpdate, Entry } from './comps';
@@ -78,7 +78,7 @@ function changeNewNode() {
 
 function A() {
   console.log('Render A');
-  const [state] = useShared(ret);
+  const [state] = useAtom(ret);
   return (
     <div>
       {state.a}
@@ -88,7 +88,7 @@ function A() {
 
 function C() {
   console.log('Render DoubleA');
-  const [state] = useShared(ret);
+  const [state] = useAtom(ret);
   return (
     <div>
       state.c.c1：{state.c.c1}
@@ -98,7 +98,7 @@ function C() {
 
 function AnotherC() {
   console.log('Render ReadCool');
-  const [state, , info] = useShared(ret);
+  const [state, , info] = useAtom(ret);
   return (
     <MarkUpdate info={[info]}>
       state.f.f1.newNode.c.c1: {state.f.f1.newNode.c?.c1}

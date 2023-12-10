@@ -5,7 +5,7 @@ import { MarkUpdate, Entry } from './comps';
 const myModel = model((api) => {
   const userCtx = api.shareState({ a: 1, b: 2 });
   const { state, setState } = userCtx;
-  const someResult = api.deriveAtom(() => state.a + 100);
+  const someResult = api.derive(() => state.a + 100);
 
   function changeA() {
     setState((draft) => {
@@ -25,7 +25,7 @@ const factory = modelFactory((api, extra) => {
   console.log('received build extra param ', extra)
   const userCtx = api.shareState({ a: 1, b: 2 }, { moduleName: extra });
   const { state, setState } = userCtx;
-  const someResult = api.deriveAtom(() => state.a + 100);
+  const someResult = api.derive(() => state.a + 100);
 
   function changeA() {
     setState((draft) => {

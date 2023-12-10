@@ -1,12 +1,12 @@
 import { delListItem, enureReturnArr, isFn, isSymbol, nodupPush, prefixValKey, warn } from '@helux/utils';
-import { immut, limuUtils } from 'limu';
-import { DICT, EXPIRE_MS, IS_DERIVED_ATOM, KEY_SPLITER, NOT_MOUNT, OTHER, RENDER_END, RENDER_START } from '../consts';
+import { immut } from 'limu';
+import { DICT, EXPIRE_MS, IS_DERIVED_ATOM, KEY_SPLITER, NOT_MOUNT, OTHER, RENDER_END, RENDER_START, SHARED_KEY } from '../consts';
 import { hasRunningFn } from '../factory/common/fnScope';
 import { genInsKey } from '../factory/common/key';
 import { cutDepKeyByStop, recordArrKey } from '../factory/common/stopDep';
-import { callOnRead, isArrLike, isArrLikeVal, newOpParams } from '../factory/common/util';
+import { callOnRead, isArrLike, isArrLikeVal, isDict, newOpParams } from '../factory/common/util';
 import type { InsCtxDef } from '../factory/creator/buildInternal';
-import { buildReactive, flush } from '../factory/creator/buildReactive';
+import { buildReactive, nextTickFlush } from '../factory/creator/buildReactive';
 import { mapGlobalId } from '../factory/creator/globalId';
 import type { Dict, Ext, IFnCtx, IInnerUseSharedOptions, OnOperate } from '../types/base';
 import type { DepKeyInfo } from '../types/inner';
@@ -14,8 +14,6 @@ import * as fnDep from './fnDep';
 import { clearDep } from './insDep';
 import { createOb } from './obj';
 import { getInternal } from './state';
-
-const { isObject: isDict } = limuUtils;
 
 function collectDep(insCtx: InsCtxDef, info: DepKeyInfo, options: { parentType: string; rawVal: any }) {
   if (!insCtx.canCollect) {
@@ -46,7 +44,7 @@ export function runInsUpdater(insCtx: InsCtxDef | undefined) {
 }
 
 export function attachInsProxyState(insCtx: InsCtxDef) {
-  const { internal, isReactive } = insCtx;
+  const { internal, isReactive, insKey } = insCtx;
   const { rawState, isDeep, sharedKey, onRead } = internal;
   if (isDeep) {
     const onOperate: OnOperate = (opParams) => {
@@ -59,12 +57,23 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
 
       // 响应式对象会触发到变化行为
       if (opParams.isChanged) {
-        flush(sharedKey);
+        nextTickFlush(sharedKey);
       }
       return proxyValue;
     };
 
-    insCtx.proxyState = isReactive ? buildReactive(internal, onOperate) : immut(rawState, { onOperate, compareVer: true });
+    if (isReactive) {
+      const { draft, draftRoot } = buildReactive(internal, onOperate);
+      insCtx.proxyState = draftRoot;
+      insCtx.proxyStateVal = draft;
+    } else {
+      insCtx.proxyState = immut(rawState, {
+        customKeys: [SHARED_KEY as symbol],
+        customGet: () => sharedKey,
+        onOperate,
+        compareVer: true,
+      });
+    }
   } else {
     insCtx.proxyState = createOb(rawState, {
       set: () => {
@@ -99,6 +108,10 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
     isReactive = false,
   } = options;
   const arrIndexDep = !arrDep ? true : options.arrIndexDep ?? true;
+  if (!getInternal(sharedState)) {
+    debugger;
+  }
+
   const internal = getInternal(sharedState);
   if (!internal) {
     throw new Error('ERR_OBJ_NOT_SHARED: input object is not a result returned by share api');
@@ -121,6 +134,7 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
     rawState,
     sharedState,
     proxyState: {},
+    proxyStateVal: {},
     updater,
     mountStatus: NOT_MOUNT,
     renderStatus: RENDER_START,
@@ -165,7 +179,7 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
       const { readMap, insKey, currentDepKeys, delReadMap } = insCtx;
 
       // record watch dep
-      // 支持 useWatch 的 deps 函数直接传入 useShared 返回的 state 作为依赖项传入
+      // 支持 useWatch 的 deps 函数直接传入 useAtom 返回的 state 作为依赖项传入
       fnDep.recordFnDepKeys([depKey], {});
       // 在 useWatch deps 中执行，记为固定依赖
       if (hasRunningFn()) {

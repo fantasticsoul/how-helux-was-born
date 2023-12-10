@@ -1,4 +1,4 @@
-import { share, useShared, $ } from 'helux';
+import { share, useAtom, $ } from 'helux';
 import { getVal } from '@helux/utils';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
@@ -21,7 +21,7 @@ const changeABC = () => {
   reactive.a.b.c += 1;
 };
 
-setInterval(() => reactive.a.b.c++, 1000);
+// setInterval(() => reactive.a.b.c++, 1000);
 
 function Info() {
   return <MarkUpdate>

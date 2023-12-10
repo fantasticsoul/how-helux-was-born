@@ -1,9 +1,9 @@
-import { atom, deriveAtom, useAtom, watch, shallowCompare, $, useWatch } from 'helux';
+import { atom, derive, useAtom, watch, shallowCompare, $, useWatch } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
 import { random, delay, noop } from "../logic/util";
 
-// TODO， 引入参数 middleDep， derive and watch 默认 false ，hook 默认 true
+// TODO， 引入参数 middleDep， deriveDict and watch 默认 false ，hook 默认 true
 
 const [numAtom, setNumAtom] = atom(1);
 const [numAtom2, setNumAtom2] = atom(1);
@@ -61,7 +61,7 @@ watch(
   () => [shared.val.info.name],
 );
 // ✅ 不被执行
-const nameResult = deriveAtom(() => {
+const nameResult = derive(() => {
   countStat.nameResult();
   noop(shared.val.extra);
   // noop(shared.val.extra.mark);

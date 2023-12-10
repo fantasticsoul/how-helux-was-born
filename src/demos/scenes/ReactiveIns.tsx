@@ -1,12 +1,11 @@
 import * as helux from 'helux';
-import { getVal } from '@helux/utils';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
-import { dictFctory } from "../logic/util";
+import { dictFactory } from "../logic/util";
 
 const { share, atom, useReactive } = helux;
-const [shared, , sctx] = share(dictFctory);
-const [atomDict, , ctx] = atom(dictFctory);
+const [shared, , sctx] = share(dictFactory);
+const [atomDict, , ctx] = atom(dictFactory);
 
 function updateC1() {
   sctx.reactive.a.b.c++;
@@ -27,30 +26,30 @@ function Info1() {
 }
 
 function updateC2() {
-  ctx.reactive.val.a.b.c++;
-  ctx.reactive.val.a.b.c++;
-  ctx.reactive.val.a.b.c++;
+  ctx.reactive.a.b.c++;
+  ctx.reactive.a.b.c++;
+  ctx.reactive.a.b.c++;
 }
 
 function Info2() {
-  const [reactiveShared] = useReactive(atomDict);
+  const [reactiveAtom] = useReactive(atomDict);
   React.useEffect(() => {
     // setInterval(() => reactiveShared.val.a.b.c++, 1000);
   }, []);
-  const add = () => reactiveShared.val.a.b.c++;
+  const add = () => reactiveAtom.a.b.c++;
 
   return <MarkUpdate>
     <button onClick={add}>add</button>
-    <h2>reactiveShared.a.b.c {reactiveShared.val.a.b.c}</h2>
+    <h2>reactiveAtom.a.b.c {reactiveAtom.a.b.c}</h2>
   </MarkUpdate>;
 }
 
 function InfoRead() {
-  const [reactiveShared] = useReactive(atomDict);
-  const add = () => reactiveShared.val.a.b.c++;
+  const [reactiveAtom] = useReactive(atomDict);
+  const add = () => reactiveAtom.a.b.c++;
   return <MarkUpdate>
     <button onClick={add}>add</button>
-    <h2>reactiveShared.a.b.c {reactiveShared.val.a.b.c}</h2>
+    <h2>reactiveAtom.a.b.c {reactiveAtom.a.b.c}</h2>
   </MarkUpdate>;
 }
 

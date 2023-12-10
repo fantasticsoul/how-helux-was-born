@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { atom, share, useShared, useForceUpdate, } from 'helux';
+import { atom, share, useAtom, useForceUpdate, } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { log, delay } from './logic/util';
 
@@ -57,12 +57,12 @@ function changePrice() {
 
 
 function Price() {
-  const [price, , info] = useShared(priceState);
+  const [price, , info] = useAtom(priceState);
   return <MarkUpdate name="Price" info={info}>{price.a}</MarkUpdate>;
 }
 
 function IdealPrice() {
-  const [idealPrice, , info] = useShared(idealPriceState);
+  const [idealPrice, , info] = useAtom(idealPriceState);
   const [loading] = ctx.useMutateLoading();
 
   return <MarkUpdate name="IdealPrice" info={info}>
@@ -72,7 +72,7 @@ function IdealPrice() {
 }
 
 function FinalPrice() {
-  const [finalPrice, , info] = useShared(finalPriceState);
+  const [finalPrice, , info] = useAtom(finalPriceState);
   return <MarkUpdate name="FinalPrice" info={info}>
     {finalPrice.loading ? 'loading' : finalPrice.retA}
   </MarkUpdate>;

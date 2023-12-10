@@ -1,4 +1,4 @@
-import { atom, deriveAtom, useAtom, watch, shallowCompare, $, useWatch } from 'helux';
+import { atom, derive, useAtom, watch, shallowCompare, $, useWatch } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
 import { random, delay, noop } from "../logic/util";
