@@ -1,4 +1,4 @@
-import { noop, noopArr } from '@helux/utils';
+import { isSymbol, noop, noopArr } from '@helux/utils';
 import { EVENT_NAME, FROM, HELUX_GLOBAL_LOADING, RECORD_LOADING, STATE_TYPE } from '../../consts';
 import { emitPluginEvent } from '../../factory/common/plugin';
 import { createOb } from '../../helpers/obj';
@@ -9,6 +9,7 @@ import type { Dict, Fn, From, IRenderInfo, LoadingState, LoadingStatus } from '.
 import { checkSharedStrict } from '../common/check';
 import { isDict } from '../common/util';
 import { getRootCtx } from '../root';
+import { getGlobalEmpty } from './globalId';
 import type { TInternal } from './buildInternal';
 
 const { MUTATE, LOADING } = FROM;
@@ -66,8 +67,9 @@ export function initGlobalLoading(apiCtx: CoreApiCtx, createFn: Fn) {
 }
 
 export function getStatusKey(from: string, desc: string) {
+  const descStr = isSymbol(desc) ? '' : desc;
   // 基于 > 分割 ，否则 getDepKeyInfo 还原 key 错误，导致 block 里无法正确补上相关 loading 的依赖
-  return `${from}>${desc}`;
+  return `${from}>${descStr}`;
 }
 
 export function setLoadStatus(internal: TInternal, statusKey: string, status: LoadingStatus) {
@@ -130,7 +132,9 @@ export function getLoadingInfo(createFn: Fn, options: IInitLoadingCtxOpt) {
       internal.loadingInternal = globalLoadingInternal;
       loadingState = createSafeLoading(globalLoadingInternal.extra, loadingProxy, from);
     } else {
-      loadingProxy = loadingState;
+      // 设置 recordLoading='no' 时，loadingProxy 指向空代理对象，
+      // 避免 useLoading 报错 not a shared object
+      loadingProxy = getGlobalEmpty();
     }
   } else {
     // 此刻的 internal 即 globalLoadingInternal

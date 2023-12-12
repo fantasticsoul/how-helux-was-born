@@ -684,7 +684,7 @@ export interface IUseSharedStateOptions<T = any> {
    * ```txt
    * no ，此时依赖仅靠 deps 提供
    * first ，仅首轮渲染收集依赖，后续渲染流程不收集
-   * every ，每一轮渲染流程都实时收集
+   * every ，每一轮渲染流程都实时收集，允许不同的渲染结果有不同的依赖项
    * ```
    */
   collectType?: 'no' | 'first' | 'every';
@@ -747,14 +747,14 @@ export interface IUseSharedStateOptions<T = any> {
    * ```ts
    * // true: 记录数组自身依赖
    * const [ dict ] = useAtom(dictAtom);
-   * // 此时依赖是 dict, dict.list[0]
+   * // 此时依赖有 2 项，是 dict, dict.list[0]
    * dict.list[0];
    * // 重置 list，引发当前组件重渲染
    * setDictAtom(draft=> draft.list = draft.list.slice());
    *
    * // false: 不记录数组自身依赖，适用于孩子组件自己读数组下标渲染的场景
    * const [ dict ] = useAtom(dictAtom, { arrDep: false });
-   * // 此时依赖是 dict.list[0]
+   * // 此时依赖只有 1 项，是 dict.list[0]
    * dict.list[0];
    * // 重置 list，不会引发当前组件重渲染
    * setDictAtom(draft=> draft.list = draft.list.slice());

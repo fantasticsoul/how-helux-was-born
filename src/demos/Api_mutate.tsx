@@ -10,6 +10,7 @@ const [priceState, setPrice, ctxp] = share({ a: 1, b: 100, ccc: 1000 }, {
 const [finalPriceState, setP2, ctx] = share({ retA: 0, retB: 0, time: 0, time2: 0 }, {
   moduleName: 'Api_mutate_finalPriceState',
   enableDraftDep: true,
+  recordLoading: 'no',
 });
 
 // 约束各个函数入参类型
@@ -57,14 +58,14 @@ const witness = mutate(finalPriceState)({
   deps: () => [priceState.a, finalPriceState.retA, finalPriceState.retB] as const,
   task: async ({ input: [a], setState, draft }) => {
     // reactiveDesc(draft, 'change1');
-    // const result = draft.retA + a
+    const result = draft.retA + a
     // console.error('trigger task draft.retA += a', result);
     draft.retA = 1;
     console.log('ctxp.reactive.a', ctxp.reactive.a);
     // ctxp.reactive.a += 1;
     // ctxp.reactive.a += 1;
     // ctxp.reactive.a += 100;
-    console.log('after ctxp.reactive.a', ctxp.reactive.a);
+    // console.log('after ctxp.reactive.a', ctxp.reactive.a);
     // await delay(1000);
     // reactiveDesc(draft, 'change2');
     // draft.retA += a;
@@ -86,9 +87,9 @@ const witness = mutate(finalPriceState)({
     // draft.retA += a;
     // flush(draft, 'flush3');
 
-    console.error('after ----------------------------------------------------------------');
     // draft.retA += a;
-    // setState(draft => { draft.retB += a });
+    setState(draft => { draft.retB += a });
+    console.error('after ----------------------------------------------------------------');
   },
   desc: 'dangerousMutate',
   immediate: true, // 控制 task 立即执行

@@ -12,6 +12,8 @@ import type { TInternal } from './buildInternal';
 import { nextTickFlush, markExpired } from './buildReactive';
 import { REACTIVE_META, REACTIVE_DESC } from './current';
 
+const { MUTATE } = FROM;
+
 /**
  * 如果变化命中了 rules[].ids 或 globaIds 规则，则添加到 mutateCtx.ids 或 globalIds 里
  */
@@ -40,39 +42,37 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   const { arrKeyDict, isReactive, readKeys, from } = mutateCtx;
   const { sharedKey } = internal;
   const arrLike = isArrLike(parentType);
+  const currentReactive = REACTIVE_META.current();
+  const isMutateReactive = currentReactive.from === MUTATE;
 
   // 是读操作
   if (opParams.op === 'get') {
     if (arrLike) {
       arrKeyDict[getDepKeyByPath(keyPath, sharedKey)] = 1;
     }
-
+    const depKey = getDepKeyByPath(fullKeyPath, sharedKey);
+    readKeys[depKey] = 1;
     console.error('from', from, fullKeyPath, immutBase);
-    // TODO 改为 !mutateCtx.disableDraftDep
-    // if (!aslFroms.includes(from)) {
-    // setState 里的草稿读动作无任何依赖收集行为产生
-    // 减轻运行负担，降低死循环可能性，例如在 watch 回调里调用顶层的 setState
-    if (FROM.SET_STATE !== from) {
+    console.error(isReactive, ' reactive from', currentReactive.from);
+
+    // 仅 mutate fn 和 task 的 draft 操作收集读依赖
+    // 其他任何场景的读操作无任何依赖收集行为产生
+    // 1 减轻运行负担，
+    // 2 降低死循环可能性，例如在 watch 回调里调用顶层的 setState
+    if (isMutateReactive) {
       // 支持对draft操作时可以收集到依赖： draft.a = draft.b + 1
       // atom 判断一下长度，避免记录根值依赖导致死循环
       const canRecord = internal.forAtom ? fullKeyPath.length > 1 : true;
       if (canRecord) {
-        const depKey = getDepKeyByPath(fullKeyPath, sharedKey);
-        readKeys[depKey] = 1;
         // 来自实例的定制读行为，目前主要是响应式对象会有此操作，
         // 因为多个实例共享了一个响应式对象，但需要有自己的读行为操作来为实例本身收集依赖
         // 注：全局响应式对象的读行为已将 currentOnRead 置空
-        const currentReactive = REACTIVE_META.current();
-        if (isReactive && currentReactive.onRead) {
+        if (currentReactive.onRead) {
           currentReactive.onRead(opParams);
         } else {
           getRunningFn().fnCtx && recordFnDepKeys([depKey], { sharedKey });
-
-          // 仅只读代理和响应式对象才有机会透传给 block 逻辑，这里可提前判断下
-          if (immutBase || isReactive) {
-            recordBlockDepKey([depKey]);
-            recordLastest(sharedKey, value, internal.sharedState, depKey, fullKeyPath);
-          }
+          recordBlockDepKey([depKey]);
+          recordLastest(sharedKey, value, internal.sharedState, depKey, fullKeyPath);
         }
       }
     }
@@ -88,23 +88,21 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   const { writeKeyPathInfo, ids, globalIds, writeKeys } = mutateCtx;
   const writeKey = getDepKeyByPath(fullKeyPath, sharedKey);
 
-  // 来自以下几种常见的调用，判断可能存在的死循环
-  // reactive.xx.yy = 1 触发提交
-  // mutate 回调里的 draft.xx.yy = 1 触发提交
-  // mutate 回调里的 setState 触发提交
-  // if (SET_STATE_CALLED_BY.current() === 'inner' && internal.stateType === 'user_state') {
-  // mutate fn 函数里发现死循环
-  // 形如: fn: (draft)=> draft.a+=1; 
-  if (from === FROM.MUTATE && readKeys[writeKey]) {
-    // 标记本次调用发现死循环存在，提供后续 finishMutate 使用，避免真正触发死循环
-    nodupPush(mutateCtx.fnDeadCycleKeys, fullKeyPath.join('.'));
+  if (from === MUTATE) { // 是 mutate fn 的 draft 写操作
+    // mutate fn 函数里发现死循环
+    // 形如: fn: (draft)=> draft.a+=1; 
+    if (readKeys[writeKey]) {
+      // 标记本次调用发现死循环存在，提供后续 finishMutate 使用，避免真正触发死循环
+      nodupPush(mutateCtx.fnDeadCycleKeys, fullKeyPath.join('.'));
+    }
+  } else if (isMutateReactive) { // 是 mutate task 的 draft 写操作
+    // mutate task 函数里发现死循环
+    // 形如: deps: (state)=> [state.a];  async task: ({draft})=> draft.a +=1;
+    if (currentReactive.depKeys.includes(writeKey)) {
+      nodupPush(mutateCtx.taskDeadCycleKeys, fullKeyPath.join('.'));
+    }
   }
-  // mutate task 函数里发现死循环
-  // 形如: deps: (state)=> [state.a];  async task: ({draft})=> draft.a +=1;
-  if (isReactive && REACTIVE_META.current().depKeys.includes(writeKey)) {
-    nodupPush(mutateCtx.taskDeadCycleKeys, fullKeyPath.join('.'));
-  }
-  // }
+
 
   mutateCtx.level1Key = fullKeyPath[0];
   mutateCtx.handleAtomCbReturn = false;

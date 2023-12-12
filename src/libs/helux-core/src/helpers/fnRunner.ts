@@ -30,7 +30,7 @@ let count = 0;
  */
 export function runFn(fnKey: string, options?: IRnFnOpt) {
   count += 1;
-  if (count === 30) return;
+  if (count === 10) return;
   const {
     isFirstCall = false,
     forceFn = false,

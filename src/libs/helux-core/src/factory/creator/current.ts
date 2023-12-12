@@ -4,7 +4,7 @@ import { newMutateCtx } from '../common/util';
 
 const fakeDraftRoot = { val: null, isFake: true };
 const fakeMutateCtx = newMutateCtx({});
-const fakeReativeMeta: IReactiveMeta = { key: '', sharedKey: 0, depKeys: [], desc: '', onRead: undefined };
+const fakeReativeMeta: IReactiveMeta = { key: '', sharedKey: 0, depKeys: [], desc: '', onRead: undefined, from: 'SetState' };
 /** 正在执行中的 rootDrft */
 let CURRENT_DRAFT_ROOT = fakeDraftRoot;
 /** 正在执行中的 mutateCtx */

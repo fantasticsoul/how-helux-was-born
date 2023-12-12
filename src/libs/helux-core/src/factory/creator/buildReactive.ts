@@ -2,7 +2,8 @@ import { canUseDeep } from '@helux/utils';
 import { SHARED_KEY, REACTIVE_META_KEY, FROM } from '../../consts';
 import { getSharedKey } from '../../helpers/state';
 import { getReactiveKey } from '../common/key';
-import type { OnOperate } from '../../types/base';
+import type { From, OnOperate } from '../../types/base';
+import type { IReactiveMeta } from '../../types/inner';
 import type { IReactive } from '../../types/inner';
 import type { TInternal } from './buildInternal';
 import { REACTIVE_DESC, REACTIVE_META } from './current';
@@ -128,17 +129,23 @@ function getReactiveVal(internal: TInternal, atomVal: boolean) {
 /**
  * 创建全局使用的响应式共享对象
  */
-export function buildReactive(internal: TInternal, depKeys: string[], desc?: string, onRead?: OnOperate) {
+export function buildReactive(
+  internal: TInternal,
+  depKeys: string[],
+  options?: { desc?: string, onRead?: OnOperate, from?: From }
+) {
   // 提供 draftRoot draft，和 mutate 回调里对齐，方便用户使用 atom 时少一层 .val 操作
   let draftRoot: any = {};
   let draft: any = {};
   const { rawState, deep, forAtom, isPrimitive, sharedKey } = internal;
+  const { desc, onRead, from = 'Reactive' } = options || {};
 
   const rKey = getReactiveKey();
-  const meta = { key: rKey, desc: desc || '', sharedKey, depKeys, onRead };
+  const meta: IReactiveMeta = { key: rKey, desc: desc || '', sharedKey, depKeys, onRead, from };
   if (canUseDeep(deep)) {
     const set = (atomVal: boolean, key: any, value: any) => {
       const draftVal = getReactiveVal(internal, atomVal);
+      console.error('---->', rKey, from);
       REACTIVE_META.markUsing(rKey);
       // handleOperate 里会自动触发 nextTickFlush
       draftVal[key] = value;
@@ -148,6 +155,8 @@ export function buildReactive(internal: TInternal, depKeys: string[], desc?: str
       if (key === REACTIVE_META_KEY) {
         return meta;
       }
+      console.error('---->', rKey, from);
+      REACTIVE_META.markUsing(rKey);
       const draftVal = getReactiveVal(internal, atomVal);
       return draftVal[key];
     };

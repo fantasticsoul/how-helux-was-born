@@ -1,4 +1,4 @@
-import { Fn, IInnerSetStateOptions } from './base';
+import { Fn, IInnerSetStateOptions, From } from './base';
 
 /**
  * 第一层路径的数组 key 集合，会在不停地读取过程中动态新增
@@ -29,6 +29,7 @@ export interface IReactiveMeta {
   key: string;
   sharedKey: number;
   depKeys: string[];
+  from: From;
   desc: string;
   onRead?: Fn;
 }

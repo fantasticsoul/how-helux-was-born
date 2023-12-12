@@ -157,6 +157,8 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const mutateFnDict = parseMutate(mutate);
 
   return {
+    /** TODO 未来支持 atom 对象销毁 */
+    isDestroyed: false,
     rawState,
     sharedKey,
     sharedKeyStr,

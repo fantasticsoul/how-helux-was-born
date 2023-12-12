@@ -47,7 +47,7 @@ export function callAsyncMutateFnLogic<T = SharedState>(
   const { sharedKey } = internal;
   const customOptions: IInnerSetStateOptions = { desc, sn, from };
   const statusKey = getStatusKey(from, desc);
-  const { draft, draftRoot, meta } = buildReactive(internal, depKeys, desc);
+  const { draft, draftRoot, meta } = buildReactive(internal, depKeys, { desc, from });
   const flush = (desc: string, beforeCommit?: any) => {
     innerFlush(sharedKey, desc, beforeCommit);
   };
@@ -57,11 +57,11 @@ export function callAsyncMutateFnLogic<T = SharedState>(
     // 调用 setState 主动把响应式对象可能存在的变更先提交
     // reactive.a = 66;
     // setState(draft=>draft.a+100); // flush 后回调里可拿到 draft.a 最新值为 66
+    console.error('starnge flush');
     flush(desc);
-    const { finish } = internal.setStateFactory();
-    return finish(cb, customOptions); // 继续透传 sn from 等信息
+    const { finish } = internal.setStateFactory(customOptions); // 透传 sn from 等信息
+    return finish(cb);
   };
-
 
   const defaultParams = { desc, setState, input: enureReturnArr(deps, targetState), draft, draftRoot, flush };
   const args = getArgs(defaultParams) || [defaultParams];
@@ -146,7 +146,7 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
     state = sharedState.val;
     markIgnore(false); // recover dep collect
   }
-  const { draftNode: draft, draftRoot, finish } = setStateFactory({ from, enableDraftDep: from === 'Mutate' });
+  const { draftNode: draft, draftRoot, finish } = setStateFactory({ from });
   const args = getArgs({ draft, draftRoot, setState, desc, input }) || [draft, { input, state }];
 
   try {
