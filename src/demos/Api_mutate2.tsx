@@ -10,8 +10,10 @@ const [finalPriceState, , ctx] = share({ retA: 0, time: 0 }, { moduleName: 'Api_
 const witness = mutate(finalPriceState)({
   deps: () => [priceState.a] as const,
   fn: (draft, { input: [a] }) => {
-    draft.retA += a; // 初始值函数，随 priceState.a 变化会重新执行
+    // draft.retA += a; // 初始值函数，随 priceState.a 变化会重新执行
+    draft.retA = a + 100; // 初始值函数，随 priceState.a 变化会重新执行
   },
+  desc: 'Api_mutate_finalPriceState2_m1'
 });
 
 function changePrice() {

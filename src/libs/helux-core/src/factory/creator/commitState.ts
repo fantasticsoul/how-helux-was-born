@@ -1,8 +1,5 @@
-import { delListItem, isFn, nodupPush, setNoop } from '@helux/utils';
-import { immut } from 'limu';
-import { createOb } from '../../helpers/obj';
 import type { Dict, IInnerSetStateOptions } from '../../types/base';
-import { getDepKeyByPath, IMutateCtx } from '../common/util';
+import { IMutateCtx } from '../common/util';
 import type { TInternal } from './buildInternal';
 import { execDepFns } from './notify';
 
@@ -15,40 +12,7 @@ export interface ICommitStateOptions extends IInnerSetStateOptions {
   desc?: any;
 }
 
-/** 干预 setState 调用结束后收集到的依赖项（新增或删除） */
-function interveneDeps(isAdd: boolean, opts: ICommitStateOptions) {
-  const { extraDeps, excludeDeps } = opts;
-  const fn = isAdd ? extraDeps : excludeDeps;
-  if (!isFn(fn)) {
-    return;
-  }
-
-  const {
-    mutateCtx: { depKeys },
-    internal: { rawState, sharedKey, isDeep },
-  } = opts;
-  let state: any;
-  const record = (keyPath: string[]) => {
-    const depKey = getDepKeyByPath(keyPath, sharedKey);
-    isAdd ? nodupPush(depKeys, depKey) : delListItem(depKeys, depKey);
-  };
-
-  if (isDeep) {
-    state = immut(rawState, {
-      onOperate: ({ fullKeyPath, isBuiltInFnKey }) => !isBuiltInFnKey && record(fullKeyPath),
-    });
-  } else {
-    state = createOb(rawState, {
-      set: setNoop,
-      get: (target: Dict, key: any) => {
-        record([key]);
-        return target[key];
-      },
-    });
-  }
-
-  fn(state);
-}
+// 此文件存在过强制干预依赖项的 interveneDeps 逻辑，在 execDepFns 执行，但考虑此功能无用已移除
 
 export function commitState(opts: ICommitStateOptions) {
   const { state, internal } = opts;
@@ -62,7 +26,5 @@ export function commitState(opts: ICommitStateOptions) {
   } else {
     internal.snap = { ...rawState };
   }
-  interveneDeps(true, opts);
-  interveneDeps(false, opts);
   execDepFns(opts);
 }

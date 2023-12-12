@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { useAtom, createShared, useForceUpdate } from 'helux';
 import * as util from './logic/util';
@@ -12,12 +11,6 @@ const [ret, setState] = createShared(ori, {
 });
 
 function change_a() {
-  setState(draft => {
-    draft.a = util.random();
-  }, { extraDeps: state => state.b });
-}
-
-function change_a_noExtraDeps() {
   setState(draft => {
     draft.a = util.random();
   });
@@ -54,7 +47,6 @@ function Entry(props: any) {
     <button onClick={() => setShow(!show)}>switch show</button>
     <button onClick={forceUpdate}>force update</button>
     <button onClick={change_a}>change_a</button>
-    <button onClick={change_a_noExtraDeps}>change_a_noExtraDeps</button>
     {show && <>
       <A />
       <B />

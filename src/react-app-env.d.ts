@@ -94,7 +94,6 @@ declare module 'helux' {
     deriveDict,
     watch,
     runDerive,
-    runDeriveAsync,
     createShared,
     useAtom,
     useReactive,
@@ -112,12 +111,10 @@ declare module 'helux' {
     useMutateLoading,
     useActionLoading,
     useStable,
+    useForceUpdate,
     // create action api
     storeSrv,
     action,
-    actionAsync,
-    atomAction,
-    atomActionAsync,
     sync,
     syncer,
     // signal api

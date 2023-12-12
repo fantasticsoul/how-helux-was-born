@@ -86,7 +86,9 @@
     "cpcoretype": "cp -r ../../hel-github-v4/packages/hel-micro-core/index.d.ts ./src/hel-micro-core",
     "cphel": "cp -r ../../hel-github-v4/packages/hel-micro/src ./src/hel-micro",
     "cphelux": "cp -r ../../hel-github-v4/packages/helux/src ./src/helux",
-    "cpreact": "cp -r ../../hel-github-v4/packages/hel-micro-react/src ./src/hel-micro-react"
+    "cpreact": "cp -r ../../hel-github-v4/packages/hel-micro-react/src ./src/hel-micro-react",
+    "bak": "rm -rf ./src/libs/helux-core/src/* && cp -r ./src/libs/helux-core/src-bak/* ./src/libs/helux-core/src",
+    "new": "rm -rf ./src/libs/helux-core/src/* && cp -r ./src/libs/helux-core/src-new/* ./src/libs/helux-core/src"
   },
   "eslintConfig": {
     "extends": [

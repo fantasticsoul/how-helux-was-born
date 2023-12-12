@@ -23,6 +23,7 @@ import { useOnEvent } from './hooks/useOnEvent';
 import { useReactive } from './hooks/useReactive';
 import { storeSrv, useService } from './hooks/useService';
 import { useWatch } from './hooks/useWatch';
+import { useForceUpdate } from './hooks/useForceUpdate';
 import { block, dynamicBlock, signal } from './signal';
 
 const { shallowCompare, isDiff } = limuUtils;
@@ -53,6 +54,7 @@ export {
   useMutable,
   useMutateLoading,
   useActionLoading,
+  useForceUpdate,
   // action api
   action,
   // signal api

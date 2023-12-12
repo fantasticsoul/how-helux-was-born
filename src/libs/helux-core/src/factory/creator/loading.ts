@@ -11,12 +11,12 @@ import { isDict } from '../common/util';
 import { getRootCtx } from '../root';
 import type { TInternal } from './buildInternal';
 
-const { MUTATE } = FROM;
+const { MUTATE, LOADING } = FROM;
 const { GLOGAL_LOADING, PRIVATE_LOADING } = STATE_TYPE;
 const { PRIVATE, GLOBAL } = RECORD_LOADING;
 const fakeExtra: Dict = {};
 const fakeLoading: Dict = {};
-const fakeRenderInfo: IRenderInfo = { sn: 0, getDeps: noopArr };
+const fakeRenderInfo: IRenderInfo = { sn: 0, getDeps: noopArr, insKey: 0 };
 const fakeTuple = [createSafeLoading(fakeExtra, fakeLoading, MUTATE), noop, fakeRenderInfo];
 
 interface IInitLoadingCtxOpt {
@@ -73,9 +73,9 @@ export function getStatusKey(from: string, desc: string) {
 export function setLoadStatus(internal: TInternal, statusKey: string, status: LoadingStatus) {
   if (!statusKey) return;
   const { loadingInternal } = internal;
-  loadingInternal.setState((draft: any) => {
+  loadingInternal.innerSetState((draft: any) => {
     draft[statusKey] = status;
-  });
+  }, { from: LOADING });
   if (status.err) {
     emitPluginEvent(internal, EVENT_NAME.ON_ERROR_OCCURED, { err: status.err });
     console.error(status.err);

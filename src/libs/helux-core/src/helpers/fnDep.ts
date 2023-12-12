@@ -1,4 +1,4 @@
-import { nodupPush, safeMapGet, noop } from '@helux/utils';
+import { nodupPush, safeMapGet, noop, delListItem } from '@helux/utils';
 import { EXPIRE_MS, NOT_MOUNT, PROTO_KEY, SIZE_LIMIT, UNMOUNT } from '../consts';
 import { delFnDepData, getFnCtx, getRunningFn, opUpstreamFnKey } from '../factory/common/fnScope';
 import { hasChangedNode } from '../factory/common/sharedScope';
@@ -7,6 +7,7 @@ import type { TInternal } from '../factory/creator/buildInternal';
 import type { Dict, IFnCtx } from '../types/base';
 import { getInternalByKey } from './state';
 
+// TODO DEL
 export function markTaskRunning() {
   const fnScope = getFnScope();
   // fnScope.isTaskRunning = true;
@@ -57,6 +58,7 @@ export function recordFnDepKeys(inputDepKeys: string[], options: { sharedKey?: n
     // 注意此处暂不记录到 fnCtx.depKeys 里，而是记录到 fnScope.depKeys 里
     // 等到 markFnEnd 时再按最长路径提取出所有 depKeys 转移到 fnCtx.depKeys 里
     if (canRecordDepKey) {
+      // console.trace('push depKey', depKey);
       nodupPush(depKeys, depKey); // here depKeys is come from fnScope
     }
     const fnKeys = safeMapGet(DEPKEY_FNKEYS_MAP, depKey, []);

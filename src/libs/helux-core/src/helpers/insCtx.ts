@@ -44,26 +44,25 @@ export function runInsUpdater(insCtx: InsCtxDef | undefined) {
 }
 
 export function attachInsProxyState(insCtx: InsCtxDef) {
-  const { internal, isReactive, insKey } = insCtx;
+  const { internal, isReactive } = insCtx;
   const { rawState, isDeep, sharedKey, onRead } = internal;
   if (isDeep) {
     const onOperate: OnOperate = (opParams) => {
       if (opParams.isBuiltInFnKey) return;
       const { fullKeyPath, keyPath, parentType } = opParams;
-      const { rawVal, proxyValue } = callOnRead(opParams, onRead);
+      const rawVal = callOnRead(opParams, onRead);
       const depKey = prefixValKey(fullKeyPath.join(KEY_SPLITER), sharedKey);
       const depKeyInfo = { depKey, keyPath: fullKeyPath, parentKeyPath: keyPath, sharedKey };
       collectDep(insCtx, depKeyInfo, { parentType, rawVal });
 
       // 响应式对象会触发到变化行为
-      if (opParams.isChanged) {
+      if (isReactive && opParams.isChanged) {
         nextTickFlush(sharedKey);
       }
-      return proxyValue;
     };
 
     if (isReactive) {
-      const { draft, draftRoot } = buildReactive(internal, onOperate);
+      const { draft, draftRoot } = buildReactive(internal, [], '', onOperate);
       insCtx.proxyState = draftRoot;
       insCtx.proxyStateVal = draft;
     } else {
@@ -85,7 +84,7 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
         if (isSymbol(key)) {
           return value;
         }
-        const { rawVal } = callOnRead(newOpParams(key, value, false), onRead);
+        const rawVal = callOnRead(newOpParams(key, value, false), onRead);
         const depKey = prefixValKey(key, sharedKey);
         const parentType = isDict(target) ? DICT : OTHER;
         collectDep(insCtx, { depKey, keyPath: [key], sharedKey }, { parentType, rawVal });

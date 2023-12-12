@@ -3,7 +3,6 @@ import {
   atom,
   share,
   useAtom,
-  atomAction,
   action,
 } from "helux";
 import { MarkUpdate, Entry } from './comps';

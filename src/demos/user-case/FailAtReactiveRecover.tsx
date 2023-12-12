@@ -14,6 +14,12 @@ function App() {
   const recover = () => {
     setState((draft) => { draft.a.b.c = 9999 });
   };
+  const changeReactive = ()=>{
+    reactive.a.b.c += 100;
+    reactive.a.b.c += 100;
+    reactive.a.b.c += 100;
+    reactive.a.b.c += 100;
+  };
 
   return (
     <>
@@ -28,6 +34,7 @@ function App() {
           reactive 恢复 firstName默认值
         </button>
         <button onClick={recover}>setState 恢复 firstName默认值</button>
+        <button onClick={changeReactive}>changeReactive</button>
         <div>
           firstName=
           <input

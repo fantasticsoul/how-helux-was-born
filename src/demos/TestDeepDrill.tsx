@@ -47,7 +47,11 @@ const [ret, setState, call] = share(ori, {
 });
 
 watch(() => {
+  console.log('read a');
   const { a } = ret;
+  console.log('read a 2');
+
+  // TODO  原生watch draft 禁止收集
   setState(draft => {
     console.log('watch and change a');
     draft.doubleA = a * 2;

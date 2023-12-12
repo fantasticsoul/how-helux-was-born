@@ -18,6 +18,10 @@ export const RECORD_LOADING = {
 } as const;
 
 export const FROM = {
+  SET_STATE: 'SetState',
   MUTATE: 'Mutate',
   ACTION: 'Action',
+  REACTIVE: 'Reactive',
+  LOADING: 'Loading',
+  SYNC: 'Sync',
 } as const;

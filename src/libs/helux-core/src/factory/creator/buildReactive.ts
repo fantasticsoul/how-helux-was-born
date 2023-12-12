@@ -1,31 +1,27 @@
 import { canUseDeep } from '@helux/utils';
-import { SHARED_KEY } from '../../consts';
+import { SHARED_KEY, REACTIVE_META_KEY, FROM } from '../../consts';
 import { getSharedKey } from '../../helpers/state';
-import type { IInnerSetStateOptions, OnOperate } from '../../types/base';
+import { getReactiveKey } from '../common/key';
+import type { OnOperate } from '../../types/base';
+import type { IReactive } from '../../types/inner';
 import type { TInternal } from './buildInternal';
-import { INS_ON_READ, REACTIVE_DESC } from './current';
-
-interface IReactive {
-  timer: any;
-  finish: (val: any, options: IInnerSetStateOptions) => any;
-  draft: any;
-  modified: boolean;
-  expired: boolean;
-  sharedKey: number;
-}
+import { REACTIVE_DESC, REACTIVE_META } from './current';
 
 /** key: sharedKey, value: reactive object */
 const reactives: Map<number, IReactive> = new Map();
 
-function innerFlush(reactive: IReactive) {
-  const { sharedKey } = reactive;
-  reactive.expired = true; // 标记过期，不能再被复用
-  reactive.finish(null, { from: 'Reactive', desc: REACTIVE_DESC.current(sharedKey) });
-  REACTIVE_DESC.del(sharedKey);
-}
-
 function canFlush(reactive?: IReactive): reactive is IReactive {
   return !!(reactive && !reactive.expired && reactive.modified);
+}
+
+function flushData(reactive: IReactive, beforeCommit?: any) {
+  const { sharedKey } = reactive;
+  // 标记过期，不能再被复用
+  reactive.expired = true;
+  // 来自于 flush 记录的 desc 值，使用过一次就清除
+  const desc = REACTIVE_DESC.current(sharedKey);
+  REACTIVE_DESC.del(sharedKey);
+  return reactive.finish(null, { from: 'Reactive', desc, beforeCommit });
 }
 
 function getKey(shareState: any) {
@@ -35,13 +31,6 @@ function getKey(shareState: any) {
     sharedKey = getSharedKey(shareState);
   }
   return sharedKey;
-}
-
-export function markExpired(sharedKey: number) {
-  const result = reactives.get(sharedKey);
-  if (result) {
-    result.expired = true;
-  }
 }
 
 /**
@@ -57,51 +46,80 @@ export function reactiveDesc(shareState: any, desc?: string) {
  * 人工触发提交响应式对象的变更数据, sharedState 可以是 draftRoot
  */
 export function flush(shareState: any, desc?: string) {
-  const sharedKey = reactiveDesc(shareState, desc);
+  const sharedKey = getSharedKey(shareState);
+  innerFlush(sharedKey, desc);
+}
+
+/**
+ * 供内部调用的 flush 方法，支持透传 beforeCommit 句柄
+ */
+export function innerFlush(sharedKey: any, desc?: string, beforeCommit?: any) {
   const reactive = reactives.get(sharedKey);
   if (canFlush(reactive)) {
-    // 把定时器的任务清理掉
-    clearTimeout(reactive.timer);
+    if (desc) {
+      REACTIVE_DESC.set(sharedKey, desc);
+    }
     // 提交变化数据
-    innerFlush(reactive);
+    flushData(reactive, beforeCommit);
+  }
+}
+
+/**
+ * 标记响应对象已过期，再次获取时会自动刷新
+ */
+export function markExpired(sharedKey: number) {
+  const reactive = reactives.get(sharedKey);
+  if (reactive) {
+    reactive.expired = true;
   }
 }
 
 /**
  * 在下一次事件循环里提交之前修改的状态，供内部发生状态变化时调用
+ * 故调用此方法就会标记 reactive.modified = true
  */
-export function nextTickFlush(sharedKey: number) {
+export function nextTickFlush(sharedKey: number, desc?: string, beforeCommit?: any) {
   const reactive = reactives.get(sharedKey);
-  if (!reactive) {
-    return;
+  if (reactive) {
+    reactive.modified = true;
+    reactive.nextTickFlush(desc, beforeCommit);
   }
-  // TODO  discussion, add cb to microTask with Promise.resolve ?
-  reactive.timer && clearTimeout(reactive.timer);
-  reactive.modified = true;
-  reactive.timer = setTimeout(() => {
-    // 人工提前 flush 已清除任务，这里判断一下是为了双保险机制
-    canFlush(reactive) && innerFlush(reactive);
-  }, 0);
 }
 
 /**
  * 全局独立使用或实例使用都共享同一个响应对象
  */
 function getReactiveVal(internal: TInternal, atomVal: boolean) {
-  const { sharedKey, setStateImpl } = internal;
+  const { sharedKey } = internal;
   let reactive = reactives.get(sharedKey);
   // 无响应对象、或响应对象已过期
   if (!reactive || reactive.expired) {
-    const ret = setStateImpl(null, { enableDraftDep: true, isReactive: true });
-    reactive = {
-      timer: 0,
-      finish: ret.finishMutate,
-      draft: ret.draftRoot,
+    const { finish, draftRoot } = internal.setStateFactory({ isReactive: true, from: FROM.REACTIVE });
+    const latestReactive: IReactive = {
+      finish,
+      draft: draftRoot,
       expired: false,
       modified: false,
       sharedKey,
+      data: [null, null],
+      hasFlushTask: false,
+      nextTickFlush: (desc?: string, beforeCommit?: any) => {
+        const { expired, hasFlushTask } = latestReactive;
+        if (!expired) {
+          latestReactive.data = [desc, beforeCommit];
+        }
+        if (!hasFlushTask) {
+          latestReactive.hasFlushTask = true;
+          // push flush cb to micro task
+          Promise.resolve().then(() => {
+            const [desc, beforeCommit] = latestReactive.data;
+            innerFlush(sharedKey, desc, beforeCommit);
+          });
+        }
+      },
     };
-    reactives.set(sharedKey, reactive);
+    reactive = latestReactive;
+    reactives.set(sharedKey, latestReactive);
   }
   const { draft } = reactive;
   return atomVal ? draft.val : draft;
@@ -110,26 +128,26 @@ function getReactiveVal(internal: TInternal, atomVal: boolean) {
 /**
  * 创建全局使用的响应式共享对象
  */
-export function buildReactive(internal: TInternal, onRead?: OnOperate) {
+export function buildReactive(internal: TInternal, depKeys: string[], desc?: string, onRead?: OnOperate) {
   // 提供 draftRoot draft，和 mutate 回调里对齐，方便用户使用 atom 时少一层 .val 操作
   let draftRoot: any = {};
   let draft: any = {};
   const { rawState, deep, forAtom, isPrimitive, sharedKey } = internal;
 
+  const rKey = getReactiveKey();
+  const meta = { key: rKey, desc: desc || '', sharedKey, depKeys, onRead };
   if (canUseDeep(deep)) {
     const set = (atomVal: boolean, key: any, value: any) => {
       const draftVal = getReactiveVal(internal, atomVal);
+      REACTIVE_META.markUsing(rKey);
       // handleOperate 里会自动触发 nextTickFlush
       draftVal[key] = value;
       return true;
     };
     const get = (atomVal: boolean, key: any) => {
-      if (key === SHARED_KEY) {
-        return sharedKey;
+      if (key === REACTIVE_META_KEY) {
+        return meta;
       }
-      // 来自全局的响应式对象读行为时，会置空 onRead
-      // 来自实例的响应式对象读行为时，会写入实例对应的 onRead
-      INS_ON_READ.set(sharedKey, onRead);
       const draftVal = getReactiveVal(internal, atomVal);
       return draftVal[key];
     };
@@ -151,5 +169,7 @@ export function buildReactive(internal: TInternal, onRead?: OnOperate) {
     draftRoot = rawState;
     draft = rawState.val;
   }
-  return { draftRoot, draft };
+  REACTIVE_META.set(meta.key, meta);
+
+  return { draftRoot, draft, meta };
 }

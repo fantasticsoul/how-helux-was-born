@@ -2,8 +2,8 @@ import { delListItem, nodupPush, noop, safeObjGet } from '@helux/utils';
 import type {
   Dict,
   Ext,
-  Fn,
   IInsCtx,
+  SetStateFactory,
   InnerSetState,
   IRuleConf,
   KeyInsKeysDict,
@@ -15,14 +15,14 @@ import type { Level1ArrKeys } from '../../types/inner';
 import { ParsedOptions } from './parse';
 
 /** 在 initLoadingCtx 阶段会生成，这里先预备一个假的 */
-const fakeInternal: any = { setState: noop };
+const fakeInternal: any = { innerSetState: noop };
 
 export function buildInternal(
   parsedOptions: ParsedOptions,
   innerOptions: {
     setState: SetState;
+    setStateFactory: SetStateFactory;
     innerSetState: InnerSetState;
-    setStateImpl: (...any: any[]) => { draftRoot: any; draftNode: any; finishMutate: Fn; getPartial: Fn };
     sharedState: Ext<SharedState>;
     ruleConf: IRuleConf;
     isDeep: boolean;

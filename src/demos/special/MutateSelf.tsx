@@ -3,7 +3,14 @@ import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
 import { random, delay } from "../logic/util";
 
-const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 } }, c: 2, d: 10, e: 1 }, { moduleName: 'MutateSelf' });
+const [sharedState, setState, ctx] = share({
+  a: 1,
+  b: 2,
+  c: 2,
+  d: 10,
+  e: 1,
+  f: { b1: { b2: 200 } },
+}, { moduleName: 'MutateSelf' });
 
 // const witness1 = ctx.mutate({
 //   deps: (state) => [state.a],
@@ -19,19 +26,29 @@ const witnessDict = mutateDict(sharedState)({
   //   deps: (state) => [state.a],
   //   fn: (draft) => { draft.c = draft.a + 1 + random() },
   // },
-  key1: {
-    deps: (state) => [state.a],
-    fn: (draft, { input: [a] }) => { draft.b = a + 1 + random() },
-    // fn: (draft) => { draft.b = sharedState.a + 1 + random() },
-  },
-  key2: {
-    deps: (state) => [state.b],
-    fn: (draft, { input: [b] }) => { draft.c = b + 1 + random() },
-  },
-  key3: {
-    deps: (state) => [state.c],
-    fn: (draft, { input: [c] }) => { draft.d = c + 1 + random() },
-  },
+
+  // key1: {
+  //   deps: (state) => [state.a],
+  //   fn: (draft, { input: [a] }) => {
+  //     draft.b = a + 1 + random();
+  //   },
+  //   // fn: (draft) => { draft.b = sharedState.a + 1 + random() },
+  // },
+  // key2: {
+  //   deps: (state) => [state.b],
+  //   fn: (draft, { input: [b] }) => {
+  //     console.log('trigger key2');
+  //     draft.c = b + 1 + random()
+  //   },
+  // },
+  // key3: {
+  //   deps: (state) => [state.c],
+  //   fn: (draft, { input: [c] }) => {
+  //     console.log('trigger key3');
+  //     draft.d = c + 1 + random();
+  //   },
+  // },
+
   // key4: {
   //   deps: (state) => [state.d],
   //   fn: (draft, [d]) => { draft.a = d + 1 + random() },
@@ -57,9 +74,17 @@ const witnessDict = mutateDict(sharedState)({
 // });
 
 function changeA() {
-  setState((draft) => {
-    draft.a += 1;
+  const n = setState((draft) => {
+    draft.f.b1.b2 = 1000;
   });
+  console.log('n', n);
+  ctx.reactive.f.b1.b2 += 1;
+  ctx.flush('xx');
+  // console.log(n);
+  console.log(sharedState);
+  ctx.reactive.f.b1.b2 += 1;
+  ctx.flush('xx');
+  console.log(sharedState);
 }
 
 function changeC() {
@@ -98,6 +123,7 @@ const Demo = () => (
     <Comp />
     <Comp2 />
     <Comp3 />
+    {$(ctx.reactive.f.b1.b2)}
   </Entry>
 );
 

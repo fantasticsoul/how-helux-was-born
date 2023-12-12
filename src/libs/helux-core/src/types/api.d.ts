@@ -290,16 +290,16 @@ export function useGlobalId(globalId: NumStrSymbol): IRenderInfo;
  */
 export function useService<S = Dict, P = object>(serviceImpl: S, props?: P): S;
 
+/**
+ * 返回一个可以强制更新当前组件的更新函数
+ */
+export function useForceUpdate(): () => void;
+
 export function storeSrv(ref: MutableRefObject<any>): void;
 
 export function sync<T extends SharedState>(target: T): SyncFnBuilder<T>;
 
 export function syncer<T extends SharedState>(target: T): Syncer<T>;
-
-/**
- * 强制更新
- */
-export function useForceUpdate(): () => void;
 
 /**
  * 对齐 React.useEffect

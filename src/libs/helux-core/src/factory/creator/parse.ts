@@ -41,11 +41,11 @@ function markSharedKeyOnState(rawState: Dict) {
   return sharedKey;
 }
 
-export function parseSetOptions<T = any>(options?: ISetStateOptions<T>) {
-  if (!options) return;
+export function pureSetOptions(options?: ISetStateOptions) {
+  if (!options) return {};
   // filter valid props
-  const { extraDeps, excludeDeps, desc, ids, globalIds } = options;
-  return { extraDeps, excludeDeps, desc, ids, globalIds };
+  const { desc, ids, globalIds } = options;
+  return { desc, ids, globalIds };
 }
 
 export function parseRawState(innerOptions: IInnerOptions) {
@@ -79,7 +79,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
   let validItem: MutateFnStdItem | null = null;
   let desc = inputDesc || '';
   if (isFn(fnItem) && fnItem !== noop) {
-    validItem = { fn: fnItem, deps: noopArr, oriDesc: desc, desc };
+    validItem = { fn: fnItem, deps: noopArr, oriDesc: desc, desc, depKeys: [] };
   } else if (isObj(fnItem)) {
     const { fn, desc, deps, task, immediate } = fnItem;
     const descVar = inputDesc || desc || '';
@@ -87,7 +87,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
     const taskVar = isFn(task) ? task : undefined;
     const depsVar = isFn(deps) ? deps : noopArr;
     if (fn || task) {
-      validItem = { fn: fnVar, desc: descVar, oriDesc: descVar, deps: depsVar, task: taskVar, immediate };
+      validItem = { fn: fnVar, desc: descVar, oriDesc: descVar, deps: depsVar, task: taskVar, immediate, depKeys: [] };
     }
   }
 
@@ -143,7 +143,6 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const sharedKey = markSharedKeyOnState(rawState);
   const moduleName = options.moduleName || '';
   const deep = options.deep ?? true;
-  const enableDraftDep = options.enableDraftDep ?? false;
   const recordLoading = options.recordLoading || RECORD_LOADING.PRIVATE;
   const rules = options.rules || [];
   const before = options.before || noop;
@@ -178,7 +177,6 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
     stopArrDep,
     stopDepth,
     isPrimitive,
-    enableDraftDep,
   };
 }
 

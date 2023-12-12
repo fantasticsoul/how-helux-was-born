@@ -5,6 +5,8 @@ import { MarkUpdate, Entry } from './comps';
 import { log, delay } from './logic/util';
 
 console.log('===========> share');
+
+// TODO 解决这个死循环
 const [finalPriceState] = share({ loading: false, retA: 0, time: 0 }, {
   mutate: {
     // retA: draft => draft.retA = idealPriceState.retA - 600,
@@ -30,7 +32,7 @@ const [finalPriceState] = share({ loading: false, retA: 0, time: 0 }, {
 });
 
 const Demo = () => (
-  <h1>strange dc</h1>
+  <h1>call task immediately lead a dead cycle( fixed )</h1>
 );
 
 

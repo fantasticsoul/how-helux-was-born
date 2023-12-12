@@ -30,6 +30,9 @@ export function prepareNormalMutate(opts: IPrepareNormalMutateOpts) {
     handleOperate(newOpParams(key, value), { internal, mutateCtx });
   };
 
+  // ATTENTION LABEL ( non-deep )
+  // 非 deep 存在的意义主要是为了支持无 Proxy 的运行环境 
+  // 很多行为都会有缺失，考虑如何和 deep 对齐比较困难，从功能暂不推荐使用
   // TODO 为{}对象型的 atom.val 再包一层监听
   // 为了和 deep 模式下返回的 setState 保持行为一致
   const mockDraft = createOb(rawState, {
@@ -98,7 +101,7 @@ export function prepareNormalMutate(opts: IPrepareNormalMutateOpts) {
       commitState(opts);
       emitDataChanged(internal, innerSetOptions, desc);
 
-      return internal.snap;
+      return mutateCtx.writeKeys;
     },
   };
 }

@@ -13,6 +13,7 @@ import { getGlobalEmptyInternal, getGlobalIdInsKeys } from './globalId';
 function updateIns(insCtxMap: InsCtxMap, insKey: number, sn: number) {
   const insCtx = insCtxMap.get(insKey) as InsCtxDef;
   if (insCtx) {
+    // 透传变更批次编号给示例，方便标记多个实例的更新是否来自于同一批次
     insCtx.renderInfo.sn = sn;
     runInsUpdater(insCtx);
   }
@@ -25,20 +26,15 @@ export function execDepFns(opts: ICommitStateOptions) {
   const { mutateCtx, internal, desc, isFirstCall, from, sn } = opts;
   const { ids, globalIds, depKeys, triggerReasons } = mutateCtx;
   const { key2InsKeys, id2InsKeys, insCtxMap, rootValKey } = internal;
-  console.log('depKeys ', depKeys);
 
   internal.ver += 1;
-  // find associate ins keys
+  // these associate ins keys will be update
   let dirtyInsKeys: number[] = [];
   let dirtyGlobalInsKeys: number[] = [];
-  // find associate derived/watch fn ctxs
+  // these associate derived/watch fn will be update
   let dirtyFnKeys: string[] = [];
   let dirtyAsyncFnKeys: string[] = [];
   const runCountStats: Dict<number> = {};
-
-  if (isFirstCall) {
-    markFnEnd();
-  }
 
   const analyzeDepKey = (key: string) => {
     // 值相等就忽略
@@ -105,8 +101,7 @@ export function execDepFns(opts: ICommitStateOptions) {
   dirtyAsyncFnKeys.forEach((fnKey) => markComputing(fnKey, runCountStats[fnKey]));
   // start execute derive/watch fns
   dirtyFnKeys.forEach((fnKey) => runFn(fnKey, { sn, from, triggerReasons, internal, desc, isFirstCall }));
-  console.log('dirtyFnKeys ', dirtyFnKeys);
-
+  console.log('dirtyFnKeys, ', dirtyFnKeys);
 
   // start trigger rerender
   dirtyInsKeys.forEach((insKey) => updateIns(insCtxMap, insKey, sn));

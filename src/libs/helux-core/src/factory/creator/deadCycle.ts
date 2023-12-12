@@ -12,7 +12,7 @@ function newLog(sn = 0): Log {
 }
 
 export function dcErr(usefulName: string, descs: string[], runDesc: string) {
-  const err = new Error(`module(${usefulName}) found mutate fn(${runDesc}) in these dead cycle fns [${descs.join(',')}]`);
+  const err = new Error(`DEAD_CYCLE: module(${usefulName}) found mutate fn(${runDesc}) in these dead cycle fns [${descs.join(',')}]`);
   err.cause = 'DeadCycle';
   // @ts-ignore
   err.data = descs;

@@ -33,7 +33,6 @@ function changeBase() {
 function Demo(props: any) {
   return <Entry fns={[changeBase]}>
     <Price />
-    <Price />
     <IdealPrice />
     <IdealPrice />
     <FinalPrice />

@@ -9,7 +9,7 @@ function buildFnScope() {
     keySeed: {
       static: 0,
       hook: 0,
-      InnerMutate: 0,
+      Reactive: 0,
       Mutate: 0,
     },
     runningFnKey: '',
@@ -28,7 +28,7 @@ function buildFnScope() {
      * helux强制用户必须把依赖放置于同步逻辑中
      */
     isIgnore: false,
-    /** 函数运行结束收集到的 depKeys */
+    /** 函数运行结束收集到的读依赖 depKeys */
     depKeys: [] as string[],
     /** globalId to Array<insKey> */
     GID_INSKEYS_MAP: new Map<NumStrSymbol, number[]>(),

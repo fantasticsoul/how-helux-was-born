@@ -9,7 +9,7 @@ const [sharedState, setState, ctx] = share(
   { a: 1, b: { b1: { b2: 200 } } },
   {
     mutate: {
-      cool: draft => { draft.a += 1 },
+      cool: draft => { draft.a = draft.b.b1.b2 + 1 },
     }
   }
 );
@@ -18,7 +18,7 @@ const [a2, seAtom, atomCtx] = atom(
   { a: 1, b: { b1: { b2: 200 } } },
   {
     mutate: {
-      xx: (draft) => { draft.a += 1 },
+      xx: (draft) => { draft.a = draft.b.b1.b2 + 1 },
     }
   }
 );
@@ -53,9 +53,9 @@ function changeA() {
 }
 
 function changeAWithCall(num?: number) {
-  ctx.call(function ({ draft, args }) { // call ctx { draft, state, setState, args }
-    draft.a += args[0] || 100
-  }, num); // 透传参数给 callCtx
+  ctx.call(function ({ draft, payload }) { // call ctx { draft, state, setState, args }
+    draft.a += payload[0] || 100
+  }, [num]); // 透传参数给 callCtx
 }
 
 function DemoReadShareState() {

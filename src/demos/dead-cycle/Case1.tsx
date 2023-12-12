@@ -1,5 +1,5 @@
 import React from 'react';
-import { $, share } from 'helux';
+import { $, share, useForceUpdate } from 'helux';
 import { MarkUpdate, Entry } from '../comps';
 import { dictFactory, delay } from '../logic/util';
 
@@ -21,8 +21,14 @@ const ms = ctxp.defineMutateSelf({
   }
 });
 
-function changeName() {
+// 这个改动应该触发 changeB task，修改 newName
+function changeNameByReactive() {
   ctxp.reactive.info.name = `${Date.now()}_`;
+}
+function changeNameByTopSetState() {
+  ctxp.setState((draft) => {
+    draft.info.name = `${Date.now()}_`;
+  });
 }
 
 function changeC() {
@@ -30,18 +36,38 @@ function changeC() {
 }
 
 function Price() {
-  const [state] = ctxp.useState();
+  console.log('Render Price');
+  const [state, setState] = ctxp.useState();
+  const [reactive] = ctxp.useReactive();
+  const update = useForceUpdate();
+  const [s, setS] = React.useState(100);
+  const update2 = () => {
+    setS(s + 1);
+  };
   const [ld] = ms.useLoading();
+  const changeNameByInsSetState = () => {
+    setState((draft) => {
+      draft.info.name = `${Date.now()}_`;
+    });
+  };
+  const changeNameByInsReactive = () => {
+    reactive.info.name = `${Date.now()}_`;
+  };
 
   return <MarkUpdate name="Price">
     <h3>extra.prefixedMark: {state.extra.prefixedMark}</h3>
     <h3>extra.toBeDrive: {state.extra.toBeDrive}</h3>
     <h3>extra.newName: {state.extra.newName} {ld.changeB.loading ? 'loading...' : ''}</h3>
+    <button onClick={changeNameByInsSetState}>changeNameByInsSetState</button>
+    <button onClick={changeNameByInsReactive}>changeNameByInsReactive</button>
+    <button onClick={update}>forceUpdate</button>
+    <button onClick={update2}>forceUpdate2</button>
+    <h4>{s}</h4>
   </MarkUpdate>;
 }
 
 const Demo = () => (
-  <Entry fns={[changeC, changeName]}>
+  <Entry fns={[changeC, changeNameByReactive, changeNameByTopSetState]}>
     <Price />
     <Price />
     <h3>priceState.a.b.c: {$(priceState.a.b.c)}</h3>

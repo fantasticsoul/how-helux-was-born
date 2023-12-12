@@ -26,7 +26,7 @@ function getColor(sn: number, forceColor?: boolean) {
   return color;
 }
 
-const fakeInfo = { sn: 0, getDeps: () => [] };
+const fakeInfo = { sn: 0, insKey:0, getDeps: () => [] };
 
 function ensureInfos(info: IRenderInfo | Array<IRenderInfo>) {
   let infos: IRenderInfo[] = [];
@@ -45,6 +45,7 @@ function getInfoData(
   const infos = ensureInfos(info);
   let sn = 0;
   let depStr = "";
+  const insKeyStr = infos.map(item=>item.insKey).join(',');
   const deps: string[] = [];
   infos.forEach((item) => {
     sn += item.sn;
@@ -55,25 +56,26 @@ function getInfoData(
   depStr = deps.join(" , ");
   return {
     sn,
-    depStr
+    depStr,
+    insKeyStr,
   };
 }
 
 function useMarkUpdate(info: IRenderInfo | Array<IRenderInfo>) {
   const [depStr, setDepStr] = useState("");
-  const sn = getInfoData(info).sn;
+  const { sn, insKeyStr } = getInfoData(info);
   useEffect(() => {
     setDepStr(getInfoData(info, true).depStr); // 此时调用获取到当前的渲染依赖
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sn, info]);
   let snLabel = Array.isArray(info) ? "sn sum" : "sn";
   const snNode = sn ? `(${snLabel} ${sn})` : "";
-  return { depStr, snNode, sn };
+  return { depStr, snNode, sn, insKeyStr };
 }
 
 function Ui(props: IProps) {
   const { name = "MarkUpdate", info = fakeInfo, forceColor } = props;
-  const { snNode, depStr, sn } = useMarkUpdate(info);
+  const { snNode, depStr, sn, insKeyStr } = useMarkUpdate(info);
   return (
     <div className="box">
       {props.children}
@@ -81,7 +83,7 @@ function Ui(props: IProps) {
         className="info"
         style={{ backgroundColor: getColor(sn, forceColor) }}
       >
-        [{name}] update at {getLocaleTime()} {snNode}
+        [{name}] update at {getLocaleTime()} {snNode} (insKey {insKeyStr})
       </div>
       {depStr && <div style={{ color: "green" }}> deps is [ {depStr} ]</div>}
     </div>

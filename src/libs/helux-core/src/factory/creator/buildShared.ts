@@ -33,9 +33,8 @@ export function buildSharedState(options: ParsedOptions) {
         const { isBuiltInFnKey } = params;
         if (!isBuiltInFnKey) {
           const { fullKeyPath } = params;
-          const { proxyValue, rawVal } = callOnRead(params, onRead);
+          const rawVal = callOnRead(params, onRead);
           collectDep(fullKeyPath.join(KEY_SPLITER), fullKeyPath, rawVal);
-          return proxyValue;
         }
       },
     });
@@ -55,7 +54,7 @@ export function buildSharedState(options: ParsedOptions) {
           return val;
         }
 
-        const { rawVal } = callOnRead(newOpParams(key, val, false), onRead);
+        const rawVal = callOnRead(newOpParams(key, val, false), onRead);
         collectDep(key, [key], rawVal);
         return rawVal;
       },

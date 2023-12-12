@@ -1,6 +1,7 @@
 import type { ForwardedRef, FunctionComponent, PropsWithChildren, ReactNode } from '@helux/types';
 import type { IOperateParams as OpParams } from 'limu';
 import type { DepKeyInfo } from './inner';
+import { IMutateCtx } from '../factory/common/util';
 
 export type IOperateParams = OpParams;
 
@@ -33,7 +34,7 @@ export type RecordToGlobal = 'global';
 
 export type RecordLoading = NoRecord | RecordToPrivate | RecordToGlobal;
 
-export type From = 'Reactive' | 'Mutate' | 'Action' | 'SetState';
+export type From = 'Reactive' | 'Mutate' | 'Action' | 'SetState' | 'Sync' | 'Loading';
 
 /**
  * onRead用于给开发者配置读操作钩子函数，所有值读取操作均触发此钩子函数，
@@ -192,6 +193,8 @@ export type LoadingState<T = Dict> = {
 export type ActionFnParam<P = any, T = any> = {
   draft: T extends Atom | ReadOnlyAtom ? T['val'] : T;
   draftRoot: T extends Atom | ReadOnlyAtom ? Atom<AtomValType<T>> : T;
+  /** 主动提交草稿变更（默认是进入下一次事件循环时提交） */
+  flush: (desc: string) => void;
   setState: SetState<T extends Atom ? T['val'] : T>;
   desc: string;
   payload: P;
@@ -225,11 +228,14 @@ export interface IMutateTaskParam<T = SharedState, P = any[]> {
   /** 异步任务提供的 draft 是全局响应式对象 */
   draftRoot: DraftRootType<T>;
   draft: DraftType<T>;
+  /** 立即提交响应式对象的变更数据 */
+  flush: (desc: string) => void;
   /**
    * 函数描述
    */
   desc: string;
   setState: SetState<T>;
+  /** deps 返回的结果 */
   input: P;
 }
 
@@ -278,6 +284,8 @@ export type MutateFnStdItem<T = any, P = ReadOnlyArr> = MutateFnItem<T, P> & {
   oriDesc: string;
   /** 可能是内部生成的 desc */
   desc: string;
+  /** mutate 函数收集到的依赖存档 */
+  depKeys: string[];
 };
 
 export type MutateFnLooseItem<T = SharedState, P = ReadOnlyArr> = MutateFnItem<T, P> & {
@@ -317,26 +325,67 @@ export type MultiDeriveFn<DR extends DepsResultDict> = {
 /** partial state or cb */
 export type PartialArgType<T> = T extends PlainObject ? Partial<T> | ((draft: T) => void | Partial<T>) : T | ((draft: T) => void | T);
 
+export interface ISetFactoryOpts extends ISetStateOptions {
+  sn?: number;
+  from?: From;
+  isReactive?: boolean;
+  /** inner sync */
+  calledBy?: string;
+  /** 
+   * 目前仅 mutate fn 函数提供的 draft 对象支持依赖收集，其他场景依赖禁止，避免收集到造成死循环的依赖
+   * 例如立即执行的watch watch(()=>{ setState(draft=> ...) })
+   * 同时也减少不必要的运行时分析性能损耗
+   */
+  enableDraftDep?: boolean;
+}
+
+export interface IInnerSetStateOptions extends ISetFactoryOpts {
+  isFirstCall?: boolean;
+  insKey?: number;
+  /**
+   * 顶层 setState 回调里的 draft 是禁止依赖收集功能的，
+   * 避免 watch 回调首次执行时，回调里调用 setState(draft=>{ ... }) 收集到会造成死循环的依赖
+   */
+  disableDraftDep?: boolean;
+  beforeCommit?: (mutateCtx: IMutateCtx) => { dcDepKeys: string[], desc: '' } | null;
+}
+
 export type SetState<T = any> = (
   partialStateOrRecipeCb: T extends Atom | ReadOnlyAtom ? PartialArgType<AtomValType<T>> : PartialArgType<T>,
-  options?: ISetStateOptions<T>,
+  options?: ISetStateOptions,
 ) => NextSharedDict<T>;
 
-export type InnerSetState<T = Dict> = (
-  partialStateOrRecipeCb: Partial<T> | ((draft: DraftType<T>) => void | Partial<T>),
-  options?: IInnerSetStateOptions<T>,
+export type InnerSetState<T = any> = (
+  partialStateOrRecipeCb: T extends Atom | ReadOnlyAtom ? PartialArgType<AtomValType<T>> : PartialArgType<T>,
+  options?: IInnerSetStateOptions,
 ) => NextSharedDict<T>;
 
-export type Call<T = SharedState> = <P extends any[] = any[]>(
+export type SetStateFactory<T = any> = (
+  options?: ISetFactoryOpts,
+) => {
+  draftRoot: any;
+  draftNode: any;
+  finish: (
+    partialStateOrRecipeCb: T extends Atom | ReadOnlyAtom ? PartialArgType<AtomValType<T>> : PartialArgType<T>,
+    options?: IInnerSetStateOptions<any>,
+  ) => NextSharedDict | NextAtom;
+};
+
+/**
+ * call is a low-frequency calling method, so it has no options arg
+ */
+export type Call<T = SharedState> = <P = any>(
   srvFn: (ctx: {
-    args: P;
+    payload: P;
     state: Readonly<T>;
     draftRoot: DraftRootType<T>;
     draft: DraftType<T>;
     setState: SetState<T>;
   }) => Partial<T> | void,
-  ...args: P
-) => NextSharedDict<T>;
+  payload?: P,
+  desc?: string,
+  throwErr?: boolean,
+) => [NextSharedDict<T>, Error | null];
 
 /** share 返回的共享对象， draftRoot 和 draft 相等，atom 返回的共享对象， draftRoot = { val: draft } */
 export type DraftRootType<T = SharedState> = T extends Atom | ReadOnlyAtom ? AtomDraft<T> : T;
@@ -386,14 +435,32 @@ type FnResultValType<T extends PlainObject | DeriveFn> = T extends PlainObject
   : any;
 
 export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICreateOptions<T>> {
+  /**
+   * 定义一个action方法，action 方法的异常默认被拦截掉不再继续抛出，只是并发送给插件和伴生loading状态
+   * ```ts
+   * const fn = action(()=>{}, 'someAction');
+   * // 调用方法，错误会传递到 err 位置
+   * const [ snap, err ] = fn(1); 
+   * // 调用方法并抛出错误，此时错误既发给插件和伴生loading状态，也向上抛出，用户需自己 catch
+   * const [ snap ] = fn(1, true);
+   * ```
+   */
   action: <P = any>(fn: ActionFnDef<P, T>, desc?: FnDesc) => Action<P, T>;
+  /**
+   * 定义action方法并立即调用
+   * ```ts
+   * const [ snap, err ] = call(()=>{ ... }, payload);
+   * // 抛出错误并通过catch处理，则写为
+   * const [ snap ] = call(()=>{ ... }, payload, true);
+   * ```
+   */
+  call: Call<T>;
   sync: SyncFnBuilder<T>;
   syncer: Syncer<T>;
   setState: SetState<T>;
   mutate: <P extends ReadOnlyArr = ReadOnlyArr>(fnItem: MutateFnLooseItem<T, P> | MutateFn<T, P>) => MutateWitness<T>;
   runMutate: (descOrOptions: string | IRunMutateOptions) => T;
   runMutateTask: (descOrOptions: string | IRunMutateOptions) => T;
-  call: Call<T>;
   /**
    * 配置 onRead 钩子函数
    */
@@ -414,6 +481,7 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
   useReactive: (options?: IUseSharedStateOptions<T>) => [
     // 针对 atom，第一位 reactive 参数自动拆箱
     T extends Atom ? T['val'] : T,
+    // 代表 reactiveRoot
     T,
     IInsRenderInfo,
   ];
@@ -421,7 +489,51 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
   reactiveRoot: T;
   /** 立即提交响应式对象的变更数据 */
   flush: (desc: string) => void;
-  /** 为方便提供各函数 payload 类型约束，这里采用柯里化方式 */
+  /**
+   * 为方便提供各函数 payload 类型约束，这里采用柯里化方式
+   * ```ts
+   * // 【可选】约束各个函数入参 payload 类型
+   * type Payloads = {
+   *   changeA: [number, number];
+   *   foo: boolean | undefined;
+   * };
+   * 
+   * const { actions, useLoading, getLoading } = ctxp.defineActions<Payloads>()({
+   *   // 同步 action，直接修改草稿
+   *   changeA1({ draft, payload }) {
+   *     draft.a.b.c = 200;
+   *   },
+   *   // 同步 action，返回部分状态
+   *   changeA2({ draft, payload }) {
+   *     return { c: 'new desc' };
+   *   },
+   *   // 同步 action，直接修改草稿和返回部分状态同时使用
+   *   changeA3({ draft, payload }) {
+   *     draft.a.b.c = 200;
+   *     return { c: 'new desc' };
+   *   },
+   *  // 异步 action，直接修改草稿
+   *   async foo1({ draft, payload }) {
+   *     await delay(3000);
+   *     draft.a.b.c += 1000;
+   *   },
+   *  // 异步 action，多次直接修改草稿，返回部分状态
+   *   async foo2({ draft, payload }) {
+   *     draft.a.b.c += 1000;
+   *     await delay(3000); // 进入下一次事件循环触发草稿提交
+   *     draft.a.b.c += 1000;
+   *     await delay(3000); // 再次进入下一次事件循环触发草稿提交
+   *     const list = await fetchList();
+   *     return { list }; // 等价于 draft.list = list
+   *   },
+   * });
+   * 
+   * // action 方法的异常默认被拦截掉不再继续抛出，只是并发送给插件和伴生loading状态
+   * const [snap, err] = actions.changeA([1,1]);
+   * //  调用方法并抛出错误，此时错误既发给插件和伴生loading状态，也向上抛出，用户需自己 catch
+   * const [snap, err] = actions.changeA([1,1], true);
+   * ```
+   */
   defineActions: <P = Dict>(
     throwErr?: boolean,
   ) => <D extends { [K in keyof P]: ActionFnDef<P[K], T> }>(
@@ -517,8 +629,11 @@ export interface ICreateOptionsFull<T = SharedState> {
    */
   moduleName: string;
   /**
+   * @deprecated
    * default: true
    * when true, it means using deep dependency collection strategy in component, using mutable state to generate new state
+   * 非 deep 存在的意义主要是为了支持无 Proxy 的运行环境 
+   * 很多行为都会有缺失，考虑如何和 deep 对齐比较困难， 暂不推荐修改设置为 false，走默认的 true 就好
    */
   deep: boolean;
   /**
@@ -534,7 +649,7 @@ export interface ICreateOptionsFull<T = SharedState> {
   /**
    * deufalt: true
    * 遇到数组结构时，是否停止收集依赖，true 表示停止，此时只会收集到带下标的 json path，
-   * 如：a|b|c|list|0，针对数组结构，stopDepthOfArr 会是 stopDepth + 1，多的一层用于记录下标值
+   * 如：a|b|c|list|0，针对数组和map结构，stopDepthOfArr 会是 stopDepth + 1，多的一层用于记录下标值
    */
   stopArrDep: boolean;
   /**
@@ -542,17 +657,13 @@ export interface ICreateOptionsFull<T = SharedState> {
    */
   rules: IDataRule<T>[];
   /**
-   * default: fasle，是否允许对草稿对象读值时收集依赖，
-   * 默认不允许，否则 mutate 回调里使用类似 draft.a +=1 时很容易造成死循环，
-   * 此参数偏向于面向库开发者来使用
-   */
-  enableDraftDep: boolean;
-  /**
    * 定义当前状态对其他状态有依赖的 mutate 函数集合或函数，它们将被自动执行，并收集到每个函数各自对应的上游数据依赖
+   * 推荐走 defineMutateSelf 或 mutateDict 在外部定义 mutate 函数，以便获得更好的类型推导
    */
   mutate: MutateFn<T> | MutateFnDict<T> | MutateFnList<T>;
   /**
-   * action、mutate、setState、sync提交状态之前的函数，可对draft操作，如需要返回则返回的部分对象是全新值才是安全的草稿，该函数执行时机是在中间件之前
+   * action、mutate、setState、sync提交状态之前的函数，建议优先对 draft 操作，
+   * 如需要返回则返回的部分对象是全新值才是安全的草稿，该函数执行时机是在中间件之前
    */
   before: (params: IMutateFnParams<T>) => void | Partial<T>;
 }
@@ -678,15 +789,7 @@ export interface IInnerUseSharedOptions<T = Dict> extends IUseSharedStateOptions
   isReactive?: boolean;
 }
 
-export interface ISetStateOptions<T = any> {
-  /**
-   * 除了 setState 方法里收集的状态变化依赖之外，额外追加的变化依赖，适用于没有某些状态值无改变也要触发视图渲染的场景
-   */
-  extraDeps?: (readOnlyState: T) => any[] | void;
-  /**
-   * 需要排除掉的依赖，因内部先执行 extraDeps 再执行 excludeDeps，故 excludeDeps 也能排除掉 extraDeps 追加的依赖
-   */
-  excludeDeps?: (readOnlyState: T) => any[] | void;
+export interface ISetStateOptions {
   /**
    * 会传递到插件，标识调用源
    */
@@ -702,16 +805,6 @@ export interface ISetStateOptions<T = any> {
 }
 
 export type OnOperate = (opParams: IOperateParams) => any;
-
-export interface IInnerSetStateOptions<T = Dict> extends ISetStateOptions<T> {
-  from?: From;
-  isAsync?: boolean;
-  isFirstCall?: boolean;
-  sn?: number;
-  enableDraftDep?: boolean;
-  isReactive?: boolean;
-  insKey?: number;
-}
 
 export type ICreateOptions<T = any> = Partial<ICreateOptionsFull<T>>;
 
@@ -862,6 +955,7 @@ export interface IFnCtx {
 }
 
 export interface IRenderInfo {
+  insKey: number;
   /** 渲染序号，多个实例拥有相同的此值表示属于同一批次被触发渲染 */
   sn: number;
   /**
@@ -973,6 +1067,7 @@ export interface IRuleConf {
 
 interface ICallMutateFnOptions<T = SharedState> {
   forTask: boolean;
+  depKeys: string[];
   fn?: MutateFn<T>;
   task?: MutateTask<T>;
   desc?: FnDesc;

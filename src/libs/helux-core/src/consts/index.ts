@@ -9,6 +9,8 @@ export const FN_KEY = createSymbol('HeluxFnKey');
 /** get reactive obj's sharedKey */
 export const SHARED_KEY = createSymbol('HeluxSharedKey');
 
+export const REACTIVE_META_KEY = createSymbol('HeluxReactiveMeta');
+
 /** see if the target is returned by block series api */
 export const IS_BLOCK = createSymbol('HeluxIsBlock');
 

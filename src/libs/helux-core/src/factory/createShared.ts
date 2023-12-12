@@ -60,8 +60,6 @@ function defineMutate(options: { state: any, ldMutate: Dict; mutateFnDict: Dict 
 function defineMutateDerive(options: { apiCtx: CoreApiCtx; ldMutate: Dict; inital: Dict; mutateFnDict: Dict }) {
   const { apiCtx, ldMutate, inital, mutateFnDict } = options;
   const [state, , ctx] = share(apiCtx, inital);
-  // const internal = getInternalByKey(ctx.sharedKey);
-  // internal.enableDraftDep = true; // 刻意修改为 true
   const result = defineMutate({ state, ldMutate, mutateFnDict });
   const useDerivedState = (options: any) => {
     const [state, , info] = ctx.useState(options);
@@ -113,7 +111,7 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     runMutate: (descOrOptions: string | IRunMutateOptions) => runMutate(state, descOrOptions),
     runMutateTask: (descOrOptions: string | IRunMutateOptions) => runMutateTask(state, descOrOptions),
     action: actionCreator,
-    call: (fn: Fn, payload: any) => actionCreator(fn)(payload),
+    call: (fn: Fn, payload: any, desc: string, throwErr: boolean) => actionCreator(fn, desc, throwErr)(payload),
     useState: (options?: any) => useAtom(apiCtx, state, options),
     getMutateLoading: ldMutate.getLoading,
     useMutateLoading: ldMutate.useLoading,
@@ -129,7 +127,7 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     reactive,
     reactiveRoot,
     reactiveDesc: (desc: string) => reactiveDesc(state, desc),
-    useReactive: (options?: any) => useReactive(apiCtx, options),
+    useReactive: (options?: any) => useReactive(apiCtx, state, options),
     flush: (desc?: string) => flush(state, desc),
   };
 }
