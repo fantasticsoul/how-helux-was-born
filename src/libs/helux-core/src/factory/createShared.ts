@@ -110,7 +110,7 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     action: actionCreator,
     call: (fn: Fn, payload: any, desc: string, throwErr: boolean) => actionCreator(fn, desc, throwErr)(payload),
     useState: (options?: any) => useAtom(apiCtx, state, options),
-    useForceUpdate: () => useAtomForceUpdate(apiCtx, state),
+    useForceUpdate: (presetDeps?: (sharedState: any) => any[]) => useAtomForceUpdate(apiCtx, state, presetDeps),
     useLocalState: (initialState: any) => useMutable(apiCtx, initialState),
     useLocalForceUpdate: () => useLocalForceUpdate(apiCtx),
     getMutateLoading: ldMutate.getLoading,

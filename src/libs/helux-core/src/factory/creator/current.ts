@@ -1,5 +1,7 @@
+import { noop } from '@helux/utils';
 import type { InsCtxDef } from '../../factory/creator/buildInternal';
 import type { IReactiveMeta } from '../../types/inner';
+import type { Fn } from '../../types/base';
 import { fakeReativeMeta, fakeMutateCtx, fakeDraftRoot } from './fake';
 
 /** 正在执行中的 rootDrft */
@@ -22,6 +24,8 @@ const CURRENT_REACTIVE_DESC = new Map<number, string>();
 
 const CURRENT_REACTIVE_META = new Map<string, IReactiveMeta>();
 
+let CURRENT_DEPS_CB: Fn = noop;
+
 export function setAtomVal(val: any) {
   CURRENT_DRAFT_ROOT.val = val;
 }
@@ -29,6 +33,12 @@ export function setAtomVal(val: any) {
 export function currentDraftRoot() {
   return CURRENT_DRAFT_ROOT;
 }
+
+export const DEPS_CB = {
+  current: () => CURRENT_DEPS_CB,
+  set: (cb: Fn) => CURRENT_DEPS_CB = cb,
+  del: () => CURRENT_DEPS_CB = noop,
+};
 
 export const REACTIVE_DESC = {
   current: (key: number) => CURRENT_REACTIVE_DESC.get(key) || 'SetState',

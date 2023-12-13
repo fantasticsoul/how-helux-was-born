@@ -241,9 +241,35 @@ export function useReactive<T = any>(
 ): [T extends Atom ? T['val'] : T, T, IInsRenderInfo];
 
 /**
- * 更新使用了指定共享状态的所有实例组件，谨慎使用此功能，会触发大面积的更新
+ * 更新当前共享状态的所有实例组件，谨慎使用此功能，会触发大面积的更新，
+ * 推荐设定 presetDeps、overWriteDeps 函数减少更新范围
+ * ```ts
+ * const updateAllAtomIns = useAtomForceUpdate(someShared);
+ * // 和从 ctx 上获取的 useForceUpdate 效果一样，useForceUpdate 自动绑定了对应的共享状态
+ * const updateAllAtomIns = ctx.useForceUpdate();
+ * 
+ * // 支持预设更新范围，以下两种写法等效
+ * const updateSomeAtomIns = useAtomForceUpdate(someShared, state=>[state.a, state.b]);
+ * const updateSomeAtomIns = ctx.useForceUpdate(state=>[state.a, state.b]);
+ * 
+ * // 支持调用时重写更新范围
+ * updateSomeAtomIns(state=>[state.c]); // 本次更新只更新 c 相关的实例
+ * 
+ * // 重写为 null，表示更新所有实例，强制覆盖可能存在的 presetDeps
+ * updateSomeAtomIns(null)
+ * 
+ * // 返回空数组不会做任何更新
+ * updateSomeAtomIns(state=>[]); 
+ * 
+ * // 因 updateSomeAtomIns 内部对 overWriteDeps 做了是否是函数的检查，
+ * // 故 overWriteDeps 类型联合了 Dict， 让 ts 编程不设定 overWriteDeps 时可直接绑定到组件的 onClick 事件而不报编译错误
+ * <button onClick={updateSomeAtomIns}>updateSomeAtomIns</button>
+ * ```
  */
-export function useAtomForceUpdate<T = any>(sharedState: T): () => void;
+export function useAtomForceUpdate<T = any>(
+  sharedState: T,
+  presetDeps?: (sharedState: T) => any[],
+): (overWriteDeps?: ((sharedState: T) => any[]) | Dict | null) => void;
 
 /**
  * 使用普通对象，需注意此接口只接受普通对象

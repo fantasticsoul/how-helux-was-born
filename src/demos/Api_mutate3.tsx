@@ -125,6 +125,13 @@ function Price() {
   </MarkUpdate>;
 }
 
+function PriceB() {
+  const [price, , info] = useAtom(priceState);
+  return <MarkUpdate name="Price" info={info}>
+    price.b: {price.b}
+  </MarkUpdate>;
+}
+
 function FinalPrice() {
   const [finalPrice, , info] = useAtom(finalPriceState);
   const [loading] = ctx2.useMutateLoading();
@@ -141,10 +148,16 @@ function CCC() {
   const [r, , info] = ctx1.useReactive();
   const [loading] = ctx2.useMutateLoading();
   const atomForceUpdate = useAtomForceUpdate(r);
+  const onlyUpdateB = ctx1.useForceUpdate(state => [state.b]);
 
   return <MarkUpdate name="FinalPrice" info={info}>
     {r.ccc}
-    <button onClick={atomForceUpdate}>atomForceUpdate</button>
+    <button onClick={() => atomForceUpdate()}>atomForceUpdate</button>
+    <button onClick={() => onlyUpdateB()}>onlyUpdateB</button>
+    <button onClick={() => onlyUpdateB(state => state.a)}>onlyUpdateA</button>
+    <button onClick={onlyUpdateB}>onlyUpdateB_2</button>
+    <button onClick={() => onlyUpdateB(state => [])}>onlyUpdateB_nothing</button>
+    <button onClick={() => onlyUpdateB(null)}>onlyUpdateB_all</button>
   </MarkUpdate>;
 }
 
@@ -152,6 +165,7 @@ const Demo = () => (
   <Entry fns={[forceRunMutate, forceRunMutateTask, changePrev, changePriceA, actions.foo, changeRetA, seeCCC]}>
     <Price />
     <Price />
+    <PriceB />
     <FinalPrice />
     <FinalPrice />
     <CCC />

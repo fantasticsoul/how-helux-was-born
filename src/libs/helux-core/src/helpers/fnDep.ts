@@ -1,6 +1,7 @@
 import { nodupPush, safeMapGet, noop } from '@helux/utils';
 import { EXPIRE_MS, NOT_MOUNT, PROTO_KEY, SIZE_LIMIT, UNMOUNT } from '../consts';
 import { delFnDepData, getFnCtx, getRunningFn, opUpstreamFnKey } from '../factory/common/fnScope';
+import { DEPS_CB } from '../factory/creator/current';
 import { hasChangedNode } from '../factory/common/sharedScope';
 import { getFnScope } from '../factory/common/speedup';
 import type { TInternal } from '../factory/creator/buildInternal';
@@ -26,6 +27,8 @@ export function recordFnDepKeys(inputDepKeys: string[], options: { sharedKey?: n
   const { fnCtx: runningFnCtx, depKeys, isIgnore, runningSharedKey } = getRunningFn();
   const fnCtx: IFnCtx | null | undefined = options.specificCtx || runningFnCtx;
   if (!fnCtx) {
+    // 来自 useAtomForceUpdate 的 deps 收集
+    DEPS_CB.current()(inputDepKeys);
     return;
   }
   const { DEPKEY_FNKEYS_MAP } = getFnScope();
