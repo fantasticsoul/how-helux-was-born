@@ -1,12 +1,13 @@
 import { getVal, isDebug, isFn, isMap, isObj, isProxyAvailable, noop, prefixValKey } from '@helux/utils';
 import { immut, IOperateParams, limuUtils } from 'limu';
-import { ARR, KEY_SPLITER, MAP, STATE_TYPE } from '../../consts';
+import { ARR, KEY_SPLITER, MAP, STATE_TYPE, FROM } from '../../consts';
 import { createOb } from '../../helpers/obj';
 import type { From, Dict, IInnerSetStateOptions, NumStrSymbol, TriggerReason } from '../../types/base';
 import { DepKeyInfo } from '../../types/inner';
 import type { TInternal } from '../creator/buildInternal';
 
 const { USER_STATE } = STATE_TYPE;
+const { SET_STATE } = FROM;
 const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any });
 export interface IMutateCtx {
   /**
@@ -40,8 +41,8 @@ export interface IMutateCtx {
   handleAtomCbReturn: boolean;
   /** 为 atom 记录的 draft.val 引用 */
   draftVal: any;
-  isReactive: boolean;
   from: From;
+  isReactive: boolean;
   /** mutate fn 函数里收集到的导致死循环的 keys，通常都是 draft.a+=1 操作导致 */
   fnDeadCycleKeys: string[];
   /** mutate task 函数里收集到的导致死循环的 keys，通常都是依赖 a 变化驱动 task 执行，task 里又修改了 a 导致 */
@@ -77,7 +78,7 @@ export function tryGetLoc(moduleName: string, endCutIdx = 8) {
 }
 
 export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
-  const { ids = [], globalIds = [], isReactive = false, from = 'SetState', enableDraftDep = false } = options; // 用户 setState 可能设定了 ids globalIds
+  const { ids = [], globalIds = [], isReactive = false, from = SET_STATE, enableDraftDep = false } = options; // 用户 setState 可能设定了 ids globalIds
   return {
     level1Key: '',
     depKeys: [],
@@ -91,8 +92,8 @@ export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
     writeKeyPathInfo: {},
     handleAtomCbReturn: true,
     draftVal: null,
-    isReactive,
     from,
+    isReactive,
     fnDeadCycleKeys: [],
     taskDeadCycleKeys: [],
     enableDraftDep,

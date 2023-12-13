@@ -28,7 +28,7 @@ function putSharedToDep(list: any[]) {
         const { depKey, sharedKey } = getRootValDepKeyInfo(internal);
         recordFnDepKeys([depKey], { sharedKey });
       }
-      // TODO  discuss 加一个参数控制关闭此逻辑?
+      // TODO discuss 加一个参数控制关闭此逻辑?
       // 有实例使用的 useWatch 的 deps 函数返回值里包含了根值自身
       if (insCtx) {
         insCtx.recordDep(getRootValDepKeyInfo(internal));

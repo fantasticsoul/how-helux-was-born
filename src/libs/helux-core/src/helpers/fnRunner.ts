@@ -23,14 +23,10 @@ interface IRnFnOpt {
   throwErr?: boolean;
 }
 
-let count = 0;
-
 /**
  * 执行 derive 设置函数
  */
 export function runFn(fnKey: string, options?: IRnFnOpt) {
-  count += 1;
-  if (count === 10) return;
   const {
     isFirstCall = false,
     forceFn = false,

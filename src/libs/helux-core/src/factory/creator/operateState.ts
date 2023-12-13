@@ -9,7 +9,7 @@ import { getRunningFn } from '../common/fnScope';
 import { cutDepKeyByStop } from '../common/stopDep';
 import { getDepKeyByPath, IMutateCtx, isArrLike } from '../common/util';
 import type { TInternal } from './buildInternal';
-import { nextTickFlush, markExpired } from './buildReactive';
+import { nextTickFlush, markExpired } from './reactive';
 import { REACTIVE_META, REACTIVE_DESC } from './current';
 
 const { MUTATE } = FROM;
@@ -37,7 +37,7 @@ function putId(keyIds: KeyIdsDict, options: { writeKey: string; ids: NumStrSymbo
  * 具体是否需要通知相关函数重执行见 notify 逻辑，里面还包含有孩子节点值比较过程
  */
 export function handleOperate(opParams: IOperateParams, opts: { internal: TInternal; mutateCtx: IMutateCtx }) {
-  const { isChanged, fullKeyPath, keyPath, parentType, value, immutBase } = opParams;
+  const { isChanged, fullKeyPath, keyPath, parentType, value } = opParams;
   const { internal, mutateCtx } = opts;
   const { arrKeyDict, isReactive, readKeys, from } = mutateCtx;
   const { sharedKey } = internal;
@@ -47,19 +47,19 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
 
   // 是读操作
   if (opParams.op === 'get') {
+    console.log(currentReactive);
     if (arrLike) {
       arrKeyDict[getDepKeyByPath(keyPath, sharedKey)] = 1;
     }
     const depKey = getDepKeyByPath(fullKeyPath, sharedKey);
     readKeys[depKey] = 1;
-    console.error('from', from, fullKeyPath, immutBase);
-    console.error(isReactive, ' reactive from', currentReactive.from);
 
-    // 仅 mutate fn 和 task 的 draft 操作收集读依赖
-    // 其他任何场景的读操作无任何依赖收集行为产生
+    // isMutateReactive=true 表示 mutate fn reactive draft, mutate task reactive draft,
+    // (isReactive && !currentReactive.isInCb)=true 表示 top reactive, ins reactive
+    // 仅这四种类型的对象收集读依赖，其他任何场景的读操作无任何依赖收集行为产生，可以
     // 1 减轻运行负担，
     // 2 降低死循环可能性，例如在 watch 回调里调用顶层的 setState
-    if (isMutateReactive) {
+    if (isMutateReactive || (isReactive && !currentReactive.isFromCb)) {
       // 支持对draft操作时可以收集到依赖： draft.a = draft.b + 1
       // atom 判断一下长度，避免记录根值依赖导致死循环
       const canRecord = internal.forAtom ? fullKeyPath.length > 1 : true;
@@ -147,10 +147,7 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   // 来自响应对象的变更操作，主动触发 nextTickFlush
   if (isReactive) {
     nextTickFlush(sharedKey, '', () => {
-      const rMeta = REACTIVE_META.current();
-      if (!rMeta) return;
-
-      const { depKeys, desc } = rMeta;
+      const { depKeys, desc } = currentReactive;
       const dcDepKeys: string[] = [];
       // task 里 reactive 对象修改的 key 是 mutate 的依赖 key，这些 key 会造成死循环
       depKeys.forEach(key => writeKeys[key] && dcDepKeys.push(key));
@@ -159,7 +156,7 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
       return null;
     });
   } else {
-    // 标记响应对象已过期
+    // 发现 sharedKey 对应的对象已变化，主动标记 sharedKey 对应的响应对象已过期
     markExpired(sharedKey);
   }
 }

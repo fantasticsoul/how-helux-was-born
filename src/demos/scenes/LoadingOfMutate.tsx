@@ -33,7 +33,7 @@ function Comp() {
 }
 
 const Demo = () => (
-  <Entry fns={[witness.callTask]}>
+  <Entry fns={[witness.runTask]}>
     <Comp />
   </Entry>
 );

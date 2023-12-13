@@ -79,7 +79,6 @@ export function analyzeErrLog(usefulName: string, err: any) {
       }
     }
     if (targetErr) {
-      // console.error('dead cycle', targetErr);
       tryAlert(targetErr);
     }
     errs.length = 0;

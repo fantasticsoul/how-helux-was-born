@@ -28,8 +28,16 @@ export interface IReactive {
 export interface IReactiveMeta {
   key: string;
   sharedKey: number;
+  moduleName: string;
   depKeys: string[];
+  /**
+   * reactive 对象由 Reactive 场提供还是其他，例如 Mutate Action
+   */
   from: From;
   desc: string;
+  /**
+   * reactive  对象是否由回调参数提供
+   */
+  isFromCb: boolean;
   onRead?: Fn;
 }

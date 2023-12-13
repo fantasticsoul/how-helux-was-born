@@ -10,7 +10,7 @@ import { mutate, mutateDict, runMutate, runMutateTask } from './factory/createMu
 import { atom, share, shareAtom, shareState } from './factory/createShared';
 import { sync, syncer } from './factory/createSync';
 import { watch } from './factory/createWatch';
-import { flush, reactiveDesc } from './factory/creator/buildReactive';
+import { flush, reactiveDesc } from './factory/creator/reactive';
 import { currentDraftRoot, setAtomVal } from './factory/creator/current';
 import { getDeriveLoading, runDerive, runDeriveTask } from './helpers/fnRunner';
 import { getRawState, getSnap } from './helpers/state';

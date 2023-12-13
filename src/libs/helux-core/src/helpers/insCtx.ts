@@ -6,7 +6,7 @@ import { genInsKey } from '../factory/common/key';
 import { cutDepKeyByStop, recordArrKey } from '../factory/common/stopDep';
 import { callOnRead, isArrLike, isArrLikeVal, isDict, newOpParams } from '../factory/common/util';
 import type { InsCtxDef } from '../factory/creator/buildInternal';
-import { buildReactive, nextTickFlush } from '../factory/creator/buildReactive';
+import { buildReactive, nextTickFlush } from '../factory/creator/reactive';
 import { mapGlobalId } from '../factory/creator/globalId';
 import type { Dict, Ext, IFnCtx, IInnerUseSharedOptions, OnOperate } from '../types/base';
 import type { DepKeyInfo } from '../types/inner';

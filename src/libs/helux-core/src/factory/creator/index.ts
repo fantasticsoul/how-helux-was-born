@@ -3,7 +3,7 @@ import type { ICreateOptions } from '../../types/base';
 import { markFnExpired } from '../common/fnScope';
 import { clearInternal } from '../common/internal';
 import { emitShareCreated } from '../common/plugin';
-import { buildReactive } from './buildReactive';
+import { buildReactive } from './reactive';
 import { buildSharedState } from './buildShared';
 import { clearDcLog } from './deadCycle';
 import { mapSharedToInternal } from './mapShared';
@@ -25,7 +25,7 @@ export function buildSharedObject<T = any>(innerOptions: IInnerOptions, createOp
   watchAndCallMutateDict({ target: sharedState, dict: parsedOptions.mutateFnDict });
 
   // 创建顶层使用的响应式对象
-  const { draft, draftRoot } = buildReactive(internal, [], { from: 'Reactive' });
+  const { draft, draftRoot } = buildReactive(internal, []);
   internal.reactive = draft;
   internal.reactiveRoot = draftRoot;
   clearInternal(parsedOptions.moduleName, internal.loc);

@@ -101,7 +101,6 @@ export function execDepFns(opts: ICommitStateOptions) {
   dirtyAsyncFnKeys.forEach((fnKey) => markComputing(fnKey, runCountStats[fnKey]));
   // start execute derive/watch fns
   dirtyFnKeys.forEach((fnKey) => runFn(fnKey, { sn, from, triggerReasons, internal, desc, isFirstCall }));
-  console.log('dirtyFnKeys, ', dirtyFnKeys);
 
   // start trigger rerender
   dirtyInsKeys.forEach((insKey) => updateIns(insCtxMap, insKey, sn));

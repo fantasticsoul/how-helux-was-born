@@ -21,7 +21,7 @@ function changePrice() {
 }
 
 function forceRunMutate() {
-  witness.call();
+  witness.run();
 };
 
 function Price() {

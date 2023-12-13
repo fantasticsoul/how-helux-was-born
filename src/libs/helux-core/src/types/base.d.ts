@@ -34,7 +34,7 @@ export type RecordToGlobal = 'global';
 
 export type RecordLoading = NoRecord | RecordToPrivate | RecordToGlobal;
 
-export type From = 'Reactive' | 'Mutate' | 'Action' | 'SetState' | 'Sync' | 'Loading';
+export type From = 'Reactive' | 'CbReactive' | 'Mutate' | 'Action' | 'SetState' | 'Sync' | 'Loading';
 
 /**
  * onRead用于给开发者配置读操作钩子函数，所有值读取操作均触发此钩子函数，
@@ -246,9 +246,9 @@ export type MutateTaskCall<T = any> = () => Promise<[T, Error | null]>;
 
 export type MutateWitness<T = any> = {
   /** 人工调用 mutate 配置里的同步函数 */
-  call: MutateCall<T>;
+  run: MutateCall<T>;
   /** 人工调用 mutate 配置里的异步函数 */
-  callTask: MutateTaskCall<T>;
+  runTask: MutateTaskCall<T>;
   /** 用户透传的原始描述值 */
   oriDesc: string;
   /** 内部生成的实际描述值 */

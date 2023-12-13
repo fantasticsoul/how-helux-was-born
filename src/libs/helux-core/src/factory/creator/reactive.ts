@@ -15,6 +15,9 @@ function canFlush(reactive?: IReactive): reactive is IReactive {
   return !!(reactive && !reactive.expired && reactive.modified);
 }
 
+/**
+ * flush modified data by finish handler
+ */
 function flushData(reactive: IReactive, beforeCommit?: any) {
   const { sharedKey } = reactive;
   // 标记过期，不能再被复用
@@ -22,7 +25,7 @@ function flushData(reactive: IReactive, beforeCommit?: any) {
   // 来自于 flush 记录的 desc 值，使用过一次就清除
   const desc = REACTIVE_DESC.current(sharedKey);
   REACTIVE_DESC.del(sharedKey);
-  return reactive.finish(null, { from: 'Reactive', desc, beforeCommit });
+  return reactive.finish(null, { from: FROM.REACTIVE, desc, beforeCommit });
 }
 
 function getKey(shareState: any) {
@@ -90,7 +93,7 @@ export function nextTickFlush(sharedKey: number, desc?: string, beforeCommit?: a
 /**
  * 全局独立使用或实例使用都共享同一个响应对象
  */
-function getReactiveVal(internal: TInternal, atomVal: boolean) {
+function getReactiveVal(internal: TInternal, forAtom: boolean) {
   const { sharedKey } = internal;
   let reactive = reactives.get(sharedKey);
   // 无响应对象、或响应对象已过期
@@ -123,7 +126,7 @@ function getReactiveVal(internal: TInternal, atomVal: boolean) {
     reactives.set(sharedKey, latestReactive);
   }
   const { draft } = reactive;
-  return atomVal ? draft.val : draft;
+  return forAtom ? draft.val : draft;
 }
 
 /**
@@ -132,32 +135,31 @@ function getReactiveVal(internal: TInternal, atomVal: boolean) {
 export function buildReactive(
   internal: TInternal,
   depKeys: string[],
-  options?: { desc?: string, onRead?: OnOperate, from?: From }
+  options?: { desc?: string, onRead?: OnOperate, from?: From, isFromCb?: boolean }
 ) {
   // 提供 draftRoot draft，和 mutate 回调里对齐，方便用户使用 atom 时少一层 .val 操作
   let draftRoot: any = {};
   let draft: any = {};
-  const { rawState, deep, forAtom, isPrimitive, sharedKey } = internal;
-  const { desc, onRead, from = 'Reactive' } = options || {};
+  const { rawState, deep, forAtom, isPrimitive, sharedKey, moduleName } = internal;
+  const { desc, onRead, from = FROM.REACTIVE, isFromCb = false } = options || {};
 
   const rKey = getReactiveKey();
-  const meta: IReactiveMeta = { key: rKey, desc: desc || '', sharedKey, depKeys, onRead, from };
+  console.error(`gen rKey `, rKey, from);
+  const meta: IReactiveMeta = { moduleName, key: rKey, desc: desc || '', sharedKey, depKeys, onRead, from, isFromCb };
   if (canUseDeep(deep)) {
-    const set = (atomVal: boolean, key: any, value: any) => {
-      const draftVal = getReactiveVal(internal, atomVal);
-      console.error('---->', rKey, from);
-      REACTIVE_META.markUsing(rKey);
+    const set = (forAtom: boolean, key: any, value: any) => {
+      const draftVal = getReactiveVal(internal, forAtom);
+      isFromCb && REACTIVE_META.markUsing(rKey);
       // handleOperate 里会自动触发 nextTickFlush
       draftVal[key] = value;
       return true;
     };
-    const get = (atomVal: boolean, key: any) => {
+    const get = (forAtom: boolean, key: any) => {
       if (key === REACTIVE_META_KEY) {
         return meta;
       }
-      console.error('---->', rKey, from);
-      REACTIVE_META.markUsing(rKey);
-      const draftVal = getReactiveVal(internal, atomVal);
+      isFromCb && REACTIVE_META.markUsing(rKey);
+      const draftVal = getReactiveVal(internal, forAtom);
       return draftVal[key];
     };
 

@@ -1,11 +1,11 @@
 import { enureReturnArr, isPromise, noop, tryAlert } from '@helux/utils';
 import { EVENT_NAME, SCOPE_TYPE } from '../../consts';
 import { emitPluginEvent } from '../../factory/common/plugin';
-import { buildReactive, innerFlush } from '../../factory/creator/buildReactive';
+import { buildReactive, innerFlush } from './reactive';
 import { analyzeErrLog, dcErr, inDeadCycle } from '../../factory/creator/deadCycle';
 import { getStatusKey, setLoadStatus } from '../../factory/creator/loading';
 import { REACTIVE_META } from '../../factory/creator/current';
-import { markIgnore, markTaskRunning } from '../../helpers/fnDep';
+import { markIgnore } from '../../helpers/fnDep';
 import { markFnEnd } from '../../helpers/fnCtx';
 import { getInternal } from '../../helpers/state';
 import type { Fn, From, ICallMutateFnOptions, IInnerSetStateOptions, IWatchAndCallMutateDictOptions, SharedState } from '../../types/base';
@@ -47,7 +47,8 @@ export function callAsyncMutateFnLogic<T = SharedState>(
   const { sharedKey } = internal;
   const customOptions: IInnerSetStateOptions = { desc, sn, from };
   const statusKey = getStatusKey(from, desc);
-  const { draft, draftRoot, meta } = buildReactive(internal, depKeys, { desc, from });
+  console.error('buildReactive for mutate ', depKeys);
+  const { draft, draftRoot, meta } = buildReactive(internal, depKeys, { desc, from, isFromCb: true });
   const flush = (desc: string, beforeCommit?: any) => {
     innerFlush(sharedKey, desc, beforeCommit);
   };
@@ -57,7 +58,6 @@ export function callAsyncMutateFnLogic<T = SharedState>(
     // 调用 setState 主动把响应式对象可能存在的变更先提交
     // reactive.a = 66;
     // setState(draft=>draft.a+100); // flush 后回调里可拿到 draft.a 最新值为 66
-    console.error('starnge flush');
     flush(desc);
     const { finish } = internal.setStateFactory(customOptions); // 透传 sn from 等信息
     return finish(cb);
@@ -81,8 +81,6 @@ export function callAsyncMutateFnLogic<T = SharedState>(
   };
 
   setStatus(true, null, false);
-  // 标记 task 运行中，避免 helpers/fnDep 模块 recordFnDepKeys 方法收集冗余的 depKey 造成 mutate 死循环探测逻辑误判
-  markTaskRunning();
   const handleErr = (err: any): [any, Error | null] => {
     REACTIVE_META.del(meta.key);
     setStatus(false, err, false);

@@ -1,14 +1,13 @@
 import type { InsCtxDef } from '../../factory/creator/buildInternal';
 import type { IReactiveMeta } from '../../types/inner';
-import { newMutateCtx } from '../common/util';
+import { fakeReativeMeta, fakeMutateCtx, fakeDraftRoot } from './fake';
 
-const fakeDraftRoot = { val: null, isFake: true };
-const fakeMutateCtx = newMutateCtx({});
-const fakeReativeMeta: IReactiveMeta = { key: '', sharedKey: 0, depKeys: [], desc: '', onRead: undefined, from: 'SetState' };
 /** 正在执行中的 rootDrft */
 let CURRENT_DRAFT_ROOT = fakeDraftRoot;
 /** 正在执行中的 mutateCtx */
 let CURRENT_MUTATE_CTX = fakeMutateCtx;
+/** 正在执行中的回调里的 reactive 对象 */
+let CURRENT_CB_REACTIVE_KEY = '';
 
 /**
  * let code below works
@@ -37,12 +36,10 @@ export const REACTIVE_DESC = {
   del: (key: number) => CURRENT_REACTIVE_DESC.delete(key),
 };
 
-let CURRENT_REACTIVE_KEY = '';
-
-/** 记录、获取正在执行写操作的 draft 对象元数据 */
+/** 记录、获取执行写操作的 draft 对象元数据 */
 export const REACTIVE_META = {
-  current: () => CURRENT_REACTIVE_META.get(CURRENT_REACTIVE_KEY) || fakeReativeMeta,
-  markUsing: (key: string) => CURRENT_REACTIVE_KEY = key,
+  current: () => CURRENT_REACTIVE_META.get(CURRENT_CB_REACTIVE_KEY) || fakeReativeMeta,
+  markUsing: (key: string) => CURRENT_CB_REACTIVE_KEY = key,
   set: (key: string, obj: IReactiveMeta) => CURRENT_REACTIVE_META.set(key, obj),
   del: (key: string) => CURRENT_REACTIVE_META.delete(key),
 };

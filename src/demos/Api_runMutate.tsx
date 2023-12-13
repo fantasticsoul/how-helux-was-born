@@ -68,12 +68,12 @@ function runMutateRetA() {
 }
 
 function runMutateRetA2() {
-  // witness.call();
-  witness.callTask();
+  // witness.run();
+  witness.runTask();
 }
 
 function runMutateRetA2Async() {
-  witness.callTask().then(snap => {
+  witness.runTask().then(snap => {
     console.log(snap);
   });
 }

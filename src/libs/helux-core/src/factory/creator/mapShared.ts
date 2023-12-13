@@ -3,7 +3,7 @@ import { setInternal } from '../../helpers/state';
 import type { IInnerSetStateOptions, SetStateFactory, SetState, InnerSetState, SharedState } from '../../types/base';
 import { runPartialCb } from '../common/util';
 import { buildInternal } from './buildInternal';
-import { flush } from './buildReactive';
+import { flush } from './reactive';
 import { prepareDeepMutate } from './mutateDeep';
 import { prepareNormalMutate } from './mutateNormal';
 import { REACTIVE_DESC } from './current';

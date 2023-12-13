@@ -1,5 +1,5 @@
 import { createSymbol, HAS_SYMBOL } from '../helpers/sym';
-export { EVENT_NAME, FROM, LIMU_VER, RECORD_LOADING, VER } from './user';
+export { EVENT_NAME, LIMU_VER, RECORD_LOADING, VER } from './user';
 export { HAS_SYMBOL };
 
 export const PROTO_KEY = '__proto__';
@@ -78,3 +78,65 @@ export const MAP = 'Map';
 export const ARR = 'Array';
 /** 不属于 DICT MAP ARR 算作其他 */
 export const OTHER = 'Other';
+
+export const FROM = {
+  /**
+   * 来自 top setState(draft)、ins setState(draft) 的读写
+   * ```ts
+   * const [, setState] = atom({a:1});
+   * 
+   * const [, setState] = useAtom();
+   * ```
+   */
+  SET_STATE: 'SetState',
+  /**
+   * 来自 mutate task setState(draft), mutate fn reative draft 的读写
+   * ```ts
+   * mutate({
+   *   fn: draft => draft.xx = 1,
+   *   task: async({ setState }){ },
+   * });
+   * ```
+   */
+  MUTATE: 'Mutate',
+  /**
+   * 来自 action setState(draft) 的读写
+   * ```ts
+   * action(({ setState })=>{
+   *   setState();
+   * })
+   * ```
+   */
+  ACTION: 'Action',
+  /**
+   * 来自 top reactive、ins reactive、mutate task reactive draft、action reactive draft 的读写
+   * ```ts
+   * mutate({
+   *   task: async({ draft }){ },
+   * });
+   * 
+   * action(async ({ draft })=>{ });
+   * 
+   * const [,,{ reactive }] = atom({a:1});
+   * 
+   * const [ reactive ] = useReactive(someAtom);
+   * ```
+   */
+  REACTIVE: 'Reactive',
+  /**
+   * 来自伴生 loading 的读写
+   */
+  LOADING: 'Loading',
+  /**
+   * 来自 sync 的读写
+   * ```ts
+   * import { sync } from 'helux';
+   * sync(someState)(to=>to.a.b);
+   * 
+   * const [,,{ sync }] = atom({a:1});
+   * sync(to=>to.a.b);
+   * ```
+   */
+  SYNC: 'Sync',
+} as const;
+

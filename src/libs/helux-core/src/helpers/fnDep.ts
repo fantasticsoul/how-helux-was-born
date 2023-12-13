@@ -1,4 +1,4 @@
-import { nodupPush, safeMapGet, noop, delListItem } from '@helux/utils';
+import { nodupPush, safeMapGet, noop } from '@helux/utils';
 import { EXPIRE_MS, NOT_MOUNT, PROTO_KEY, SIZE_LIMIT, UNMOUNT } from '../consts';
 import { delFnDepData, getFnCtx, getRunningFn, opUpstreamFnKey } from '../factory/common/fnScope';
 import { hasChangedNode } from '../factory/common/sharedScope';
@@ -23,7 +23,7 @@ export function markIgnore(isIgnore = true) {
  * 自动记录当前正在运行的函数对 depKey 的依赖，以及 depKey 对应的函数记录
  */
 export function recordFnDepKeys(inputDepKeys: string[], options: { sharedKey?: number; specificCtx?: IFnCtx | null; belongCtx?: IFnCtx }) {
-  const { fnCtx: runningFnCtx, depKeys, isTaskRunning, isIgnore, runningSharedKey } = getRunningFn();
+  const { fnCtx: runningFnCtx, depKeys, isIgnore, runningSharedKey } = getRunningFn();
   const fnCtx: IFnCtx | null | undefined = options.specificCtx || runningFnCtx;
   if (!fnCtx) {
     return;
@@ -49,7 +49,6 @@ export function recordFnDepKeys(inputDepKeys: string[], options: { sharedKey?: n
   const { fnKey } = fnCtx;
   // 一些异步 task 里的 depKey 需丢弃
   const canRecordDepKey = runningSharedKey ? runningFnCtx && !isIgnore : runningFnCtx;
-  // const canRecordDepKey = runningSharedKey ? runningFnCtx && !isIgnore && !isTaskRunning : runningFnCtx;
 
   inputDepKeys.forEach((depKey: string) => {
     if (PROTO_KEY === depKey) {
