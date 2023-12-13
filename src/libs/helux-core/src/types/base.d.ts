@@ -529,6 +529,9 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
    * // 返回空数组不会做任何更新
    * updateSomeAtomIns(state=>[]); 
    * 
+   * // 返回里包含了自身也会触发更新所有实例
+   * updateSomeAtomIns(state=>[state]); 
+   * 
    * // 因 updateSomeAtomIns 内部对 overWriteDeps 做了是否是函数的检查，
    * // 故 overWriteDeps 类型联合了 Dict， 让 ts 编程不设定 overWriteDeps 时可直接绑定到组件的 onClick 事件而不报编译错误
    * <button onClick={updateSomeAtomIns}>updateSomeAtomIns</button>

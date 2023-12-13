@@ -19,8 +19,13 @@ function getDepKeyDict<T = any>(internal: TInternal, deps?: (sharedState: T) => 
 
   const depKeyDict: Dict = {};
   DEPS_CB.set((keys: string[]) => depKeyDict[keys[0]] = 1);
-  enureReturnArr(deps, rootVal);
+  const depItems = enureReturnArr(deps, rootVal);
   DEPS_CB.del();
+  // 返回了自身则表示更新所有实例
+  if (depItems.includes(rootVal)) {
+    return internal.key2InsKeys
+  }
+
   return depKeyDict;
 }
 
@@ -37,6 +42,7 @@ export function useAtomForceUpdate<T = any>(
     return getDepKeyDict(internal, presetDeps, null);
   });
 
+  // 返回的 forceUpdate 句柄支持再次设置 deps 覆盖预设的 deps
   return (overWriteDeps?: (sharedState: T) => any[]) => {
     const { insCtxMap, key2InsKeys } = internal;
     // 未设定 deps 时，更新所有依赖 key 对应的实例
