@@ -257,7 +257,10 @@ export type MutateWitness<T = any> = {
   runTask: MutateTaskCall<T>;
   /** 用户透传的原始描述值 */
   oriDesc: string;
-  /** 内部生成的实际描述值 */
+  /**
+   * 内部生成的实际描述值，可能和 oriDesc 相等，
+   * 在没人工指定 desc 或 指定的 desc 值和已有 mutate desc 重复时，内部会新生成一个
+   */
   desc: string;
   /** 此函数可获取最新的快照 */
   getSnap: () => T;
@@ -488,7 +491,19 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
     T,
     (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void,
     ILocalStateApi<T>,
-  ]
+  ];
+  /**
+   * 只更新当前组件实例，效果同顶层 api useLocalForceUpdate
+   * ```ts
+   * import { useLocalForceUpdate } from 'helux';
+   * const ctx = atomx(1);
+   * 
+   * // 两着等效
+   * ctx.useLocalForceUpdate()
+   * useLocalForceUpdate()
+   * ```
+   */
+  useLocalForceUpdate: () => () => void;
   useReactive: (options?: IUseSharedStateOptions<T>) => [
     // 针对 atom，第一位 reactive 参数自动拆箱
     T extends Atom ? T['val'] : T,
@@ -496,10 +511,46 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
     T,
     IInsRenderInfo,
   ];
+  /**
+   * 更新当前共享状态的所有实例组件，谨慎使用此功能，会触发大面积的更新
+   * ```ts
+   * const updateAllAtomIns = ctx.useForceUpdate();
+   * <button onClick={updateAllAtomIns}>updateAllAtomIns</button>
+   * ```
+   */
+  useForceUpdate: () => () => void;
+  /**
+   * 当前共享状态对应的响应式对象，可用来直接更新数据，
+   * 给实例用的响应式对象必须使用通过 `useReactive` 获取
+   * ```ts
+   * // bad，响应式更新不会工作
+   * <button>{ctx.reative.a}</button>
+   * 
+   * // ok，使用 useReactive 返回的响应式对象
+   * const reative = ctx.useReactive();
+   * <button>{reative.a}</button>
+   * 
+   * // ok，将 ctx.reative 交给 signal 区域，响应式更新也能工作
+   * import { $ } from 'helux';
+   * <button>{$(ctx.reative.a)}</button>
+   * ```
+   */
   reactive: T extends Atom ? T['val'] : T;
+  /**
+   * 对应 primitive 值需要使用响应式更新功能时，可使用此数据
+   * ```ts
+   *   const {reactiveRoot} = atomx(1);
+   *   const [,,{reactiveRoot}] = atom(1);
+   * 
+   *   reactiveRoot.val+=1;
+   * ```
+   */
   reactiveRoot: T;
-  /** 立即提交响应式对象的变更数据 */
-  flush: (desc: string) => void;
+  /**
+   * 立即提交当前共享状态的响应式对象的变更数据,
+   * 建议传递 desc 描述，方便 devtool 追踪数据变更来源
+   */
+  flush: (desc?: string) => void;
   /**
    * 为方便提供各函数 payload 类型约束，这里采用柯里化方式
    * ```ts

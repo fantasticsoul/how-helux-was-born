@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAtom, createShared, useForceUpdate } from 'helux';
+import { useAtom, createShared, useLocalForceUpdate } from 'helux';
 import * as util from './logic/util';
 
 const ori = { a: 50, doubleA: 0, b: 2, c: { c1: 100, c2: 1000 }, list: [{ name: 'one', age: 1 }] };
@@ -39,7 +39,7 @@ function B() {
 function Entry(props: any) {
   console.log('Render Entry');
   const [show, setShow] = React.useState(true);
-  const forceUpdate = useForceUpdate();
+  const forceUpdate = useLocalForceUpdate();
   const [obj, setObj] = ctx.useLocalState({ a: 1 });
   const changeObja = () => setObj(draft => { draft.a += 1 });
 

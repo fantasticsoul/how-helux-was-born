@@ -38,6 +38,7 @@ export function buildInternal(
 
   return {
     ver: 0,
+    sn: 0,
     // reactive and reactiveRoot will be replaced in buildReactive process later
     reactive: rawState,
     reactiveRoot: rawState,

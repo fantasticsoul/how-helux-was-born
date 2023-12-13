@@ -2,7 +2,7 @@
 import React from 'react';
 import {
   useAtom, share, watch,
-  getRawState, shallowCompare, useForceUpdate,
+  getRawState, shallowCompare, useLocalForceUpdate,
 } from 'helux';
 import * as util from './logic/util';
 import * as limu from 'limu';
@@ -138,7 +138,7 @@ function Entry(props: any) {
   console.log('Render Entry');
   const [show, setShow] = React.useState(true);
   const showRef = React.useRef(show);
-  const forceUpdate = useForceUpdate();
+  const forceUpdate = useLocalForceUpdate();
   showRef.current = show;
 
   return <div>

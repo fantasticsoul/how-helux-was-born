@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  useAtom, share, watch, useForceUpdate, useDerived,
+  useAtom, share, watch, useDerived,
   deriveDict, runDerive, runDeriveTask,
 } from 'helux';
 import * as util from './logic/util';

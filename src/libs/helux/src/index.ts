@@ -33,11 +33,12 @@ export const {
   useMutable,
   useMutateLoading,
   useActionLoading,
-  useForceUpdate,
   useEffect,
   useLayoutEffect,
   useStable,
   useObject,
+  useLocalForceUpdate,
+  useAtomForceUpdate,
   // action api
   action,
   // signal api

@@ -10,7 +10,7 @@ import type { InsCtxDef } from './buildInternal';
 import type { ICommitStateOptions } from './commitState';
 import { getGlobalEmptyInternal, getGlobalIdInsKeys } from './globalId';
 
-function updateIns(insCtxMap: InsCtxMap, insKey: number, sn: number) {
+export function updateIns(insCtxMap: InsCtxMap, insKey: number, sn: number) {
   const insCtx = insCtxMap.get(insKey) as InsCtxDef;
   if (insCtx) {
     // 透传变更批次编号给示例，方便标记多个实例的更新是否来自于同一批次
@@ -28,6 +28,7 @@ export function execDepFns(opts: ICommitStateOptions) {
   const { key2InsKeys, id2InsKeys, insCtxMap, rootValKey } = internal;
 
   internal.ver += 1;
+  internal.sn = sn;
   // these associate ins keys will be update
   let dirtyInsKeys: number[] = [];
   let dirtyGlobalInsKeys: number[] = [];
@@ -35,6 +36,8 @@ export function execDepFns(opts: ICommitStateOptions) {
   let dirtyFnKeys: string[] = [];
   let dirtyAsyncFnKeys: string[] = [];
   const runCountStats: Dict<number> = {};
+  
+  // TODO check markFnEnd 被移除了是否有问题
 
   const analyzeDepKey = (key: string) => {
     // 值相等就忽略

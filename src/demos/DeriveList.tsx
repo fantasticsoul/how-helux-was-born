@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  useAtom, share, shallowCompare, useForceUpdate, deriveDict, useDerived,
+  useAtom, share, shallowCompare, deriveDict, useDerived,
 } from 'helux';
 import * as util from './logic/util';
 import { MarkUpdate, Entry } from './comps';

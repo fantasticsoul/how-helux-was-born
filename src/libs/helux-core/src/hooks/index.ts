@@ -1,10 +1,11 @@
 export { useAtom } from './useAtom';
+export { useAtomForceUpdate } from './useAtomForceUpdate';
 export { useDerived } from './useDerived';
-export { useForceUpdate } from './useForceUpdate';
+export { useLocalForceUpdate } from './useLocalForceUpdate';
 export { useGlobalId } from './useGlobalId';
 export { getMutateLoading, useMutateLoading, getActionLoading, useActionLoading } from './useLoading';
 export { useMutable } from './useMutable';
 export { useOnEvent } from './useOnEvent';
 export { useReactive } from './useReactive';
-export { useService } from './useService';
+export { storeSrv, useService } from './useService';
 export { useWatch } from './useWatch';

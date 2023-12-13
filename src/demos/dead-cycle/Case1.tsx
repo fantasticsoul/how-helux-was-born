@@ -1,5 +1,5 @@
 import React from 'react';
-import { $, share, useForceUpdate } from 'helux';
+import { $, share, useLocalForceUpdate } from 'helux';
 import { MarkUpdate, Entry } from '../comps';
 import { dictFactory, delay } from '../logic/util';
 
@@ -39,7 +39,7 @@ function Price() {
   console.log('Render Price');
   const [state, setState] = ctxp.useState();
   const [reactive] = ctxp.useReactive();
-  const update = useForceUpdate();
+  const update = useLocalForceUpdate();
   const [s, setS] = React.useState(100);
   const update2 = () => {
     setS(s + 1);

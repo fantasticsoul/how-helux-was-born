@@ -1,7 +1,7 @@
 import { noop } from '@helux/utils';
 import { FROM, STATE_TYPE } from '../consts';
 import { runDerive, runDeriveTask } from '../helpers/fnRunner';
-import { useAtom, useDerived, useReactive, useMutable } from '../hooks';
+import { useAtom, useDerived, useReactive, useMutable, useAtomForceUpdate, useLocalForceUpdate } from '../hooks';
 import type { CoreApiCtx } from '../types/api-ctx';
 import type { Dict, Fn, IAtomCtx, ICreateOptions, IRunMutateOptions, ISharedCtx } from '../types/base';
 import { action } from './createAction';
@@ -110,7 +110,9 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     action: actionCreator,
     call: (fn: Fn, payload: any, desc: string, throwErr: boolean) => actionCreator(fn, desc, throwErr)(payload),
     useState: (options?: any) => useAtom(apiCtx, state, options),
+    useForceUpdate: () => useAtomForceUpdate(apiCtx, state),
     useLocalState: (initialState: any) => useMutable(apiCtx, initialState),
+    useLocalForceUpdate: () => useLocalForceUpdate(apiCtx),
     getMutateLoading: ldMutate.getLoading,
     useMutateLoading: ldMutate.useLoading,
     getActionLoading: ldAction.getLoading,

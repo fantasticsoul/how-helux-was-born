@@ -1,5 +1,5 @@
 import React from 'react';
-import { atom, share, useAtom, useForceUpdate } from 'helux';
+import { atom, useAtom } from 'helux';
 import { MarkUpdateH3 as MarkUpdate, Entry } from './comps';
 import { randomStr } from './logic/util';
 

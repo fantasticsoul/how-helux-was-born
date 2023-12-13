@@ -241,6 +241,11 @@ export function useReactive<T = any>(
 ): [T extends Atom ? T['val'] : T, T, IInsRenderInfo];
 
 /**
+ * 更新使用了指定共享状态的所有实例组件，谨慎使用此功能，会触发大面积的更新
+ */
+export function useAtomForceUpdate<T = any>(sharedState: T): () => void;
+
+/**
  * 使用普通对象，需注意此接口只接受普通对象
  * 应用里使用 useObject 替代 React.useState 将享受到以下两个好处
  * ```txt
@@ -287,7 +292,7 @@ export function useService<S = Dict, P = object>(serviceImpl: S, props?: P): S;
 /**
  * 返回一个可以强制更新当前组件的更新函数
  */
-export function useForceUpdate(): () => void;
+export function useLocalForceUpdate(): () => void;
 
 export function storeSrv(ref: MutableRefObject<any>): void;
 

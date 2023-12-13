@@ -1,6 +1,8 @@
 import { tryAlert } from '@helux/utils';
 import { getInternal, getInternalByKey } from '../../helpers/state';
+import { REACTIVE_META_KEY } from '../../consts';
 import type { SharedState } from '../../types/base';
+import type { IReactiveMeta } from '../../types/inner';
 import type { TInternal } from '../creator/buildInternal';
 
 interface ICheckSharedOptionsBase {
@@ -30,6 +32,11 @@ export function checkShared<T = SharedState | number>(sharedStateOrKey: T, optio
     internal = getInternalByKey(sharedStateOrKey);
   } else {
     internal = getInternal(sharedStateOrKey);
+  }
+  // 猜测传入的是 reactive 对象
+  if (!internal && sharedStateOrKey) {
+    const rMeta: IReactiveMeta = (sharedStateOrKey as any)[REACTIVE_META_KEY];
+    internal = getInternalByKey(rMeta?.sharedKey);
   }
 
   let prefix = label ? `[[${label}]] err:` : 'err:';

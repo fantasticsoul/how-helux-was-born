@@ -1,5 +1,5 @@
 import React from 'react';
-import { mutate, share, useAtom, reactiveDesc, flush, $ } from 'helux';
+import { mutate, share, useAtom, useAtomForceUpdate, $ } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay, noop } from './logic/util';
 
@@ -140,8 +140,11 @@ function FinalPrice() {
 function CCC() {
   const [r, , info] = ctx1.useReactive();
   const [loading] = ctx2.useMutateLoading();
+  const atomForceUpdate = useAtomForceUpdate(r);
+
   return <MarkUpdate name="FinalPrice" info={info}>
     {r.ccc}
+    <button onClick={atomForceUpdate}>atomForceUpdate</button>
   </MarkUpdate>;
 }
 

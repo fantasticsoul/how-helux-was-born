@@ -96,13 +96,14 @@ declare module 'helux' {
     runDerive,
     useAtom,
     useReactive,
+    useAtomForceUpdate,
     // use derived state
     useDerived,
     useWatch,
     useGlobalId,
     useObject,
     useService,
-    useForceUpdate,
+    useLocalForceUpdate,
     useEffect,
     useLayoutEffect,
     useOnEvent,
@@ -110,7 +111,6 @@ declare module 'helux' {
     useMutateLoading,
     useActionLoading,
     useStable,
-    useForceUpdate,
     // create action api
     storeSrv,
     action,

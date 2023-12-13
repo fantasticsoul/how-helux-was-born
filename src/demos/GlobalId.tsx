@@ -1,5 +1,5 @@
 import React from 'react';
-import { share, atom, watch, useDerived, useAtom, useForceUpdate, derive, useGlobalId } from 'helux';
+import { share, atom, watch, useDerived, useAtom, derive, useGlobalId, useLocalForceUpdate } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 
 const keySym = Symbol('keySym');
@@ -53,7 +53,7 @@ function NumPlusAtom() {
 
 
 function NumPlusAtom2(props: any) {
-  const forceUpdate = useForceUpdate();
+  const forceUpdate = useLocalForceUpdate();
   const [state, , info] = useAtom(sharedState);
 
   return (
