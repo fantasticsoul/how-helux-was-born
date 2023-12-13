@@ -134,7 +134,7 @@ function getReactiveVal(internal: TInternal, forAtom: boolean) {
  */
 export function buildReactive(
   internal: TInternal,
-  depKeys: string[],
+  fnDepKeys: string[],
   options?: { desc?: string, onRead?: OnOperate, from?: From, isFromCb?: boolean }
 ) {
   // 提供 draftRoot draft，和 mutate 回调里对齐，方便用户使用 atom 时少一层 .val 操作
@@ -144,8 +144,7 @@ export function buildReactive(
   const { desc, onRead, from = FROM.REACTIVE, isFromCb = false } = options || {};
 
   const rKey = getReactiveKey();
-  console.error(`gen rKey `, rKey, from);
-  const meta: IReactiveMeta = { moduleName, key: rKey, desc: desc || '', sharedKey, depKeys, onRead, from, isFromCb };
+  const meta: IReactiveMeta = { moduleName, key: rKey, desc: desc || '', sharedKey, fnDepKeys, onRead, from, isFromCb };
   if (canUseDeep(deep)) {
     const set = (forAtom: boolean, key: any, value: any) => {
       const draftVal = getReactiveVal(internal, forAtom);

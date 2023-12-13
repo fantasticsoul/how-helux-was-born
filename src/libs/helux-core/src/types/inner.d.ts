@@ -29,7 +29,10 @@ export interface IReactiveMeta {
   key: string;
   sharedKey: number;
   moduleName: string;
-  depKeys: string[];
+  /**
+   * 操作回调提供的 reactive 时，对应的 task 函数已收集到的依赖，用于辅助 operateState 里发现死循环
+   */
+  fnDepKeys: string[];
   /**
    * reactive 对象由 Reactive 场提供还是其他，例如 Mutate Action
    */

@@ -7,5 +7,5 @@ export const fakeDraftRoot = { val: null, isFake: true };
 export const fakeMutateCtx = newMutateCtx({});
 
 export const fakeReativeMeta: IReactiveMeta = {
-  key: '', sharedKey: 0, moduleName: '', depKeys: [], desc: '', onRead: undefined, from: FROM.SET_STATE, isFromCb: false,
+  key: '', sharedKey: 0, moduleName: '', fnDepKeys: [], desc: '', onRead: undefined, from: FROM.SET_STATE, isFromCb: false,
 };

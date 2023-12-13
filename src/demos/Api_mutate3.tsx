@@ -147,13 +147,13 @@ function CCC() {
 
 const Demo = () => (
   <Entry fns={[forceRunMutate, forceRunMutateTask, changePrev, changePriceA, actions.foo, changeRetA, seeCCC]}>
-    {/* <Price />
+    <Price />
     <Price />
     <FinalPrice />
     <FinalPrice />
-    <CCC /> */}
-    {/* <h3>ctxp.reactive.a: {$(ctx1.reactive.a)}</h3>
-    <h3>ctxp.reactive.ccc: {$(ctx1.reactive.ccc)}</h3> */}
+    <CCC />
+    <h3>ctxp.reactive.a: {$(ctx1.reactive.a)}</h3>
+    <h3>ctxp.reactive.ccc: {$(ctx1.reactive.ccc)}</h3>
   </Entry>
 );
 

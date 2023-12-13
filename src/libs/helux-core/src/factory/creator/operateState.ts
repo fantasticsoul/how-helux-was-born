@@ -98,7 +98,7 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   } else if (isMutateReactive) { // 是 mutate task 的 draft 写操作
     // mutate task 函数里发现死循环
     // 形如: deps: (state)=> [state.a];  async task: ({draft})=> draft.a +=1;
-    if (currentReactive.depKeys.includes(writeKey)) {
+    if (currentReactive.fnDepKeys.includes(writeKey)) {
       nodupPush(mutateCtx.taskDeadCycleKeys, fullKeyPath.join('.'));
     }
   }
@@ -147,10 +147,10 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   // 来自响应对象的变更操作，主动触发 nextTickFlush
   if (isReactive) {
     nextTickFlush(sharedKey, '', () => {
-      const { depKeys, desc } = currentReactive;
+      const { fnDepKeys, desc } = currentReactive;
       const dcDepKeys: string[] = [];
       // task 里 reactive 对象修改的 key 是 mutate 的依赖 key，这些 key 会造成死循环
-      depKeys.forEach(key => writeKeys[key] && dcDepKeys.push(key));
+      fnDepKeys.forEach(key => writeKeys[key] && dcDepKeys.push(key));
       // desc 优先取 flush 传递的
       if (dcDepKeys.length) return { dcDepKeys, desc: REACTIVE_DESC.current(sharedKey) || desc };
       return null;
