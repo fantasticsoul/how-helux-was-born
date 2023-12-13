@@ -85,16 +85,15 @@ declare module '*.module.sass' {
 declare module 'helux' {
   export const {
     atom,
+    atomx,
     share,
-    shareState,
-    shareAtom,
+    sharex,
     // derive for shared state
     derive,
     // derive for shared atom
     deriveDict,
     watch,
     runDerive,
-    createShared,
     useAtom,
     useReactive,
     // use derived state
@@ -142,15 +141,15 @@ declare module 'helux' {
     runMutateTask,
     mutate,
     mutateDict,
-    atomMutate,
     addMiddleware,
     addPlugin,
     EVENT_NAME,
     RECORD_LOADING,
     VER,
     LIMU_VER,
-    limu,
   } = heluxApi;
+
+  export const createShared = heluxApi.share;
 
   export const {
     // high level api

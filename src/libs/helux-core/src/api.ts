@@ -7,7 +7,7 @@ import { emit, on } from './factory/common/userBus';
 import { action } from './factory/createAction';
 import { derive, deriveDict } from './factory/createDerived';
 import { mutate, mutateDict, runMutate, runMutateTask } from './factory/createMutate';
-import { atom, share, shareAtom, shareState } from './factory/createShared';
+import { atom, atomx, share, sharex } from './factory/createShared';
 import { sync, syncer } from './factory/createSync';
 import { watch } from './factory/createWatch';
 import { flush, reactiveDesc } from './factory/creator/reactive';
@@ -32,9 +32,9 @@ const $ = signal; // signal api alias
 
 export {
   atom,
+  atomx,
   share,
-  shareState,
-  shareAtom,
+  sharex,
   createShared,
   // derive api
   derive,

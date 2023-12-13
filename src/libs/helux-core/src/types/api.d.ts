@@ -129,23 +129,17 @@ export function atom<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(
 ): readonly [ReadOnlyAtom<T>, SetState<T>, IAtomCtx<T>];
 
 /**
- * for compatible wit v2 helux
- * 这个接口仅为了兼容 helux v2 升级到 v3 后不报错
+ * 效果完全等同 share，唯一的区别是 share 返回元组 [state,setState,ctx] sharex 返回 ctx 自身
  */
-export const createShared: typeof share;
-
-/**
- * 效果完全等同 share，唯一的区别是 share 返回元组 [state,setState,ctx] ，shareState 返回 ctx 自身
- */
-export function shareState<T = PlainObject, O extends ICreateOptions<T> = ICreateOptions<T>>(
+export function sharex<T = PlainObject, O extends ICreateOptions<T> = ICreateOptions<T>>(
   rawState: T | (() => T),
   createOptions?: O,
 ): ISharedCtx<T>;
 
 /**
- * 效果完全等同 atom，唯一的区别是 share 返回元组 [state,setState,call] ，shareAtom 返回 ctx 自身
+ * 效果完全等同 atom，唯一的区别是 share 返回元组 [state,setState,call] atom 返回 ctx 自身
  */
-export function shareAtom<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(
+export function atomx<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(
   rawState: T | (() => T),
   createOptions?: O,
 ): IAtomCtx<T>;

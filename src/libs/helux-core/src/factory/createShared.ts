@@ -1,9 +1,7 @@
 import { noop } from '@helux/utils';
 import { FROM, STATE_TYPE } from '../consts';
 import { runDerive, runDeriveTask } from '../helpers/fnRunner';
-import { useAtom } from '../hooks/useAtom';
-import { useDerived } from '../hooks/useDerived';
-import { useReactive } from '../hooks/useReactive';
+import { useAtom, useDerived, useReactive, useMutable } from '../hooks';
 import type { CoreApiCtx } from '../types/api-ctx';
 import type { Dict, Fn, IAtomCtx, ICreateOptions, IRunMutateOptions, ISharedCtx } from '../types/base';
 import { action } from './createAction';
@@ -16,7 +14,6 @@ import { setAtomVal } from './creator/current';
 import { getGlobalEmpty, initGlobalEmpty } from './creator/globalId';
 import { getLoadingInfo, initGlobalLoading, initLoadingCtx } from './creator/loading';
 import type { IInnerOptions } from './creator/parse';
-// import { getInternalByKey } from '../helpers/state';
 
 const { USER_STATE } = STATE_TYPE;
 const { MUTATE, ACTION } = FROM;
@@ -113,6 +110,7 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     action: actionCreator,
     call: (fn: Fn, payload: any, desc: string, throwErr: boolean) => actionCreator(fn, desc, throwErr)(payload),
     useState: (options?: any) => useAtom(apiCtx, state, options),
+    useLocalState: (initialState: any) => useMutable(apiCtx, initialState),
     getMutateLoading: ldMutate.getLoading,
     useMutateLoading: ldMutate.useLoading,
     getActionLoading: ldAction.getLoading,
@@ -132,28 +130,20 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
   };
 }
 
-/** expose share ctx as object */
-export function shareState<T = Dict, O extends ICreateOptions<T> = ICreateOptions<T>>(
-  apiCtx: CoreApiCtx,
-  rawState: T | (() => T),
-  options?: O,
-): ISharedCtx<T> {
-  return createSharedLogic({ apiCtx, rawState }, options);
-}
-
-/** expose atom ctx as object */
-export function shareAtom<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(
-  apiCtx: CoreApiCtx,
-  rawState: any | (() => any),
-  options?: O,
-): IAtomCtx<T> {
-  return createSharedLogic({ apiCtx, rawState, forAtom: true }, options);
-}
 
 /** expose share ctx as tuple */
 export function share<T = Dict, O extends ICreateOptions<T> = ICreateOptions<T>>(apiCtx: CoreApiCtx, rawState: T | (() => T), options?: O) {
   const ctx = createSharedLogic({ apiCtx, rawState }, options) as ISharedCtx<T>;
   return [ctx.state, ctx.setState, ctx] as const;
+}
+
+/** expose share ctx as object */
+export function sharex<T = Dict, O extends ICreateOptions<T> = ICreateOptions<T>>(
+  apiCtx: CoreApiCtx,
+  rawState: T | (() => T),
+  options?: O,
+): ISharedCtx<T> {
+  return createSharedLogic({ apiCtx, rawState }, options);
 }
 
 /**
@@ -162,4 +152,13 @@ export function share<T = Dict, O extends ICreateOptions<T> = ICreateOptions<T>>
 export function atom<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(apiCtx: CoreApiCtx, rawState: T | (() => T), options?: O) {
   const ctx = createSharedLogic({ apiCtx, rawState, forAtom: true }, options) as IAtomCtx<T>;
   return [ctx.state, ctx.setState, ctx] as const;
+}
+
+/** expose atom ctx as object */
+export function atomx<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(
+  apiCtx: CoreApiCtx,
+  rawState: any | (() => any),
+  options?: O,
+): IAtomCtx<T> {
+  return createSharedLogic({ apiCtx, rawState, forAtom: true }, options);
 }

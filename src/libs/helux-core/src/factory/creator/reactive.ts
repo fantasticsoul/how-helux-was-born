@@ -28,11 +28,11 @@ function flushData(reactive: IReactive, beforeCommit?: any) {
   return reactive.finish(null, { from: FROM.REACTIVE, desc, beforeCommit });
 }
 
-function getKey(shareState: any) {
+function getKey(sharedState: any) {
   // 支持对 draftRoot 直接调用 flush
-  let sharedKey = shareState && shareState[SHARED_KEY];
+  let sharedKey = sharedState && sharedState[SHARED_KEY];
   if (!sharedKey) {
-    sharedKey = getSharedKey(shareState);
+    sharedKey = getSharedKey(sharedState);
   }
   return sharedKey;
 }
@@ -40,8 +40,8 @@ function getKey(shareState: any) {
 /**
  * 记录修改描述，让 devtool 可观测到类似 Api_mutate@Reactive/changeA 的描述
  */
-export function reactiveDesc(shareState: any, desc?: string) {
-  const sharedKey = getKey(shareState);
+export function reactiveDesc(sharedState: any, desc?: string) {
+  const sharedKey = getKey(sharedState);
   desc && REACTIVE_DESC.set(sharedKey, desc);
   return sharedKey;
 }
@@ -49,8 +49,8 @@ export function reactiveDesc(shareState: any, desc?: string) {
 /**
  * 人工触发提交响应式对象的变更数据, sharedState 可以是 draftRoot
  */
-export function flush(shareState: any, desc?: string) {
-  const sharedKey = getSharedKey(shareState);
+export function flush(sharedState: any, desc?: string) {
+  const sharedKey = getSharedKey(sharedState);
   innerFlush(sharedKey, desc);
 }
 

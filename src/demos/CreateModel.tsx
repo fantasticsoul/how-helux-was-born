@@ -3,7 +3,7 @@ import { $, model, modelFactory } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 
 const myModel = model((api) => {
-  const userCtx = api.shareState({ a: 1, b: 2 });
+  const userCtx = api.sharex({ a: 1, b: 2 });
   const { state, setState } = userCtx;
   const someResult = api.derive(() => state.a + 100);
 
@@ -23,7 +23,7 @@ const myModel = model((api) => {
 
 const factory = modelFactory((api, extra) => {
   console.log('received build extra param ', extra)
-  const userCtx = api.shareState({ a: 1, b: 2 }, { moduleName: extra });
+  const userCtx = api.sharex({ a: 1, b: 2 }, { moduleName: extra });
   const { state, setState } = userCtx;
   const someResult = api.derive(() => state.a + 100);
 

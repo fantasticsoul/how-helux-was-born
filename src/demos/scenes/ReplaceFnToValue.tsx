@@ -1,9 +1,8 @@
-import { share, useAtom, limu } from 'helux';
+import { share, useAtom } from 'helux';
 import { getVal } from '@helux/utils';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
 
-console.log('limu', limu);
 
 const [shared, setShared, ctx] = share({
   a: {

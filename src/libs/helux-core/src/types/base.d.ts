@@ -3,6 +3,12 @@ import type { IOperateParams as OpParams } from 'limu';
 import type { DepKeyInfo } from './inner';
 import { IMutateCtx } from '../factory/common/util';
 
+export interface ILocalStateApi<T> {
+  setState: (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void;
+  /** 返回最新的状态，可能会变化，适用于透传给子组件 */
+  getLatestState: () => T;
+}
+
 export type IOperateParams = OpParams;
 
 export type Primitive = boolean | number | string | null | undefined | BigInt;
@@ -478,6 +484,11 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
   /** 使用 Action 状态 */
   useActionLoading: () => [SafeLoading<T, O>, SetState<LoadingState>, IInsRenderInfo];
   reactiveDesc: (desc: string) => number;
+  useLocalState: <T extends object = PlainObject>(initialState: T | (() => T)) => [
+    T,
+    (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void,
+    ILocalStateApi<T>,
+  ]
   useReactive: (options?: IUseSharedStateOptions<T>) => [
     // 针对 atom，第一位 reactive 参数自动拆箱
     T extends Atom ? T['val'] : T,
