@@ -60,6 +60,9 @@ export function recordFnDepKeys(inputDepKeys: string[], options: { sharedKey?: n
     // 注意此处暂不记录到 fnCtx.depKeys 里，而是记录到 fnScope.depKeys 里
     // 等到 markFnEnd 时再按最长路径提取出所有 depKeys 转移到 fnCtx.depKeys 里
     if (canRecordDepKey) {
+      if (depKey === '3/val') {
+        console.trace(depKey);
+      }
       // console.trace('push depKey', depKey);
       nodupPush(depKeys, depKey); // here depKeys is come from fnScope
     }

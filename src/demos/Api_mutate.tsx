@@ -52,8 +52,8 @@ const witness = mutate(finalPriceState)({
   // 初始值函数，只会执行一次
   fn: (draft) => {
     draft.retA = 3000;
-    // draft.time += 1;
-    // draft.retA += 100; // 触发死循环
+    draft.time += 1;
+    draft.retA += 100; // 触发死循环
     // setP2(draft => { draft.retA += 100 });
   },
   deps: () => [priceState.a, finalPriceState.retA, finalPriceState.retB] as const,
@@ -95,8 +95,8 @@ const witness = mutate(finalPriceState)({
     // draft.retA += a;
     // flush(draft, 'flush3');
 
-    // draft.retA += a;
-    // setState(draft => { draft.retB += a });
+    draft.retA += a;
+    setState(draft => { draft.retB += a });
     console.error('after ----------------------------------------------------------------');
   },
   desc: 'dangerousMutate',
@@ -169,13 +169,13 @@ function CCC() {
 
 const Demo = () => (
   <Entry fns={[forceRunMutate, forceRunMutateTask, changePrev, changePriceA, actions.foo, changeRetA, seeCCC]}>
-    {/* <Price />
+    <Price />
     <Price />
     <FinalPrice />
     <FinalPrice />
-    <CCC /> */}
-    {/* <h3>ctxp.reactive.a: {$(ctx1.reactive.a)}</h3>
-    <h3>ctxp.reactive.ccc: {$(ctx1.reactive.ccc)}</h3> */}
+    <CCC />
+    <h3>ctxp.reactive.a: {$(ctx1.reactive.a)}</h3>
+    <h3>ctxp.reactive.ccc: {$(ctx1.reactive.ccc)}</h3>
   </Entry>
 );
 

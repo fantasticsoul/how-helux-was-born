@@ -18,7 +18,10 @@ const [objAtom, setAtom, ctx] = atom({ a: 1, b: { b1: { b2: '200' } } }, {
     console.log('test before', params);
   },
 });
+
+// TODO FIXME 这里为 1 触发死循环误判（ 和 Api_mutate 文件冲突 ）
 const [numAtom, setNum, numCtx] = atom(1);
+// const [numAtom, setNum, numCtx] = atom(1);
 
 function changeA() {
   setAtom((draft) => {

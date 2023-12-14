@@ -1,11 +1,12 @@
 import { delListItem, enureReturnArr, isFn, isSymbol, nodupPush, prefixValKey, warn } from '@helux/utils';
 import { immut } from 'limu';
-import { DICT, EXPIRE_MS, IS_DERIVED_ATOM, KEY_SPLITER, NOT_MOUNT, OTHER, RENDER_END, RENDER_START, SHARED_KEY } from '../consts';
+import { DICT, EXPIRE_MS, IS_DERIVED_ATOM, KEY_SPLITER, NOT_MOUNT, OTHER, RENDER_END, RENDER_START } from '../consts';
 import { hasRunningFn } from '../factory/common/fnScope';
 import { genInsKey } from '../factory/common/key';
 import { cutDepKeyByStop, recordArrKey } from '../factory/common/stopDep';
 import { callOnRead, isArrLike, isArrLikeVal, isDict, newOpParams } from '../factory/common/util';
 import type { InsCtxDef } from '../factory/creator/buildInternal';
+import { handleSymKey, handleOpSymKey } from '../factory/creator/buildShared';
 import { buildReactive, nextTickFlush } from '../factory/creator/reactive';
 import { mapGlobalId } from '../factory/creator/globalId';
 import type { Dict, Ext, IFnCtx, IInnerUseSharedOptions, OnOperate } from '../types/base';
@@ -45,10 +46,15 @@ export function runInsUpdater(insCtx: InsCtxDef | undefined) {
 
 export function attachInsProxyState(insCtx: InsCtxDef) {
   const { internal, isReactive } = insCtx;
-  const { rawState, isDeep, sharedKey, onRead } = internal;
+  const { rawState, isDeep, sharedKey, onRead, forAtom } = internal;
   if (isDeep) {
     const onOperate: OnOperate = (opParams) => {
-      if (opParams.isBuiltInFnKey) return;
+      const { isBuiltInFnKey, key } = opParams;
+      if (isBuiltInFnKey) return;
+      if (isSymbol(key)) {
+        return handleOpSymKey(opParams, forAtom, sharedKey);
+      }
+
       const { fullKeyPath, keyPath, parentType } = opParams;
       const rawVal = callOnRead(opParams, onRead);
       const depKey = prefixValKey(fullKeyPath.join(KEY_SPLITER), sharedKey);
@@ -66,12 +72,7 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
       insCtx.proxyState = draftRoot;
       insCtx.proxyStateVal = draft;
     } else {
-      insCtx.proxyState = immut(rawState, {
-        customKeys: [SHARED_KEY as symbol],
-        customGet: () => sharedKey,
-        onOperate,
-        compareVer: true,
-      });
+      insCtx.proxyState = immut(rawState, { onOperate, compareVer: true });
     }
   } else {
     insCtx.proxyState = createOb(rawState, {
@@ -82,7 +83,7 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
       get: (target: Dict, key: string) => {
         const value = target[key];
         if (isSymbol(key)) {
-          return value;
+          return handleSymKey(true, forAtom, sharedKey, key, value);
         }
         const rawVal = callOnRead(newOpParams(key, value, false), onRead);
         const depKey = prefixValKey(key, sharedKey);
@@ -215,6 +216,7 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
         }
 
         const isParentArrLike = isArrLike(parentType);
+        // 类数组记录下标规则依赖 arrIndexDep 值
         if (isParentArrLike) {
           arrIndexDep && doRecord();
           return;

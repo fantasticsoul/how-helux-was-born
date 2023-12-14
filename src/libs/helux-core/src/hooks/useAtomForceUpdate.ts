@@ -53,7 +53,7 @@ export function useAtomForceUpdate<T = any>(
     const insKeyDict: Dict<number> = {};
     // 查找到绑定了依赖关系的各个实例，用字典去重
     Object.keys(depKeyDict).forEach((depKey) => {
-      const insKeys = key2InsKeys[depKey];
+      const insKeys = key2InsKeys[depKey] || [];
       insKeys.forEach(insKey => insKeyDict[insKey] = 1);
     });
 

@@ -2,60 +2,13 @@ import { getVal, isDebug, isFn, isMap, isObj, isProxyAvailable, noop, prefixValK
 import { immut, IOperateParams, limuUtils } from 'limu';
 import { ARR, KEY_SPLITER, MAP, STATE_TYPE, FROM } from '../../consts';
 import { createOb } from '../../helpers/obj';
-import type { From, Dict, IInnerSetStateOptions, NumStrSymbol, TriggerReason } from '../../types/base';
+import type { IMutateCtx, Dict, IInnerSetStateOptions } from '../../types/base';
 import { DepKeyInfo } from '../../types/inner';
 import type { TInternal } from '../creator/buildInternal';
 
 const { USER_STATE } = STATE_TYPE;
 const { SET_STATE } = FROM;
 const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any });
-export interface IMutateCtx {
-  /**
-   * 为 shared 记录一个第一层的 key 值，用于刷新 immut 生成的 代理对象，
-   * 刷新时机和具体解释见 factory/creator/commitState 逻辑
-   */
-  level1Key: string;
-  /** 当次变更的依赖 key 列表，在 finishMutate 阶段会将 writeKeys 字典keys 转入 depKeys 里 */
-  depKeys: string[];
-  /**
-   * 由 setStateOptions.extraDep 记录的需要强制更新的依赖 key，这些 key 只复制更新实例，不涉及触发 watch/derive 变更流程
-   */
-  forcedDepKeys: string[];
-  triggerReasons: TriggerReason[];
-  ids: NumStrSymbol[];
-  globalIds: NumStrSymbol[];
-  writeKeys: Dict;
-  /**
-   * 记录读过的 key，用于提前发现 mutate 里 draft.a+=1 时回导致死循环情况出现，并提示用户
-   */
-  readKeys: Dict;
-  arrKeyDict: Dict;
-  writeKeyPathInfo: Dict<TriggerReason>;
-  /**
-   * default: true
-   * 是否处理 atom setState((draft)=>xxx) 返回结果xxx，
-   * 目前规则是修改了 draft 则 handleAtomCbReturn 被会置为 false，
-   * 避免无括号写法 draft=>draft.xx = 1 隐式返回的结果 1 被写入到草稿，
-   * 备注：安全写法应该是draft=>{draft.xx = 1}
-   */
-  handleAtomCbReturn: boolean;
-  /** 为 atom 记录的 draft.val 引用 */
-  draftVal: any;
-  from: From;
-  isReactive: boolean;
-  /** mutate fn 函数里收集到的导致死循环的 keys，通常都是 draft.a+=1 操作导致 */
-  fnDeadCycleKeys: string[];
-  /** mutate task 函数里收集到的导致死循环的 keys，通常都是依赖 a 变化驱动 task 执行，task 里又修改了 a 导致 */
-  taskDeadCycleKeys: string[];
-  /**
-   * default: false
-   * 由 IInnerSetStateOptions 透传而来
-   * 目前仅 mutate fn 函数提供的 draft 对象支持依赖收集，其他场景都禁止收集，避免收集到造成死循环的依赖
-   * 例如立即执行的watch watch(()=>{ setState(draft=> ...) })
-   * 同时也减少不必要的运行时分析性能损耗
-   */
-  enableDraftDep: boolean;
-}
 
 // for hot reload of buildShared
 /**
@@ -78,7 +31,7 @@ export function tryGetLoc(moduleName: string, endCutIdx = 8) {
 }
 
 export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
-  const { ids = [], globalIds = [], isReactive = false, from = SET_STATE, enableDraftDep = false } = options; // 用户 setState 可能设定了 ids globalIds
+  const { ids = [], globalIds = [], isReactive = false, from = SET_STATE, enableDep = false } = options; // 用户 setState 可能设定了 ids globalIds
   return {
     level1Key: '',
     depKeys: [],
@@ -96,7 +49,7 @@ export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
     isReactive,
     fnDeadCycleKeys: [],
     taskDeadCycleKeys: [],
-    enableDraftDep,
+    enableDep,
   };
 }
 

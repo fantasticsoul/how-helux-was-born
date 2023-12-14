@@ -1,13 +1,17 @@
 import React from 'react';
-import { mutate, share, useAtom, useAtomForceUpdate, $ } from 'helux';
-import { MarkUpdate, Entry } from './comps';
-import { random, delay, noop } from './logic/util';
+import { mutate, share, useAtom, atom, flush, $ } from 'helux';
+import { MarkUpdate, Entry } from '../comps';
+import { random, delay, noop, dictFactory } from '../logic/util';
 
 const [priceState, setPrice, ctx1] = share({ a: 1, b: 100, ccc: 1000, d: { d1: { d2: 1 } } }, {
-  moduleName: 'Api_mutate3',
+  moduleName: 'Api_mutate',
+  enableDraftDep: true,
+  recordLoading: 'no',
 });
 const [finalPriceState, setP2, ctx2] = share({ retA: 0, retB: 0, time: 0, time2: 0, f: { f1: 1 } }, {
-  moduleName: 'Api_mutate_finalPriceState3',
+  moduleName: 'Api_mutate_finalPriceState',
+  enableDraftDep: true,
+  recordLoading: 'no',
 });
 
 // 约束各个函数入参类型
@@ -16,7 +20,7 @@ type Payloads = {
   foo: boolean | undefined;
 };
 
-const { actions, useLoading, getLoading } = ctx1.defineActions<Payloads>()({
+const { actions, useLoading } = ctx1.defineActions<Payloads>()({
   changeA({ draftRoot, payload }) {
     draftRoot.a = 200;
   },
@@ -48,32 +52,54 @@ const witness = mutate(finalPriceState)({
   // 初始值函数，只会执行一次
   fn: (draft) => {
     draft.retA = 3000;
+    draft.time += 1;
+    draft.retA += 100; // 触发死循环
+    // setP2(draft => { draft.retA += 100 });
   },
   deps: () => [priceState.a, finalPriceState.retA, finalPriceState.retB] as const,
   task: async ({ input: [a], setState, draft }) => {
+    // reactiveDesc(draft, 'change1');
+    const result = draft.retA + a
+    // console.error('trigger task draft.retA += a', result);
+    // ctx1.reactive.ccc += 1000;
+    // console.log('ctxp.reactive.ccc ', ctx1.reactive.ccc);
+
     // const d1 = ctx1.reactive.d.d1;
     noop(ctx2.reactive.f.f1);
     // d1.d2 = 3000;
     noop(ctx2.reactive.f.f1);
-    await delay(1000);
     noop(draft.f.f1);
+
+    // ctxp.reactive.a += 1;
+    // ctxp.reactive.a += 1;
+    // ctxp.reactive.a += 100;
+    // console.log('after ctxp.reactive.a', ctxp.reactive.a);
+    // await delay(1000);
+    // reactiveDesc(draft, 'change2');
+    // draft.retA += a;
+    // await delay(1000);
+    // reactiveDesc(draft, 'change-->3');
+    // draft.retA += a;
+    // await delay(1000);
+    // ctx.reactiveDesc('change-->4');
+    // draft.retA += a;
+    // await delay(1000);
+    // ctx.reactiveDesc('change-->5');
+    // draft.retA += a;
+    // await delay(1000);
+
+    // draft.retA += a;
+    // flush(draft, 'flush1'); // 主动提交变更
+    // draft.retA += a;
+    // flush(draft, 'flush2');
+    // draft.retA += a;
+    // flush(draft, 'flush3');
+
+    draft.retA += a;
+    setState(draft => { draft.retB += a });
     console.error('after ----------------------------------------------------------------');
   },
   desc: 'dangerousMutate',
-  immediate: true, // 控制 task 立即执行
-});
-
-const witness2 = mutate(finalPriceState)({
-  // 初始值函数，只会执行一次
-  fn: (draft) => {
-    draft.retA = 3000;
-  },
-  deps: () => [priceState.a, finalPriceState.retA, finalPriceState.retB] as const,
-  task: async ({ input: [a], setState, draft }) => {
-    noop(draft.f.f1);
-    console.error('after 222 ----------------------------------------------------------------');
-  },
-  desc: 'dangerousMutate_another',
   immediate: true, // 控制 task 立即执行
 });
 
@@ -121,13 +147,6 @@ function Price() {
   </MarkUpdate>;
 }
 
-function PriceB() {
-  const [price, , info] = useAtom(priceState);
-  return <MarkUpdate name="Price" info={info}>
-    price.b: {price.b}
-  </MarkUpdate>;
-}
-
 function FinalPrice() {
   const [finalPrice, , info] = useAtom(finalPriceState);
   const [loading] = ctx2.useMutateLoading();
@@ -143,32 +162,51 @@ function FinalPrice() {
 function CCC() {
   const [r, , info] = ctx1.useReactive();
   const [loading] = ctx2.useMutateLoading();
-  const atomForceUpdate = useAtomForceUpdate(r);
-  const onlyUpdateB = ctx1.useForceUpdate(state => [state.b]);
-
   return <MarkUpdate name="FinalPrice" info={info}>
     {r.ccc}
-    <button onClick={() => atomForceUpdate()}>atomForceUpdate</button>
-    <button onClick={() => onlyUpdateB()}>onlyUpdateB</button>
-    <button onClick={() => onlyUpdateB(state => state.a)}>onlyUpdateA</button>
-    <button onClick={onlyUpdateB}>onlyUpdateB_2</button>
-    <button onClick={() => onlyUpdateB(state => [])}>onlyUpdateB_nothing</button>
-    <button onClick={() => onlyUpdateB(null)}>onlyUpdateB_all</button>
   </MarkUpdate>;
 }
 
+const [shared] = share(dictFactory);
+
+const [objAtom, setAtom, ctx] = atom({ a: 1, b: { b1: { b2: '200' } } }, {
+  moduleName: 'DeriveTask',
+  rules: [
+    {
+      when: () => [],
+      // when: state => state.val.a
+      globalIds: [],
+    }
+  ],
+  before(params) {
+    console.log('test before', params);
+  },
+});
+
+// TODO FIXME 这里为 1 触发死循环误判（ 和 Api_mutate 文件冲突 ）
+const [numAtom, setNum, numCtx] = atom(1);
+// const [numAtom, setNum, numCtx] = atom(1);
+
+function changeA() {
+  setAtom((draft) => {
+    draft.a += 1;
+  });
+}
+
+function SharedAtom() {
+  const [stateDict] = useAtom(shared);
+  const [state] = ctx.useState();
+  const [num] = numCtx.useState();
+  return (
+    <MarkUpdate>
+      primitive syncer <input value={num} onChange={numCtx.syncer} />
+    </MarkUpdate>
+  );
+}
+
 const Demo = () => (
-  <Entry fns={[forceRunMutate, forceRunMutateTask, changePrev, changePriceA, actions.foo, changeRetA, seeCCC]}>
-    <Price />
-    <Price />
-    <PriceB />
-    <FinalPrice />
-    <FinalPrice />
-    <CCC />
-    <h3>ctxp.reactive.a: {$(ctx1.reactive.a)}</h3>
-    <h3>ctxp.reactive.ccc: {$(ctx1.reactive.ccc)}</h3>
-    <h3>getLoading().foo.loading: {$(getLoading().foo.loading, v => `${v}`)}</h3>
-    <h3>getLoading().foo.loading: {$(getLoading().foo.loading, v => `${v}<------`)}</h3>
+  <Entry fns={[changeA]}>
+    <SharedAtom />
   </Entry>
 );
 

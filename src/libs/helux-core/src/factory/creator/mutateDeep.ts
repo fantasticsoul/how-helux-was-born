@@ -1,11 +1,12 @@
-import { isJsObj, isObj, tryAlert } from '@helux/utils';
+import { isJsObj, isObj, isSymbol, tryAlert } from '@helux/utils';
 import { createDraft, finishDraft, IOperateParams, limuUtils } from 'limu';
-import type { Dict, Ext, ISetFactoryOpts, IInnerSetStateOptions } from '../../types/base';
+import type { Dict, Ext, ISetFactoryOpts, IInnerSetStateOptions, IMutateCtx } from '../../types/base';
 import { genRenderSN } from '../common/key';
 import { runMiddlewares } from '../common/middleware';
 import { emitDataChanged } from '../common/plugin';
-import { IMutateCtx, newMutateCtx } from '../common/util';
+import { newMutateCtx } from '../common/util';
 import type { TInternal } from './buildInternal';
+import { handleOpSymKey } from './buildShared';
 import { commitState } from './commitState';
 import { DRAFT_ROOT, MUTATE_CTX, REACTIVE_META } from './current';
 import { handleOperate } from './operateState';
@@ -74,7 +75,7 @@ function alertDeadCycle(internal: TInternal, keys: string[], forFn: boolean, des
   const reason = forFn ? 'by its self' : 'but they are mutate dep keys';
   tryAlert(
     new Error(
-      `[only-dev-mode alert] DEAD_CYCLE: found ${desc} mutate ${fn} is changing ${internal.usefulName}(${keys}) `
+      `[only-dev-mode alert] DEAD_CYCLE: found mutate ${fn} ${desc} is changing ${internal.usefulName}(${keys}) `
       + `${reason}, it will cause a dead cycle!`,
     ),
     false,
@@ -103,20 +104,33 @@ export function beforeCommit(opts: ICommitOpts, innerSetOptions: IInnerSetStateO
  */
 export function prepareDeepMutate(opts: IPrepareDeepMutateOpts) {
   const { internal, desc = '' } = opts;
+  const { forAtom, isPrimitive, rawState } = internal;
   const mutateCtx = newMutateCtx(opts);
   const commitOpts = { state: {}, mutateCtx, ...opts, desc };
-  const draftRoot = createDraft(internal.rawState, {
+  const draftRoot = createDraft(rawState, {
     onOperate: (opParams: IOperateParams) => {
+      if (isSymbol(opParams.key)) {
+        return handleOpSymKey(opParams, forAtom, internal.sharedKey);
+      }
       handleOperate(opParams, { internal, mutateCtx });
     },
   });
 
-  const { forAtom, isPrimitive } = internal;
   // 记录正在执行中的 draftRoot mutateCtx
   DRAFT_ROOT.set(draftRoot);
   MUTATE_CTX.set(mutateCtx);
+  let draftNode = draftRoot;
   // atom draft 自动拆箱
-  const draftNode = forAtom ? draftRoot.val : draftRoot;
+  if (forAtom) {
+    draftNode = draftRoot.val;
+    // 自动拆箱后，有一个隐含的 .val 读依赖被收集到 readKeys，此处刻意清空 readKeys
+    // 不清空的话，如下例子因为有隐含的 .val 读取，和 .val 再赋值操作，会误判为有死循环存在
+    // 清空了则 .val 读取被抹掉了，死循环探测逻辑就没有误判了
+    // atomx(0).mutate(()=>anotherAtom.val+1);
+    // 如果人为对 val 读取再赋值，例如使用 draftRoot.val 操作，则探测出存在死循环
+    // atomx(0).mutate((draft, { draftRoot })=>draftRoot.val+=1);
+    mutateCtx.readKeys = {};
+  }
 
   return {
     draftRoot,

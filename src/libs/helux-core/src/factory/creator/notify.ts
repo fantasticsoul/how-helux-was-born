@@ -1,5 +1,4 @@
 import { dedupList, nodupPush } from '@helux/utils';
-import { markFnEnd } from '../../helpers/fnCtx';
 import { getDepFnStats } from '../../helpers/fnDep';
 import { runFn } from '../../helpers/fnRunner';
 import { markComputing } from '../../helpers/fnStatus';
@@ -26,6 +25,7 @@ export function execDepFns(opts: ICommitStateOptions) {
   const { mutateCtx, internal, desc, isFirstCall, from, sn } = opts;
   const { ids, globalIds, depKeys, triggerReasons } = mutateCtx;
   const { key2InsKeys, id2InsKeys, insCtxMap, rootValKey } = internal;
+  console.log('depKeys', depKeys);
 
   internal.ver += 1;
   internal.sn = sn;
@@ -36,7 +36,7 @@ export function execDepFns(opts: ICommitStateOptions) {
   let dirtyFnKeys: string[] = [];
   let dirtyAsyncFnKeys: string[] = [];
   const runCountStats: Dict<number> = {};
-  
+
   // TODO check markFnEnd 被移除了是否有问题
 
   const analyzeDepKey = (key: string) => {

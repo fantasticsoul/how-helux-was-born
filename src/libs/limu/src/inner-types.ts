@@ -65,7 +65,8 @@ export interface IOperateParams {
   parentProxy?: any;
   /** 父亲节点的类型，零长字符串表示无父亲节点 */
   parentType: DataType | '';
-  key: string;
+  /** key 可能为 symbol，请谨慎处理 */
+  key: any;
   /**
    * key path contains parent node key
    */

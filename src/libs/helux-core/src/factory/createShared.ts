@@ -87,7 +87,7 @@ function defineFullDerive(options: { apiCtx: CoreApiCtx; deriveFnDict: Dict; thr
 export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: any): any {
   const { stateType, apiCtx } = innerOptions;
   ensureGlobal(apiCtx, stateType);
-  const { sharedState: state, internal } = buildSharedObject(innerOptions, createOptions);
+  const { sharedRoot: state, sharedState: stateVal, internal } = buildSharedObject(innerOptions, createOptions);
   const { syncer, sync, forAtom, setState, sharedKey, sharedKeyStr, rootValKey, reactive, reactiveRoot } = internal;
   const actionCreator = action(state);
   const opt = { internal, from: MUTATE, apiCtx };
@@ -98,7 +98,8 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
   const common = { createFn, internal, apiCtx };
 
   return {
-    state,
+    state, // 指向 root 
+    stateVal, // atom 的话 stateVal 是拆箱后的值，share 对象的话，stateVal 指向 root 自身
     setState,
     defineActions: (throwErr?: boolean) => (actionDict: Dict) => defineActions({ ...common, ldAction, actionCreator, actionDict }, throwErr),
     defineMutateDerive: (inital: Dict, mutateFnDict: Dict) => defineMutateDerive({ ...common, ldMutate, inital, mutateFnDict }),
@@ -129,6 +130,7 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     reactiveDesc: (desc: string) => reactiveDesc(state, desc),
     useReactive: (options?: any) => useReactive(apiCtx, state, options),
     flush: (desc?: string) => flush(state, desc),
+    isAtom: forAtom,
   };
 }
 

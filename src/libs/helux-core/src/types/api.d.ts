@@ -535,7 +535,7 @@ export function dynamicBlock<P = object, Ref = any>(
  * ```
  * @param inputVar
  */
-export function signal(inputVar: SingalVal | (() => SingalVal)): ReactNode;
+export function signal(inputVar: SingalVal | (() => SingalVal), format?: (val: any) => any): ReactNode;
 
 /**
  * signal 函数的简写导出

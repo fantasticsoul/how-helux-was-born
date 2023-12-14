@@ -1,4 +1,4 @@
-import { Fn, IInnerSetStateOptions, From } from './base';
+import { Fn, IInnerSetStateOptions, From, TriggerReason, NumStrSymbol } from './base';
 
 /**
  * 第一层路径的数组 key 集合，会在不停地读取过程中动态新增
@@ -26,6 +26,7 @@ export interface IReactive {
 }
 
 export interface IReactiveMeta {
+  isReactive: boolean;
   key: string;
   sharedKey: number;
   moduleName: string;

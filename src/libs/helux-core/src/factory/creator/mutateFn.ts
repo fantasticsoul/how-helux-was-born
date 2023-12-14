@@ -8,6 +8,7 @@ import { REACTIVE_META } from '../../factory/creator/current';
 import { markIgnore } from '../../helpers/fnDep';
 import { markFnEnd } from '../../helpers/fnCtx';
 import { getInternal } from '../../helpers/state';
+import { fmtDepKeys } from '../../helpers/debug';
 import type { Fn, From, ICallMutateFnOptions, IInnerSetStateOptions, IWatchAndCallMutateDictOptions, SharedState } from '../../types/base';
 import { createWatchLogic } from '../createWatch';
 
@@ -143,8 +144,8 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
     state = sharedState.val;
     markIgnore(false); // recover dep collect
   }
-  const { draftNode: draft, draftRoot, finish } = setStateFactory({ from });
-  const args = getArgs({ draft, draftRoot, setState, desc, input }) || [draft, { input, state }];
+  const { draftNode: draft, draftRoot, finish } = setStateFactory({ from, enableDep: true });
+  const args = getArgs({ draft, draftRoot, setState, desc, input }) || [draft, { input, state, draftRoot }];
 
   try {
     const result = fn(...args);
@@ -211,6 +212,7 @@ export function watchAndCallMutateDict(options: IWatchAndCallMutateDictOptions) 
             // 异步函数强制忽略依赖收集行为
             // 存档一下收集到依赖，方便后续探测异步函数里的死循环可能存在的情况
             item.depKeys = markFnEnd();
+            console.log('item.depKeys ', fmtDepKeys(item.depKeys));
           }
 
           if (task) {

@@ -1,8 +1,8 @@
 import { canUseDeep } from '@helux/utils';
-import { SHARED_KEY, REACTIVE_META_KEY, FROM } from '../../consts';
+import { SHARED_KEY, REACTIVE_META_KEY, FROM, IS_ATOM } from '../../consts';
 import { getSharedKey } from '../../helpers/state';
 import { getReactiveKey } from '../common/key';
-import type { From, OnOperate } from '../../types/base';
+import type { Dict, From, OnOperate } from '../../types/base';
 import type { IReactiveMeta } from '../../types/inner';
 import type { IReactive } from '../../types/inner';
 import type { TInternal } from './buildInternal';
@@ -18,7 +18,7 @@ function canFlush(reactive?: IReactive): reactive is IReactive {
 /**
  * flush modified data by finish handler
  */
-function flushData(reactive: IReactive, beforeCommit?: any) {
+function flushModified(reactive: IReactive, beforeCommit?: any) {
   const { sharedKey } = reactive;
   // 标记过期，不能再被复用
   reactive.expired = true;
@@ -28,20 +28,11 @@ function flushData(reactive: IReactive, beforeCommit?: any) {
   return reactive.finish(null, { from: FROM.REACTIVE, desc, beforeCommit });
 }
 
-function getKey(sharedState: any) {
-  // 支持对 draftRoot 直接调用 flush
-  let sharedKey = sharedState && sharedState[SHARED_KEY];
-  if (!sharedKey) {
-    sharedKey = getSharedKey(sharedState);
-  }
-  return sharedKey;
-}
-
 /**
  * 记录修改描述，让 devtool 可观测到类似 Api_mutate@Reactive/changeA 的描述
  */
 export function reactiveDesc(sharedState: any, desc?: string) {
-  const sharedKey = getKey(sharedState);
+  const sharedKey = getSharedKey(sharedState);
   desc && REACTIVE_DESC.set(sharedKey, desc);
   return sharedKey;
 }
@@ -64,7 +55,7 @@ export function innerFlush(sharedKey: any, desc?: string, beforeCommit?: any) {
       REACTIVE_DESC.set(sharedKey, desc);
     }
     // 提交变化数据
-    flushData(reactive, beforeCommit);
+    flushModified(reactive, beforeCommit);
   }
 }
 
@@ -137,48 +128,60 @@ export function buildReactive(
   fnDepKeys: string[],
   options?: { desc?: string, onRead?: OnOperate, from?: From, isFromCb?: boolean }
 ) {
-  // 提供 draftRoot draft，和 mutate 回调里对齐，方便用户使用 atom 时少一层 .val 操作
+  // 提供 draftRoot、draft，和 mutate、aciont 回调里对齐，方便用户使用 atom 时少一层 .val 操作
   let draftRoot: any = {};
   let draft: any = {};
   const { rawState, deep, forAtom, isPrimitive, sharedKey, moduleName } = internal;
   const { desc, onRead, from = FROM.REACTIVE, isFromCb = false } = options || {};
 
   const rKey = getReactiveKey();
-  const meta: IReactiveMeta = { moduleName, key: rKey, desc: desc || '', sharedKey, fnDepKeys, onRead, from, isFromCb };
+  const meta: IReactiveMeta = { isReactive: true, moduleName, key: rKey, desc: desc || '', sharedKey, fnDepKeys, onRead, from, isFromCb };
   if (canUseDeep(deep)) {
     const set = (forAtom: boolean, key: any, value: any) => {
-      const draftVal = getReactiveVal(internal, forAtom);
       isFromCb && REACTIVE_META.markUsing(rKey);
+      const draftVal = getReactiveVal(internal, forAtom);
       // handleOperate 里会自动触发 nextTickFlush
       draftVal[key] = value;
       return true;
     };
-    const get = (forAtom: boolean, key: any) => {
-      if (key === REACTIVE_META_KEY) {
-        return meta;
+    const get = (forAtom: boolean, key: any, innerData: Dict) => {
+      const val = innerData[key];
+      if (val !== undefined) {
+        return val;
       }
+
       isFromCb && REACTIVE_META.markUsing(rKey);
       const draftVal = getReactiveVal(internal, forAtom);
       return draftVal[key];
     };
+    const innerData = {
+      [REACTIVE_META_KEY]: meta,
+      [SHARED_KEY]: sharedKey,
+      [IS_ATOM]: forAtom,
+    };
 
     draftRoot = new Proxy(rawState, {
       set: (t: any, key: any, value: any) => set(false, key, value),
-      get: (t: any, key: any) => get(false, key),
+      get: (t: any, key: any) => get(false, key, innerData),
     });
     draft = draftRoot;
+
+    // 如果是 atom，draft 指向拆箱后的对象
     if (forAtom) {
+      const subInnerData = { ...innerData, [IS_ATOM]: false };
       draft = isPrimitive
         ? rawState.val
         : new Proxy(rawState, {
           set: (t: any, key: any, value: any) => set(true, key, value),
-          get: (t: any, key: any) => get(true, key),
+          get: (t: any, key: any) => get(true, key, subInnerData),
         });
     }
   } else {
+    // 非 Proxy 环境暂不支持 reactive
     draftRoot = rawState;
     draft = rawState.val;
   }
+  // 提供给回调使用的 reactive 对象，此映射关系会在回调结束时被删除
   REACTIVE_META.set(meta.key, meta);
 
   return { draftRoot, draft, meta };

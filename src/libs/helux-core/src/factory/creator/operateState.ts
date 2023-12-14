@@ -1,13 +1,13 @@
-import { getVal, matchDictKey, nodupPush } from '@helux/utils';
+import { getVal, matchDictKey, nodupPush, isSymbol } from '@helux/utils';
 import { IOperateParams } from 'limu';
 import { recordBlockDepKey } from '../../helpers/blockDep';
 import { recordFnDepKeys } from '../../helpers/fnDep';
-import type { KeyIdsDict, NumStrSymbol } from '../../types/base';
+import type { KeyIdsDict, NumStrSymbol, IMutateCtx } from '../../types/base';
 import { FROM } from '../../consts';
 import { recordLastest } from '../common/blockScope';
 import { getRunningFn } from '../common/fnScope';
 import { cutDepKeyByStop } from '../common/stopDep';
-import { getDepKeyByPath, IMutateCtx, isArrLike } from '../common/util';
+import { getDepKeyByPath, isArrLike } from '../common/util';
 import type { TInternal } from './buildInternal';
 import { nextTickFlush, markExpired } from './reactive';
 import { REACTIVE_META, REACTIVE_DESC } from './current';
@@ -45,9 +45,12 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   const currentReactive = REACTIVE_META.current();
   const isMutateReactive = currentReactive.from === MUTATE;
 
+  if (isSymbol(opParams.key) && isChanged) {
+    console.error('writing symbol', opParams);
+  }
+
   // 是读操作
   if (opParams.op === 'get') {
-    console.log(currentReactive);
     if (arrLike) {
       arrKeyDict[getDepKeyByPath(keyPath, sharedKey)] = 1;
     }
@@ -59,7 +62,7 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
     // 仅这四种类型的对象收集读依赖，其他任何场景的读操作无任何依赖收集行为产生，可以
     // 1 减轻运行负担，
     // 2 降低死循环可能性，例如在 watch 回调里调用顶层的 setState
-    if (isMutateReactive || (isReactive && !currentReactive.isFromCb)) {
+    if (mutateCtx.enableDep || isReactive) {
       // 支持对draft操作时可以收集到依赖： draft.a = draft.b + 1
       // atom 判断一下长度，避免记录根值依赖导致死循环
       const canRecord = internal.forAtom ? fullKeyPath.length > 1 : true;

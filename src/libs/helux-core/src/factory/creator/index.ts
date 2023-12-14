@@ -17,12 +17,12 @@ export { prepareNormalMutate } from './mutateNormal';
  */
 export function buildSharedObject<T = any>(innerOptions: IInnerOptions, createOptions?: ICreateOptions<T>) {
   const parsedOptions = parseOptions(innerOptions, createOptions);
-  const sharedState = buildSharedState(parsedOptions);
-  const internal = mapSharedToInternal(sharedState, parsedOptions);
+  const { sharedRoot, sharedState } = buildSharedState(parsedOptions);
+  const internal = mapSharedToInternal(sharedRoot, parsedOptions);
 
-  recordMod(sharedState, parsedOptions);
+  recordMod(sharedRoot, parsedOptions);
   markFnExpired();
-  watchAndCallMutateDict({ target: sharedState, dict: parsedOptions.mutateFnDict });
+  watchAndCallMutateDict({ target: sharedRoot, dict: parsedOptions.mutateFnDict });
 
   // 创建顶层使用的响应式对象
   const { draft, draftRoot } = buildReactive(internal, []);
@@ -31,5 +31,5 @@ export function buildSharedObject<T = any>(innerOptions: IInnerOptions, createOp
   clearInternal(parsedOptions.moduleName, internal.loc);
   clearDcLog(internal.usefulName);
   emitShareCreated(internal);
-  return { sharedState, internal, parsedOptions };
+  return { sharedRoot, sharedState, internal, parsedOptions };
 }

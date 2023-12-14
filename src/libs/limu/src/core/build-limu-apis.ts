@@ -3,7 +3,7 @@
  *
  *  @Author: fantasticsoul
  *--------------------------------------------------------------------------------------------*/
-import type { DraftMeta, IApiCtx, IExecOnOptions, IInnerCreateDraftOptions, ObjectLike, Op } from '../inner-types';
+import type { NumStrSymbol, DraftMeta, IApiCtx, IExecOnOptions, IInnerCreateDraftOptions, ObjectLike, Op } from '../inner-types';
 import { ARRAY, CAREFUL_FNKEYS, CAREFUL_TYPES, CHANGE_FNKEYS, IMMUT_BASE, MAP, META_VER, SET } from '../support/consts';
 import { conf } from '../support/inner-data';
 import { canBeNum, has, isFn, isPrimitive, isSymbol } from '../support/util';
@@ -51,7 +51,7 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
     return true;
   };
 
-  const execOnOperate = (op: Op, key: string, options: IExecOnOptions) => {
+  const execOnOperate = (op: Op, key: any, options: IExecOnOptions) => {
     const { mayProxyVal, parentMeta: inputPMeta, value } = options;
     let isChanged = false;
     if (!onOperate) return { isChanged, mayProxyVal };
@@ -120,27 +120,25 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
         if (META_VER === key) {
           return metaVer;
         }
+
         /** current child value, it may been replaced to a proxy value later */
         const currentVal = parent[key];
         // 判断 toJSON 是为了兼容 JSON.stringify 调用, https://javascript.info/json#custom-tojson
         if (key === '__proto__' || (key === 'toJSON' && !has(parent, key))) {
           return currentVal;
         }
+        let mayProxyVal = currentVal;
+        const parentMeta = getSafeDraftMeta(parent, apiCtx) as DraftMeta;
 
         if (isSymbol(key)) {
           if (customGet && customKeys.includes(key)) {
             return customGet(key);
           }
-          // 防止直接对 draft 时报错：Method xx.yy called on incompatible receiver
-          // 例如 Array.from(draft)
-          if (isFn(currentVal)) {
-            return currentVal.bind(parent);
+          if (key === Symbol.toStringTag) {
+            return currentVal;
           }
-          return currentVal;
         }
 
-        let mayProxyVal = currentVal;
-        const parentMeta = getSafeDraftMeta(parent, apiCtx) as DraftMeta;
         const parentType = parentMeta?.selfType;
         // copyWithin、sort 、valueOf... will hit the keys of 'asymmetricMatch', 'nodeType',
         // PROPERTIES_BLACK_LIST 里 'length', 'constructor', 'asymmetricMatch', 'nodeType'

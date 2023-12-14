@@ -1,7 +1,6 @@
 import type { ForwardedRef, FunctionComponent, PropsWithChildren, ReactNode } from '@helux/types';
 import type { IOperateParams as OpParams } from 'limu';
 import type { DepKeyInfo } from './inner';
-import { IMutateCtx } from '../factory/common/util';
 
 export interface ILocalStateApi<T> {
   setState: (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void;
@@ -334,6 +333,47 @@ export type MultiDeriveFn<DR extends DepsResultDict> = {
 /** partial state or cb */
 export type PartialArgType<T> = T extends PlainObject ? Partial<T> | ((draft: T) => void | Partial<T>) : T | ((draft: T) => void | T);
 
+export interface IMutateCtx {
+  /**
+   * 为 shared 记录一个第一层的 key 值，用于刷新 immut 生成的 代理对象，
+   * 刷新时机和具体解释见 factory/creator/commitState 逻辑
+   */
+  level1Key: string;
+  /** 当次变更的依赖 key 列表，在 finishMutate 阶段会将 writeKeys 字典keys 转入 depKeys 里 */
+  depKeys: string[];
+  /**
+   * 由 setStateOptions.extraDep 记录的需要强制更新的依赖 key，这些 key 只复制更新实例，不涉及触发 watch/derive 变更流程
+   */
+  forcedDepKeys: string[];
+  triggerReasons: TriggerReason[];
+  ids: NumStrSymbol[];
+  globalIds: NumStrSymbol[];
+  writeKeys: Dict;
+  /**
+   * 记录读过的 key，用于提前发现 mutate 里 draft.a+=1 时回导致死循环情况出现，并提示用户
+   */
+  readKeys: Dict;
+  arrKeyDict: Dict;
+  writeKeyPathInfo: Dict<TriggerReason>;
+  /**
+   * default: true
+   * 是否处理 atom setState((draft)=>xxx) 返回结果xxx，
+   * 目前规则是修改了 draft 则 handleAtomCbReturn 被会置为 false，
+   * 避免无括号写法 draft=>draft.xx = 1 隐式返回的结果 1 被写入到草稿，
+   * 备注：安全写法应该是draft=>{draft.xx = 1}
+   */
+  handleAtomCbReturn: boolean;
+  /** 为 atom 记录的 draft.val 引用 */
+  draftVal: any;
+  from: From;
+  isReactive: boolean;
+  /** mutate fn 函数里收集到的导致死循环的 keys，通常都是 draft.a+=1 操作导致 */
+  fnDeadCycleKeys: string[];
+  /** mutate task 函数里收集到的导致死循环的 keys，通常都是依赖 a 变化驱动 task 执行，task 里又修改了 a 导致 */
+  taskDeadCycleKeys: string[];
+  enableDep: IInnerSetStateOptions['enableDep'];
+}
+
 export interface ISetFactoryOpts extends ISetStateOptions {
   sn?: number;
   from?: From;
@@ -341,11 +381,16 @@ export interface ISetFactoryOpts extends ISetStateOptions {
   /** inner sync */
   calledBy?: string;
   /** 
-   * 目前仅 mutate fn 函数提供的 draft 对象支持依赖收集，其他场景依赖禁止，避免收集到造成死循环的依赖
+   * 目前通用 operateState 里支持依赖收集的场景：
+   * 1 mutate( draft=> draft.xx );
+   * 2 mutate( (draft, { draftRoot })=> draftRoot.xx )
+   * 3 const { reactive } = atomx(..)
+   * 4 const [ reactive ] = useReactive(xxAtom);
+   * 其他场景进入通用 operateState 时则禁止依赖收集，避免收集到造成死循环的依赖
    * 例如立即执行的watch watch(()=>{ setState(draft=> ...) })
    * 同时也减少不必要的运行时分析性能损耗
    */
-  enableDraftDep?: boolean;
+  enableDep?: boolean;
 }
 
 export interface IInnerSetStateOptions extends ISetFactoryOpts {
@@ -397,7 +442,7 @@ export type Call<T = SharedState> = <P = any>(
 ) => [NextSharedDict<T>, Error | null];
 
 /** share 返回的共享对象， draftRoot 和 draft 相等，atom 返回的共享对象， draftRoot = { val: draft } */
-export type DraftRootType<T = SharedState> = T extends Atom | ReadOnlyAtom ? AtomDraft<T> : T;
+export type DraftRootType<T = SharedState> = T extends Atom | ReadOnlyAtom ? AtomDraft<AtomValType<T>> : T;
 
 /** share 返回的共享对象， draftRoot 和 draft 相等，atom 返回的共享对象， draftRoot = { val: draft } */
 export type DraftType<T = SharedState> = T extends Atom | ReadOnlyAtom ? AtomDraftVal<T> : T;
@@ -444,6 +489,14 @@ type FnResultValType<T extends PlainObject | DeriveFn> = T extends PlainObject
   : any;
 
 export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICreateOptions<T>> {
+  /**
+   * 标识当前对象是否是 atom 对象
+   * ```
+   * const { isAtom } = atomx({a:1}); // true
+   * const { isAtom } = sharex({a:1}); // false
+   * ```
+   */
+  isAtom: boolean;
   /**
    * 定义一个action方法，action 方法的异常默认被拦截掉不再继续抛出，只是并发送给插件和伴生loading状态
    * ```ts
@@ -830,15 +883,17 @@ export interface IUseSharedStateOptions<T = any> {
    * ```ts
    * // true: 记录数组自身依赖
    * const [ dict ] = useAtom(dictAtom);
-   * // 此时依赖有 2 项，是 dict, dict.list[0]
+   * // 以下读值操作，收集到依赖有 2 项，是 dict, dict.list[0]
    * dict.list[0];
+   * 
    * // 重置 list，引发当前组件重渲染
    * setDictAtom(draft=> draft.list = draft.list.slice());
    *
    * // false: 不记录数组自身依赖，适用于孩子组件自己读数组下标渲染的场景
    * const [ dict ] = useAtom(dictAtom, { arrDep: false });
-   * // 此时依赖只有 1 项，是 dict.list[0]
+   * // 以下读值操作，收集到依赖只有 1 项，是 dict.list[0]
    * dict.list[0];
+   * 
    * // 重置 list，不会引发当前组件重渲染
    * setDictAtom(draft=> draft.list = draft.list.slice());
    * ```

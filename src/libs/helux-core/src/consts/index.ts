@@ -90,7 +90,7 @@ export const FROM = {
    */
   SET_STATE: 'SetState',
   /**
-   * 来自 mutate task setState(draft), mutate fn reative draft 的读写
+   * 来自 mutate task setState(draft), mutate fn reactive draft 的读写
    * ```ts
    * mutate({
    *   fn: draft => draft.xx = 1,
