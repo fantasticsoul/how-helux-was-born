@@ -4,7 +4,7 @@ import { Entry } from './comps';
 import { random, delay } from "./logic/util";
 
 
-const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 }, b12: 100 }, name: Date.now() }, { moduleName: 'Signal' });
+const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 }, b12: 100 }, name: Date.now() }, { moduleName: 'Signal2' });
 const aPlusB2Result = deriveDict({
   fn: () => ({ val: 0 }),
   deps: () => [sharedState.a, sharedState.b.b1.b2],

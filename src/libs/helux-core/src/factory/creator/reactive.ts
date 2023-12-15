@@ -18,14 +18,14 @@ function canFlush(reactive?: IReactive): reactive is IReactive {
 /**
  * flush modified data by finish handler
  */
-function flushModified(reactive: IReactive, beforeCommit?: any) {
+function flushModified(reactive: IReactive) {
   const { sharedKey } = reactive;
   // 标记过期，不能再被复用
   reactive.expired = true;
   // 来自于 flush 记录的 desc 值，使用过一次就清除
   const desc = REACTIVE_DESC.current(sharedKey);
   REACTIVE_DESC.del(sharedKey);
-  return reactive.finish(null, { from: FROM.REACTIVE, desc, beforeCommit });
+  return reactive.finish(null, { from: FROM.REACTIVE, desc });
 }
 
 /**
@@ -46,16 +46,16 @@ export function flush(sharedState: any, desc?: string) {
 }
 
 /**
- * 供内部调用的 flush 方法，支持透传 beforeCommit 句柄
+ * 供内部调用的 flush 方法
  */
-export function innerFlush(sharedKey: any, desc?: string, beforeCommit?: any) {
+export function innerFlush(sharedKey: any, desc?: string) {
   const reactive = reactives.get(sharedKey);
   if (canFlush(reactive)) {
     if (desc) {
       REACTIVE_DESC.set(sharedKey, desc);
     }
     // 提交变化数据
-    flushModified(reactive, beforeCommit);
+    flushModified(reactive);
   }
 }
 
@@ -73,11 +73,11 @@ export function markExpired(sharedKey: number) {
  * 在下一次事件循环里提交之前修改的状态，供内部发生状态变化时调用
  * 故调用此方法就会标记 reactive.modified = true
  */
-export function nextTickFlush(sharedKey: number, desc?: string, beforeCommit?: any) {
+export function nextTickFlush(sharedKey: number, desc?: string) {
   const reactive = reactives.get(sharedKey);
   if (reactive) {
     reactive.modified = true;
-    reactive.nextTickFlush(desc, beforeCommit);
+    reactive.nextTickFlush(desc);
   }
 }
 
@@ -96,19 +96,19 @@ function getReactiveVal(internal: TInternal, forAtom: boolean) {
       expired: false,
       modified: false,
       sharedKey,
-      data: [null, null],
+      data: [null],
       hasFlushTask: false,
-      nextTickFlush: (desc?: string, beforeCommit?: any) => {
+      nextTickFlush: (desc?: string) => {
         const { expired, hasFlushTask } = latestReactive;
         if (!expired) {
-          latestReactive.data = [desc, beforeCommit];
+          latestReactive.data = [desc];
         }
         if (!hasFlushTask) {
           latestReactive.hasFlushTask = true;
           // push flush cb to micro task
           Promise.resolve().then(() => {
-            const [desc, beforeCommit] = latestReactive.data;
-            innerFlush(sharedKey, desc, beforeCommit);
+            const [desc] = latestReactive.data;
+            innerFlush(sharedKey, desc);
           });
         }
       },
@@ -126,16 +126,16 @@ function getReactiveVal(internal: TInternal, forAtom: boolean) {
 export function buildReactive(
   internal: TInternal,
   fnDepKeys: string[],
-  options?: { desc?: string, onRead?: OnOperate, from?: From, isFromCb?: boolean }
+  options?: { desc?: string, onRead?: OnOperate, from?: From }
 ) {
   // 提供 draftRoot、draft，和 mutate、aciont 回调里对齐，方便用户使用 atom 时少一层 .val 操作
   let draftRoot: any = {};
   let draft: any = {};
   const { rawState, rawStateVal, deep, forAtom, isPrimitive, sharedKey, moduleName } = internal;
-  const { desc, onRead, from = FROM.REACTIVE, isFromCb = false } = options || {};
+  const { desc, onRead, from = FROM.REACTIVE } = options || {};
 
   const rKey = getReactiveKey();
-  const meta: IReactiveMeta = { isReactive: true, moduleName, key: rKey, desc: desc || '', sharedKey, fnDepKeys, onRead, from, isFromCb };
+  const meta: IReactiveMeta = { isReactive: true, moduleName, key: rKey, desc: desc || '', sharedKey, writeKeys: [], onRead, from };
   if (canUseDeep(deep)) {
     const innerData = {
       [REACTIVE_META_KEY]: meta,
@@ -143,14 +143,14 @@ export function buildReactive(
       [IS_ATOM]: forAtom,
     };
     const set = (forAtom: boolean, key: any, value: any) => {
-      isFromCb && REACTIVE_META.markUsing(rKey);
+      REACTIVE_META.markUsing(rKey);
       const draftVal = getReactiveVal(internal, forAtom);
       // handleOperate 里会自动触发 nextTickFlush
       draftVal[key] = value;
       return true;
     };
     const get = (forAtom: boolean, key: any, innerData: Dict) => {
-      isFromCb && REACTIVE_META.markUsing(rKey);
+      REACTIVE_META.markUsing(rKey);
       const val = innerData[key];
       if (val !== undefined) {
         return val;

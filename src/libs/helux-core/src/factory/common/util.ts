@@ -33,7 +33,6 @@ export function tryGetLoc(moduleName: string, endCutIdx = 8) {
 export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
   const { ids = [], globalIds = [], isReactive = false, from = SET_STATE, enableDep = false } = options; // 用户 setState 可能设定了 ids globalIds
   return {
-    level1Key: '',
     depKeys: [],
     forcedDepKeys: [],
     triggerReasons: [],
@@ -47,8 +46,6 @@ export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
     draftVal: null,
     from,
     isReactive,
-    fnDeadCycleKeys: [],
-    taskDeadCycleKeys: [],
     enableDep,
   };
 }
@@ -111,12 +108,9 @@ export function isValChanged(internal: TInternal, depKey: string) {
 
   const { keyPath } = getDepKeyInfo(depKey);
 
-  console.log('snap===prevSnap', snap === prevSnap, keyPath);
   try {
     const currVal = getVal(snap, keyPath);
     const prevVal = getVal(prevSnap, keyPath);
-    console.log('currVal !== prevVal', currVal !== prevVal);
-
     return currVal !== prevVal;
   } catch (err: any) {
     // 结构变异，出现了 read property of undefined 错误，返回值已变更，

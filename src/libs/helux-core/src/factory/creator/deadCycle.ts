@@ -37,24 +37,24 @@ export function clearDcLog(usefulName: string) {
   logMap.delete(usefulName);
 }
 
-export function depKeyDcError(fnCtx: IFnCtx, depKeys: string[], cbType: CbType, usefulName: string) {
+export function depKeyDcError(internal: TInternal, fnCtx: IFnCtx, depKeys: string[], cbType: CbType) {
   const tip = cbTips[cbType];
   const { desc, task, fn } = fnCtx.subFnInfo;
   const descStr = desc ? `(${desc})` : '';
   const dcInfo = `DEAD_CYCLE: found reactive object in ${tip}${descStr} cb`
-    + ` is changing module(${usefulName})'s keys(${fmtDepKeys(depKeys, false, '.')}) by its self, `
-    + 'but these keys are also watched dep keys, it will cause a infinity loop call!'
+    + ` is changing module(${internal.usefulName})'s keys(${fmtDepKeys(depKeys, false, '.')}) by its self, `
+    + 'but some of these keys are also the watched dep keys, it will cause a infinity loop call!'
 
   const mutateFn = task || fn;
   const targetFn = mutateFn === noop ? fnCtx.fn : mutateFn;
-  console.error(` ${dcInfo} open the stack to find the fn cause dead cycle: \n`, targetFn);
+  console.error(` ${dcInfo} open the stack to find the below fn: \n`, targetFn);
   return new Error(`[only-dev-mode alert] ${dcInfo}`);
 }
 
 /**
  * 探测 多个 mutate fn 之间有循环依赖存在的可能性，避免死循环卡死整个应用
  */
-export function probeFnDeadCycle(sn: number, desc: string, internal?: TInternal) {
+export function probeFnDeadCycle(internal: TInternal, sn: number, desc: string) {
   if (internal && desc) {
     const { usefulName } = internal;
     const log = safeMapGet(logMap, usefulName, newLog(sn));
@@ -79,7 +79,13 @@ export function probeFnDeadCycle(sn: number, desc: string, internal?: TInternal)
   }
 }
 
-export function probeDepKeyDeadCycle(fnCtx: IFnCtx, changedDepKeys: string[], usefulName: string): boolean {
+/**
+ * 发现类似 
+ * 1 watch(()=>{ reactive.a = 1 }, ()=>[reactive.a])
+ * 2 matate(draft=>draft+=1)
+ * 等场景的死循环
+ */
+export function probeDepKeyDeadCycle(internal: TInternal, fnCtx: IFnCtx, changedDepKeys: string[]): boolean {
   const { depKeys, subFnInfo } = fnCtx;
   let shortArr = fnCtx.depKeys;
   let longArr = changedDepKeys;
@@ -91,11 +97,14 @@ export function probeDepKeyDeadCycle(fnCtx: IFnCtx, changedDepKeys: string[], us
   const foundDc = includeOne(shortArr, longArr);
   if (foundDc) {
     const cbType: CbType = subFnInfo.desc ? cbTypes.MUTATE : cbTypes.WATCH;
-    tryAlert(depKeyDcError(fnCtx, changedDepKeys, cbType, usefulName), { logErr: false, throwErr: false });
+    tryAlert(depKeyDcError(internal, fnCtx, changedDepKeys, cbType), { logErr: false, throwErr: false, alertErr: internal.alertDeadCycleErr });
   }
   return foundDc;
 }
 
+/**
+ * 多个函数间是否已处于死循环状态
+ */
 export function inDeadCycle(usefulName: string, desc: string) {
   const log = logMap.get(usefulName);
   if (!log || !log.cycle.includes(desc)) {
@@ -104,6 +113,9 @@ export function inDeadCycle(usefulName: string, desc: string) {
   return { isIn: true, cycle: log.cycle };
 }
 
+/**
+ * 分析错误日志
+ */
 export function analyzeErrLog(usefulName: string, err: any) {
   const log = logMap.get(usefulName);
   if (!log) return;

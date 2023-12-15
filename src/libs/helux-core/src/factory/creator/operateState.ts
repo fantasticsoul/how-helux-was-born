@@ -1,4 +1,4 @@
-import { getVal, matchDictKey, nodupPush, isSymbol } from '@helux/utils';
+import { getVal, matchDictKey, nodupPush } from '@helux/utils';
 import { IOperateParams } from 'limu';
 import { recordBlockDepKey } from '../../helpers/blockDep';
 import { recordFnDepKeys } from '../../helpers/fnDep';
@@ -39,11 +39,10 @@ function putId(keyIds: KeyIdsDict, options: { writeKey: string; ids: NumStrSymbo
 export function handleOperate(opParams: IOperateParams, opts: { internal: TInternal; mutateCtx: IMutateCtx }) {
   const { isChanged, fullKeyPath, keyPath, parentType, value } = opParams;
   const { internal, mutateCtx } = opts;
-  const { arrKeyDict, isReactive, readKeys, from } = mutateCtx;
+  const { arrKeyDict, isReactive, readKeys } = mutateCtx;
   const { sharedKey } = internal;
   const arrLike = isArrLike(parentType);
-  const currentReactive = REACTIVE_META.current();
-  const isMutateReactive = currentReactive.from === MUTATE;
+  const currReactive = REACTIVE_META.current();
 
   // 是读操作
   if (opParams.op === 'get') {
@@ -66,8 +65,8 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
         // 来自实例的定制读行为，目前主要是响应式对象会有此操作，
         // 因为多个实例共享了一个响应式对象，但需要有自己的读行为操作来为实例本身收集依赖
         // 注：全局响应式对象的读行为已将 currentOnRead 置空
-        if (currentReactive.onRead) {
-          currentReactive.onRead(opParams);
+        if (currReactive.onRead) {
+          currReactive.onRead(opParams);
         } else {
           getRunningFn().fnCtx && recordFnDepKeys([depKey], { sharedKey });
           recordBlockDepKey([depKey]);
@@ -83,30 +82,14 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
     return;
   }
 
-  console.log('change key ', opParams.key);
-  console.log('change value ', opParams.value);
-
   const { moduleName, ruleConf, level1ArrKeys } = internal;
   const { writeKeyPathInfo, ids, globalIds, writeKeys } = mutateCtx;
   const writeKey = getDepKeyByPath(fullKeyPath, sharedKey);
 
-  if (from === MUTATE) { // 是 mutate fn 的 draft 写操作
-    // mutate fn 函数里发现死循环
-    // 形如: fn: (draft)=> draft.a+=1; 
-    if (readKeys[writeKey]) {
-      // 标记本次调用发现死循环存在，提供后续 finishMutate 使用，避免真正触发死循环
-      nodupPush(mutateCtx.fnDeadCycleKeys, fullKeyPath.join('.'));
-    }
-  } else if (isMutateReactive) { // 是 mutate task 的 draft 写操作
-    // mutate task 函数里发现死循环
-    // 形如: deps: (state)=> [state.a];  async task: ({draft})=> draft.a +=1;
-    if (currentReactive.fnDepKeys.includes(writeKey)) {
-      nodupPush(mutateCtx.taskDeadCycleKeys, fullKeyPath.join('.'));
-    }
+  if (currReactive.isReactive) {
+    nodupPush(currReactive.writeKeys, writeKey);
   }
 
-
-  mutateCtx.level1Key = fullKeyPath[0];
   mutateCtx.handleAtomCbReturn = false;
   // 主动把数组自身节点 key 也记录一下
   if (arrLike) {
@@ -146,17 +129,9 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
     putId(ruleConf.globalIdsDict, { ids: globalIds, writeKey, internal, opParams });
   }
 
-  // 来自响应对象的变更操作，主动触发 nextTickFlush
   if (isReactive) {
-    nextTickFlush(sharedKey, '', () => {
-      const { fnDepKeys, desc } = currentReactive;
-      const dcDepKeys: string[] = [];
-      // task 里 reactive 对象修改的 key 是 mutate 的依赖 key，这些 key 会造成死循环
-      fnDepKeys.forEach(key => writeKeys[key] && dcDepKeys.push(key));
-      // desc 优先取 flush 传递的
-      if (dcDepKeys.length) return { dcDepKeys, desc: REACTIVE_DESC.current(sharedKey) || desc };
-      return null;
-    });
+    // 来自响应对象的变更操作，主动触发 nextTickFlush
+    nextTickFlush(sharedKey);
   } else {
     // 发现 sharedKey 对应的对象已变化，主动标记 sharedKey 对应的响应对象已过期
     markExpired(sharedKey);

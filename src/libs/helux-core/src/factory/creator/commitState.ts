@@ -11,8 +11,6 @@ export interface ICommitStateOptions extends IInnerSetStateOptions {
   desc?: any;
 }
 
-// 此文件存在过强制干预依赖项的 interveneDeps 逻辑，在 execDepFns 执行，但考虑此功能无用已移除
-
 export function commitState(opts: ICommitStateOptions) {
   const { state, internal } = opts;
   const { rawState, isDeep, ver, snap } = internal;

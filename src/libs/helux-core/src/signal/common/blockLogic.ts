@@ -31,6 +31,7 @@ export function blockNormalLogic<P = object>(innerOptions: IBlockLogicOptions<P>
     () => {
       return (props: any, inputRef: ForwardedRef<any>) => {
         const ref = blockCtx.ref || inputRef;
+        console.error('rerender blockNormalLogic');
         const result = markBlockAndRunCb(blockCtx, { isDynamic, cb, props, ref });
         const forceUpdate = useForceUpdate();
         useDep(apiCtx, blockCtx, forceUpdate);

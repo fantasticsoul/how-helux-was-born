@@ -1,7 +1,7 @@
 import React from 'react';
 import { atom, sharex, useAtom, atomx, $ } from 'helux';
 import { MarkUpdate, Entry } from './comps';
-import { log, delay } from './logic/util';
+import { log, delay, random } from './logic/util';
 
 const [baseAtom, setAtom] = atom(3000, { moduleName: 'baseAtom' });
 
@@ -19,23 +19,25 @@ const [doubleAtom] = atom(2, {
       desc: 'atom_xxx',
     },
   ],
+  alertDeadCycleErr: false,
 });
 const [minus10Atom] = atom(0, {
   mutate: () => doubleAtom.val - 10,
 });
 atom(0)[2].mutate(() => doubleAtom.val - 10);
 
-const x = atomx({ a: 1, b: 2 }, { moduleName: 'yy' });
+const x = atomx({ a: 1, b: 2 }, { moduleName: 'yy', alertDeadCycleErr: false });
 
 // x.mutate(() => ({ a: 3, b: 4 }));
 x.mutate({
   // TODO  死循环示例
   fn: (draft, { draftRoot }) => {
-    // draftRoot.val = { a: 3, b: 4 }; // dc
-    // return { a: 3, b: 4 };
-    console.error('trigger fn');
-    // draft.a = draft.b + 8;
-    draft.a = draftRoot.val.b + 8;
+    // console.error('trigger fn');
+    // // draftRoot.val = { a: 3, b: 4 }; // dc
+    // // return { a: 3, b: 4 };
+    // console.error('trigger fn');
+    // // draft.a = draft.b + 8;
+    // draft.a = draftRoot.val.b + 8;
     console.log('a is', draft.a);
   },
   desc: 'xx',
@@ -82,15 +84,21 @@ function changeB1() {
 }
 
 function changeB2() {
-  x.reactive.b = 200;
+  const b = random();
+  console.error(`new b ${b}`);
+  x.reactive.b = b;
 }
 
 function changeB3() {
-  x.reactiveRoot.val.b = 300;
+  x.reactiveRoot.val.b = random();
+}
+
+function changeA() {
+  x.reactive.a += 100;
 }
 
 function Demo(props: any) {
-  const fns = [changeBase, changeB1, changeB2, changeB3];
+  const fns = [changeBase, changeB1, changeB2, changeB3, changeA];
   // const fns:any[] = [];
   return <Entry fns={fns}>
     <Price />
@@ -99,6 +107,9 @@ function Demo(props: any) {
     <FinalPrice />
     <FinalPrice />
     {$(x.reactive.a)}
+    <br />
+    {$(x.reactive.b)}
+    {$(() => <h3>x.reactive.b: {x.reactive.b} a:{x.reactive.a}</h3>)}
   </Entry>
 }
 

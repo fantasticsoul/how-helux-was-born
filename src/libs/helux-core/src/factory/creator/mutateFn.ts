@@ -48,9 +48,9 @@ export function callAsyncMutateFnLogic<T = SharedState>(
   const { sharedKey } = internal;
   const customOptions: IInnerSetStateOptions = { desc, sn, from };
   const statusKey = getStatusKey(from, desc);
-  const { draft, draftRoot, meta } = buildReactive(internal, depKeys, { desc, from, isFromCb: true });
-  const flush = (desc: string, beforeCommit?: any) => {
-    innerFlush(sharedKey, desc, beforeCommit);
+  const { draft, draftRoot, meta } = buildReactive(internal, depKeys, { desc, from });
+  const flush = (desc: string) => {
+    innerFlush(sharedKey, desc);
   };
 
   const setState: any = (cb: any) => {

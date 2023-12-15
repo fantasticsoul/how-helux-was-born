@@ -3,6 +3,7 @@ import { FROM } from '../../consts';
 import type { IReactiveMeta } from '../../types/inner';
 import type { MutateFnStdItem } from '../../types/base';
 import { newMutateCtx } from '../common/util';
+import { buildInternal } from './buildInternal';
 
 export const fakeDraftRoot = { val: null, isFake: true };
 
@@ -13,11 +14,10 @@ export const fakeReativeMeta: IReactiveMeta = {
   key: '',
   sharedKey: 0,
   moduleName: '',
-  fnDepKeys: [],
+  writeKeys: [],
   desc: '',
   onRead: undefined,
   from: FROM.SET_STATE,
-  isFromCb: false,
 };
 
 // { [MUTATE_FN_ITEM]: 1, fn: fnItem, deps: noopArr, oriDesc: desc, desc, depKeys: [] }
@@ -27,3 +27,5 @@ export const fakeMutateFnItem: MutateFnStdItem = {
   oriDesc: '',
   desc: '',
 }
+
+export const fakeInternal = buildInternal({ rawState: {}, forAtom: false, usefulName: '' } as any, {} as any);

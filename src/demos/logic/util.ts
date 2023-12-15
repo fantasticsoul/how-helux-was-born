@@ -78,6 +78,7 @@ export function dictFactory() {
       toBeDrive: 0,
       prefixedMark: '',
       newName: '',
-    }
+    },
+    f: 1,
   };
 }

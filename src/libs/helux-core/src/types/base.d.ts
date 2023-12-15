@@ -334,15 +334,10 @@ export type MultiDeriveFn<DR extends DepsResultDict> = {
 export type PartialArgType<T> = T extends PlainObject ? Partial<T> | ((draft: T) => void | Partial<T>) : T | ((draft: T) => void | T);
 
 export interface IMutateCtx {
-  /**
-   * 为 shared 记录一个第一层的 key 值，用于刷新 immut 生成的 代理对象，
-   * 刷新时机和具体解释见 factory/creator/commitState 逻辑
-   */
-  level1Key: string;
   /** 当次变更的依赖 key 列表，在 finishMutate 阶段会将 writeKeys 字典keys 转入 depKeys 里 */
   depKeys: string[];
   /**
-   * 由 setStateOptions.extraDep 记录的需要强制更新的依赖 key，这些 key 只复制更新实例，不涉及触发 watch/derive 变更流程
+   * 由 setStateOptions.extraDep 记录的需要强制更新的依赖 key，这些 key 只负责更新实例，不涉及触发 watch/derive 变更流程
    */
   forcedDepKeys: string[];
   triggerReasons: TriggerReason[];
@@ -367,10 +362,6 @@ export interface IMutateCtx {
   draftVal: any;
   from: From;
   isReactive: boolean;
-  /** mutate fn 函数里收集到的导致死循环的 keys，通常都是 draft.a+=1 操作导致 */
-  fnDeadCycleKeys: string[];
-  /** mutate task 函数里收集到的导致死循环的 keys，通常都是依赖 a 变化驱动 task 执行，task 里又修改了 a 导致 */
-  taskDeadCycleKeys: string[];
   enableDep: IInnerSetStateOptions['enableDep'];
 }
 
@@ -401,7 +392,6 @@ export interface IInnerSetStateOptions extends ISetFactoryOpts {
    * 避免 watch 回调首次执行时，回调里调用 setState(draft=>{ ... }) 收集到会造成死循环的依赖
    */
   disableDraftDep?: boolean;
-  beforeCommit?: (mutateCtx: IMutateCtx) => { dcDepKeys: string[], desc: '' } | null;
 }
 
 export type SetState<T = any> = (
@@ -802,6 +792,11 @@ export interface ICreateOptionsFull<T = SharedState> {
    * 如需要返回则返回的部分对象是全新值才是安全的草稿，该函数执行时机是在中间件之前
    */
   before: (params: IMutateFnParams<T>) => void | Partial<T>;
+  /**
+   * deafult: undefined
+   * 不配置此项时，开发环境弹死循环提示，生产环境不弹
+   */
+  alertDeadCycleErr: boolean;
 }
 
 export interface IInnerCreateOptions<T = SharedState> extends ICreateOptionsFull<SharedState> {

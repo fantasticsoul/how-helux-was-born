@@ -11,18 +11,19 @@ const [data, setState, ctx1] = share({ a: 1, b: 100, ccc: 1000, d: { d1: { d2: 1
 
 // watch(() => {
 //   console.log(data.a);
-//   // ctx1.reactive.a += 5;
-//   setState(draft => { draft.a += 1 });
+//   ctx1.reactive.a += 5;
+//   // setState(draft => { draft.a += 1 });
 // }, { immediate: true });
 
-ctx1.mutate(draft => draft.a += 1);
+// ctx1.mutate(draft => draft.a += 1);
 
-// ctx1.mutate({
-//   deps: () => [data.a],
-//   async task({ draft }) {
-//     draft.a += 1;
-//   },
-// });
+ctx1.mutate({
+  deps: () => [data.a],
+  async task({ draft }) {
+    // draft.a += 1;
+    console.log('trigger task');
+  },
+});
 
 function changeA() {
   ctx1.reactive.a += 5;

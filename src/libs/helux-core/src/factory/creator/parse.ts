@@ -1,4 +1,4 @@
-import { canUseDeep, enureReturnArr, isFn, isJsObj, isObj, nodupPush, noop, noopArr, safeObjGet, setNoop } from '@helux/utils';
+import { canUseDeep, enureReturnArr, isFn, isJsObj, isObj, nodupPush, noop, noopArr, safeObjGet, setNoop, isDebug } from '@helux/utils';
 import { immut } from 'limu';
 import { FROM, RECORD_LOADING, SINGLE_MUTATE, STATE_TYPE, STOP_ARR_DEP, STOP_DEPTH, MUTATE_FN_ITEM } from '../../consts';
 import { createOb, injectHeluxProto } from '../../helpers/obj';
@@ -142,6 +142,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const { rawState, isPrimitive } = parseRawState(innerOptions);
   const sharedKey = markSharedKeyOnState(rawState);
   const moduleName = options.moduleName || '';
+  const alertDeadCycleErr = options.alertDeadCycleErr ?? isDebug();
   const deep = options.deep ?? true;
   const recordLoading = options.recordLoading || RECORD_LOADING.PRIVATE;
   const rules = options.rules || [];
@@ -159,6 +160,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   return {
     /** TODO 未来支持 atom 对象销毁 */
     isDestroyed: false,
+    alertDeadCycleErr,
     rawState,
     sharedKey,
     sharedKeyStr,

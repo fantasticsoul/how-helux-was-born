@@ -20,9 +20,9 @@ export interface IReactive {
   modified: boolean;
   expired: boolean;
   sharedKey: number;
-  data: [any, any];
+  data: [any];
   hasFlushTask: boolean;
-  nextTickFlush: (desc?: string, beforeCommit?: any) => void;
+  nextTickFlush: (desc?: string) => void;
 }
 
 export interface IReactiveMeta {
@@ -31,17 +31,13 @@ export interface IReactiveMeta {
   sharedKey: number;
   moduleName: string;
   /**
-   * 操作回调提供的 reactive 时，对应的 task 函数已收集到的依赖，用于辅助 operateState 里发现死循环
+   * reactive 改变了的 keys，用于辅助 fnRunner 里发现死循环
    */
-  fnDepKeys: string[];
+  writeKeys: string[];
   /**
    * reactive 对象由 Reactive 场提供还是其他，例如 Mutate Action
    */
   from: From;
   desc: string;
-  /**
-   * reactive  对象是否由回调参数提供
-   */
-  isFromCb: boolean;
   onRead?: Fn;
 }
