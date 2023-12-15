@@ -15,6 +15,7 @@ interface ICreateWatchLogicOpts<T = SharedState> {
   immediate?: boolean;
   deps?: Fn;
   label?: string;
+  isSimpleWatch?: boolean;
 }
 
 function putSharedToDep(list: any[]) {
@@ -37,20 +38,21 @@ function putSharedToDep(list: any[]) {
   }
 }
 
-export function createWatchLogic<T = SharedState>(watchFn: (fnParams: IWatchFnParams) => void, options: ICreateWatchLogicOpts<T>) {
-  const { scopeType, fnCtxBase, immediate, deps = noop, label = 'watch', sharedState } = options;
+export function createWatchLogic<T = SharedState>(watchFn: (fnParams: IWatchFnParams) => any, options: ICreateWatchLogicOpts<T>) {
+  const { scopeType, fnCtxBase, immediate, deps = noop, label = 'watch', sharedState, isSimpleWatch } = options;
   if (!isFn(watchFn)) {
     throw new Error(`ERR_NON_FN: pass an non-function to ${label}!`);
   }
 
-  const fnCtx = registerFn(watchFn, { specificProps: { scopeType, fnType: WATCH }, fnCtxBase });
+  const fnCtx = registerFn(watchFn, { specificProps: { scopeType, fnType: WATCH, isSimpleWatch }, fnCtxBase });
   markFnStart(fnCtx.fnKey, getSharedKey(sharedState));
   const list = deps() || [];
   putSharedToDep(list);
+
   if (immediate) {
     watchFn({ isFirstCall: true });
   }
-  // 注：markFnEnd 会两调用两次，factory/creator/notify 里的逻辑会提前触发一次，
+  // 注：markFnEnd 会两调用两次，factory/creator/notify  factory/creator/mutateFn 里的会提前触发，
   // 方便函数及时锁定依赖（ 不会因为查找到其他 watch 函数继续执行导致记录无效的依赖 ）
   // 然后 deadCycle 模块可以正常探测出死循环
   // 这里再调一次兜底是为了确保函数能够结束

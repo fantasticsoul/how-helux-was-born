@@ -4,6 +4,9 @@ export { HAS_SYMBOL };
 
 export const PROTO_KEY = '__proto__';
 
+/** 标识对象是一个 MutateFnItem */
+export const MUTATE_FN_ITEM = createSymbol('HeluxMutateFnItem');
+
 export const FN_KEY = createSymbol('HeluxFnKey');
 
 /** get reactive obj's sharedKey */
@@ -19,6 +22,9 @@ export const IS_ATOM = createSymbol('HeluxIsAtom');
 
 /** see if the target is returned by deriveAtom api */
 export const IS_DERIVED_ATOM = createSymbol('HeluxIsDerivedAtom');
+
+export const OP_KEYS = [SHARED_KEY, IS_ATOM, IS_DERIVED_ATOM];
+// export const OP_KEYS = [IS_ATOM, SHARED_KEY];
 
 /**
  * mark fn a single change fn

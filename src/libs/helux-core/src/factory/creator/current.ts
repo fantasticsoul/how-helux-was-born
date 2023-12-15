@@ -26,6 +26,8 @@ const CURRENT_REACTIVE_META = new Map<string, IReactiveMeta>();
 
 let CURRENT_DEPS_CB: Fn = noop;
 
+let CURRENT_FN_DEPS: string[] = [];
+
 export function setAtomVal(val: any) {
   CURRENT_DRAFT_ROOT.val = val;
 }
@@ -44,6 +46,14 @@ export const REACTIVE_DESC = {
   current: (key: number) => CURRENT_REACTIVE_DESC.get(key) || 'SetState',
   set: (key: number, desc: string) => CURRENT_REACTIVE_DESC.set(key, desc),
   del: (key: number) => CURRENT_REACTIVE_DESC.delete(key),
+};
+
+
+/** 记录、删除、读取 mutate fn 收集到的依赖，watchAndCallMutateDict 逻辑里需要读取 */
+export const FN_DEP_KEYS = {
+  current: () => CURRENT_FN_DEPS,
+  set: (val: string[]) => CURRENT_FN_DEPS = val,
+  del: () => CURRENT_FN_DEPS = [],
 };
 
 /** 记录、获取执行写操作的 draft 对象元数据 */

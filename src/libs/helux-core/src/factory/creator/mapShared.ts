@@ -5,7 +5,7 @@ import { runPartialCb } from '../common/util';
 import { buildInternal } from './buildInternal';
 import { flush } from './reactive';
 import { prepareDeepMutate } from './mutateDeep';
-import { prepareNormalMutate } from './mutateNormal';
+import { prepareDowngradeMutate } from './mutateDowngrade';
 import { REACTIVE_DESC } from './current';
 import { ParsedOptions, parseRules, pureSetOptions } from './parse';
 import { createSyncerBuilder, createSyncFnBuilder } from './sync';
@@ -18,11 +18,11 @@ export function mapSharedToInternal(sharedState: SharedState, options: ParsedOpt
   const setStateImpl = (options: IInnerSetStateOptions = {}) => {
     const mutateOptions = { ...options, forAtom, internal, sharedState };
     // deep 模式修改： setState(draft=>{draft.x.y=1})
-    const { finishMutate, draftRoot, draftNode } = isDeep ? prepareDeepMutate(mutateOptions) : prepareNormalMutate(mutateOptions);
+    const { finishMutate, draftRoot, draftNode } = isDeep ? prepareDeepMutate(mutateOptions) : prepareDowngradeMutate(mutateOptions);
     // 后续流程会使用到 getPartial 的返回结果，注意非 deep 模式的 setState只支持一层依赖收集
     return {
       // 注意非 deep 模式的 finish(setState) 只支持一层依赖收集
-      finish: (partialState: any, options: IInnerSetStateOptions) => {
+      finish: (partialState: any, options: IInnerSetStateOptions = {}) => {
         const snap = internal.snap;
         if (partialState === snap) {
           return snap;

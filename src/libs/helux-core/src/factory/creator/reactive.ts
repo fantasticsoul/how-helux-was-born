@@ -131,12 +131,17 @@ export function buildReactive(
   // 提供 draftRoot、draft，和 mutate、aciont 回调里对齐，方便用户使用 atom 时少一层 .val 操作
   let draftRoot: any = {};
   let draft: any = {};
-  const { rawState, deep, forAtom, isPrimitive, sharedKey, moduleName } = internal;
+  const { rawState, rawStateVal, deep, forAtom, isPrimitive, sharedKey, moduleName } = internal;
   const { desc, onRead, from = FROM.REACTIVE, isFromCb = false } = options || {};
 
   const rKey = getReactiveKey();
   const meta: IReactiveMeta = { isReactive: true, moduleName, key: rKey, desc: desc || '', sharedKey, fnDepKeys, onRead, from, isFromCb };
   if (canUseDeep(deep)) {
+    const innerData = {
+      [REACTIVE_META_KEY]: meta,
+      [SHARED_KEY]: sharedKey,
+      [IS_ATOM]: forAtom,
+    };
     const set = (forAtom: boolean, key: any, value: any) => {
       isFromCb && REACTIVE_META.markUsing(rKey);
       const draftVal = getReactiveVal(internal, forAtom);
@@ -145,19 +150,14 @@ export function buildReactive(
       return true;
     };
     const get = (forAtom: boolean, key: any, innerData: Dict) => {
+      isFromCb && REACTIVE_META.markUsing(rKey);
       const val = innerData[key];
       if (val !== undefined) {
         return val;
       }
 
-      isFromCb && REACTIVE_META.markUsing(rKey);
       const draftVal = getReactiveVal(internal, forAtom);
       return draftVal[key];
-    };
-    const innerData = {
-      [REACTIVE_META_KEY]: meta,
-      [SHARED_KEY]: sharedKey,
-      [IS_ATOM]: forAtom,
     };
 
     draftRoot = new Proxy(rawState, {
@@ -170,8 +170,8 @@ export function buildReactive(
     if (forAtom) {
       const subInnerData = { ...innerData, [IS_ATOM]: false };
       draft = isPrimitive
-        ? rawState.val
-        : new Proxy(rawState, {
+        ? rawStateVal
+        : new Proxy(rawStateVal, {
           set: (t: any, key: any, value: any) => set(true, key, value),
           get: (t: any, key: any) => get(true, key, subInnerData),
         });
@@ -181,7 +181,7 @@ export function buildReactive(
     draftRoot = rawState;
     draft = rawState.val;
   }
-  // 提供给回调使用的 reactive 对象，此映射关系会在回调结束时被删除
+  // 提供给回调使用的 reactive 对象，动态生成的映射关系会在回调结束时被删除
   REACTIVE_META.set(meta.key, meta);
 
   return { draftRoot, draft, meta };

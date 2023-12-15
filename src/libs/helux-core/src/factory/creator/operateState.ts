@@ -45,10 +45,6 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   const currentReactive = REACTIVE_META.current();
   const isMutateReactive = currentReactive.from === MUTATE;
 
-  if (isSymbol(opParams.key) && isChanged) {
-    console.error('writing symbol', opParams);
-  }
-
   // 是读操作
   if (opParams.op === 'get') {
     if (arrLike) {
@@ -58,7 +54,7 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
     readKeys[depKey] = 1;
 
     // isMutateReactive=true 表示 mutate fn reactive draft, mutate task reactive draft,
-    // (isReactive && !currentReactive.isInCb)=true 表示 top reactive, ins reactive
+    // isReactive=true 表示 top reactive, ins reactive
     // 仅这四种类型的对象收集读依赖，其他任何场景的读操作无任何依赖收集行为产生，可以
     // 1 减轻运行负担，
     // 2 降低死循环可能性，例如在 watch 回调里调用顶层的 setState
@@ -86,6 +82,9 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   if (!isChanged) {
     return;
   }
+
+  console.log('change key ', opParams.key);
+  console.log('change value ', opParams.value);
 
   const { moduleName, ruleConf, level1ArrKeys } = internal;
   const { writeKeyPathInfo, ids, globalIds, writeKeys } = mutateCtx;

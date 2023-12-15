@@ -1,11 +1,22 @@
 /**
  * 本模块用于辅助处理 mutate 函数可能遇到的死循环问题
  */
-import { nodupPush, safeMapGet, tryAlert } from '@helux/utils';
+import { nodupPush, safeMapGet, tryAlert, includeOne, noop } from '@helux/utils';
+import type { IFnCtx } from '../../types/base';
 import { TInternal } from './buildInternal';
+import { fmtDepKeys } from '../../helpers/debug';
 
 type Log = { sn: number; descs: string[]; timer: any; errs: any[]; cycle: string[] };
 const logMap = new Map<string, Log>();
+const cbTypes = {
+  WATCH: '1',
+  MUTATE: '2',
+} as const;
+const cbTips = {
+  [cbTypes.WATCH]: 'watch',
+  [cbTypes.MUTATE]: 'mutate fn or task',
+};
+type CbType = typeof cbTypes[keyof typeof cbTypes];
 
 function newLog(sn = 0): Log {
   return { sn, descs: [], errs: [], timer: null, cycle: [] };
@@ -26,10 +37,24 @@ export function clearDcLog(usefulName: string) {
   logMap.delete(usefulName);
 }
 
+export function depKeyDcError(fnCtx: IFnCtx, depKeys: string[], cbType: CbType, usefulName: string) {
+  const tip = cbTips[cbType];
+  const { desc, task, fn } = fnCtx.subFnInfo;
+  const descStr = desc ? `(${desc})` : '';
+  const dcInfo = `DEAD_CYCLE: found reactive object in ${tip}${descStr} cb`
+    + ` is changing module(${usefulName})'s keys(${fmtDepKeys(depKeys, false, '.')}) by its self, `
+    + 'but these keys are also watched dep keys, it will cause a infinity loop call!'
+
+  const mutateFn = task || fn;
+  const targetFn = mutateFn === noop ? fnCtx.fn : mutateFn;
+  console.error(` ${dcInfo} open the stack to find the fn cause dead cycle: \n`, targetFn);
+  return new Error(`[only-dev-mode alert] ${dcInfo}`);
+}
+
 /**
- * 探测循环依赖存在的可能性，避免死循环卡死整个应用
+ * 探测 多个 mutate fn 之间有循环依赖存在的可能性，避免死循环卡死整个应用
  */
-export function probeDeadCycle(sn: number, desc: string, internal?: TInternal) {
+export function probeFnDeadCycle(sn: number, desc: string, internal?: TInternal) {
   if (internal && desc) {
     const { usefulName } = internal;
     const log = safeMapGet(logMap, usefulName, newLog(sn));
@@ -52,6 +77,23 @@ export function probeDeadCycle(sn: number, desc: string, internal?: TInternal) {
     }
     nodupPush(descs, desc);
   }
+}
+
+export function probeDepKeyDeadCycle(fnCtx: IFnCtx, changedDepKeys: string[], usefulName: string): boolean {
+  const { depKeys, subFnInfo } = fnCtx;
+  let shortArr = fnCtx.depKeys;
+  let longArr = changedDepKeys;
+  if (depKeys.length > changedDepKeys.length) {
+    shortArr = changedDepKeys;
+    longArr = depKeys;
+  }
+
+  const foundDc = includeOne(shortArr, longArr);
+  if (foundDc) {
+    const cbType: CbType = subFnInfo.desc ? cbTypes.MUTATE : cbTypes.WATCH;
+    tryAlert(depKeyDcError(fnCtx, changedDepKeys, cbType, usefulName), { logErr: false, throwErr: false });
+  }
+  return foundDc;
 }
 
 export function inDeadCycle(usefulName: string, desc: string) {

@@ -37,6 +37,7 @@ const witness = mutate(finalPriceState)({
   },
   deps: () => [priceState.a, finalPriceState.retA, finalPriceState.retB] as const,
   task: async ({ input: [a], setState, draft }) => {
+    console.error('start -----------------------C1_File2');
     const result = draft.retA + a
     const d1 = ctx1.reactive.d.d1;
     noop(ctx2.reactive.f.f1);
@@ -46,7 +47,7 @@ const witness = mutate(finalPriceState)({
 
     draft.retA += a;
     // setState(draft => { draft.retB += a });
-    // console.error('after ----------------------------------------------------------------');
+    console.error('after -----------------------C1_File2');
   },
   desc: 'dangerousMutate',
   immediate: true, // 控制 task 立即执行

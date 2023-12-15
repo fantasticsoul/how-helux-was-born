@@ -10,7 +10,7 @@ import { mapSharedToInternal } from './mapShared';
 import { watchAndCallMutateDict } from './mutateFn';
 import { IInnerOptions, parseOptions } from './parse';
 export { prepareDeepMutate } from './mutateDeep';
-export { prepareNormalMutate } from './mutateNormal';
+export { prepareDowngradeMutate as prepareNormalMutate } from './mutateDowngrade';
 
 /**
  * 创建共享对象

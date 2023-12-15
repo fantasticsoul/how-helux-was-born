@@ -20,6 +20,7 @@ export interface IExecOnOptions {
   parentMeta: DraftMeta | null;
   value: any;
   isChanged?: boolean;
+  isCustom?: boolean;
   mayProxyVal?: any;
 }
 
@@ -83,6 +84,10 @@ export interface IOperateParams {
    * is data node changed by current operation
    */
   isChanged: boolean;
+  /**
+   * is key come from customKeys or not
+   */
+  isCustom: boolean;
   op: Op;
   /** raw value */
   value: any;
@@ -145,8 +150,7 @@ export interface ICreateDraftOptions {
   disableWarn?: boolean;
   /** default: false */
   debug?: boolean;
-  customKeys?: symbol[];
-  customGet?: (userCumtomKey: symbol) => any;
+  customKeys?: NumStrSymbol[];
 }
 
 export interface IInnerCreateDraftOptions extends ICreateDraftOptions {

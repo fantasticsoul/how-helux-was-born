@@ -34,7 +34,9 @@ function mayMarkModified(options: { calledBy: string; parentMeta: DraftMeta; op:
 
 function getValPathKey(parentMeta: DraftMeta, key: string) {
   const pathCopy = parentMeta.keyPath.slice();
+
   pathCopy.push(key);
+  console.log('getValPathKey', pathCopy);
   const valPathKey = pathCopy.join('|');
   return valPathKey;
 }
@@ -135,6 +137,10 @@ export function handleDataNode(parentDataNode: any, copyCtx: { parentMeta: Draft
     parentMeta.newNodeStats[key] = true;
     apiCtx.newNodeMap.set(getValPathKey(parentMeta, key), { parent: parentCopy, node: value, key, target: null });
   }
+
+  // called by set, del
+  // if (op !== 'get') {
+  // }
   parentCopy[key] = value;
 
   // 谨防是 a.b = { ... } ---> a.b = 1 的变异赋值方式

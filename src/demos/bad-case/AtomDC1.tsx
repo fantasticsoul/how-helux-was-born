@@ -58,6 +58,7 @@ const witness = mutate(finalPriceState)({
   },
   deps: () => [priceState.a, finalPriceState.retA, finalPriceState.retB] as const,
   task: async ({ input: [a], setState, draft }) => {
+    console.error('trigger task');
     // reactiveDesc(draft, 'change1');
     const result = draft.retA + a
     // console.error('trigger task draft.retA += a', result);

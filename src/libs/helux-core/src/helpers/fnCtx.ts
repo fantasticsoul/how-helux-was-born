@@ -1,7 +1,8 @@
-import { delListItem, includeOne, matchDictKey, nodupPush, noop, noopArr } from '@helux/utils';
+import { includeOne, matchDictKey, nodupPush, noop, noopArr } from '@helux/utils';
 import { ASYNC_TYPE, NOT_MOUNT, RENDER_START } from '../consts';
 import { getCtxMap, getFnCtx, getFnKey, markFnKey } from '../factory/common/fnScope';
 import { getFnScope } from '../factory/common/speedup';
+import { fakeMutateFnItem } from '../factory/creator/fake';
 import type { Dict, Fn, IFnCtx, ScopeType } from '../types/base';
 import { delFnDep, delHistoryUnmoutFnCtx } from './fnDep';
 
@@ -11,6 +12,7 @@ export function buildFnCtx(specificProps?: Partial<IFnCtx>): IFnCtx {
   const base: IFnCtx = {
     fnKey: '', // 在 feDep.mapFn 阶段会生成
     fn: noop,
+    subFnInfo: fakeMutateFnItem,
     isFirstLevel: true,
     isExpired: false,
     task: noop,
@@ -35,6 +37,9 @@ export function buildFnCtx(specificProps?: Partial<IFnCtx>): IFnCtx {
     shouldReplaceResult: false,
     isAsync: false,
     isAsyncTransfer: false,
+    isSimpleWatch: false,
+    isRunning: false,
+    isUsable: true,
     asyncType: MAY_TRANSFER,
     subscribe: (cb) => {
       cb();

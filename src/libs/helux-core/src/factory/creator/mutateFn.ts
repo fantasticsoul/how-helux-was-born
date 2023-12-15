@@ -1,14 +1,14 @@
 import { enureReturnArr, isPromise, noop, tryAlert } from '@helux/utils';
-import { EVENT_NAME, SCOPE_TYPE } from '../../consts';
+import { EVENT_NAME, SCOPE_TYPE, FROM } from '../../consts';
 import { emitPluginEvent } from '../../factory/common/plugin';
+import { getRunningFn } from '../../factory/common/fnScope';
 import { buildReactive, innerFlush } from './reactive';
 import { analyzeErrLog, dcErr, inDeadCycle } from '../../factory/creator/deadCycle';
 import { getStatusKey, setLoadStatus } from '../../factory/creator/loading';
-import { REACTIVE_META } from '../../factory/creator/current';
+import { REACTIVE_META, FN_DEP_KEYS } from '../../factory/creator/current';
 import { markIgnore } from '../../helpers/fnDep';
-import { markFnEnd } from '../../helpers/fnCtx';
 import { getInternal } from '../../helpers/state';
-import { fmtDepKeys } from '../../helpers/debug';
+import { markFnEnd } from '../../helpers/fnCtx';
 import type { Fn, From, ICallMutateFnOptions, IInnerSetStateOptions, IWatchAndCallMutateDictOptions, SharedState } from '../../types/base';
 import { createWatchLogic } from '../createWatch';
 
@@ -83,6 +83,7 @@ export function callAsyncMutateFnLogic<T = SharedState>(
   setStatus(true, null, false);
   const handleErr = (err: any): [any, Error | null] => {
     REACTIVE_META.del(meta.key);
+    FN_DEP_KEYS.del();
     setStatus(false, err, false);
     if (throwErr) {
       throw err;
@@ -95,14 +96,6 @@ export function callAsyncMutateFnLogic<T = SharedState>(
     // 这里需要主动 flush 一次，让返回的 snap 是最新值
     // const nextState = actions.xxxMethod(); //  nextState 为最新值
     flush(desc);
-
-    // 标记即将结束的 task 使用的 sharedKey 和 depKeys
-    // 辅助 operateState 里检查 task 可能使用顶层 reactive 对象修改 mutate deps 里的值导致的死循环
-    // 顶层 reactive 在下一次事件循环开始前自动执行，将拿到这里设置的参数做检查
-    // 具体逻辑见 operateState 里的 nextTickFlush 调用
-    // WILL_END_MUTATE_TASK.set({ sharedKey, desc });
-    // FN_DEP_KEYS.set(sharedKey, depKeys);
-
     // del mutate or action reactive data
     REACTIVE_META.del(meta.key);
 
@@ -163,7 +156,7 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
 /** 调用 mutate 函数，优先处理 task，且最多只处理一个，调用方自己保证只传一个 */
 export function callMutateFn(target: any, options: ICallMutateFnOptions = { forTask: false, depKeys: [] }) {
   const { fn, task, forTask } = options;
-  const from = 'Mutate';
+  const from = FROM.MUTATE;
   if (forTask && task) {
     // 处理异步函数
     return callAsyncMutateFnLogic(target, { ...options, task, from });
@@ -192,6 +185,12 @@ export function watchAndCallMutateDict(options: IWatchAndCallMutateDictOptions) 
     createWatchLogic(
       ({ sn, isFirstCall }) => {
         const { desc, fn, task, deps, immediate } = item;
+        const fnCtx = getRunningFn().fnCtx;
+        if (isFirstCall && fnCtx) {
+          fnCtx.subFnInfo = item; // 将子函数信息挂上去
+        }
+
+        FN_DEP_KEYS.del();
         const dc = inDeadCycle(usefulName, desc);
 
         try {
@@ -208,27 +207,32 @@ export function watchAndCallMutateDict(options: IWatchAndCallMutateDictOptions) 
             }
           }
 
+          // 存档一下收集到依赖，方便后续探测异步函数里的死循环可能存在的情况
           if (isFirstCall) {
-            // 异步函数强制忽略依赖收集行为
-            // 存档一下收集到依赖，方便后续探测异步函数里的死循环可能存在的情况
-            item.depKeys = markFnEnd();
-            console.log('item.depKeys ', fmtDepKeys(item.depKeys));
+            if (fnCtx) {
+              // 异步函数强制忽略依赖收集行为
+              item.depKeys = markFnEnd();
+            } else {
+              // 可能在 notify 里已经执行过 markFnEnd 了，这里将 FN_DEP_KEYS.current 转移出来
+              item.depKeys = FN_DEP_KEYS.current();
+            }
+            FN_DEP_KEYS.del();
           }
 
           if (task) {
-            // 第一次调用时，如未显示定义 immediate 值，则触发规律是没有 fn 则执行，有 fn 则不执行
+            // 第一次调用时，如未显示定义 immediate 值，则触发规律是没有 fn 则执行 task，有 fn 则不执行 task
             const canRunForFirstCall = isFirstCall && (immediate ?? !fn);
             if (!isFirstCall || canRunForFirstCall) {
-              // markIgnore(true);
               callMutateFn(target, { ...baseOpt, task, forTask: true, depKeys: item.depKeys });
-              // markIgnore(false);
             }
           }
+
+          return item;
         } catch (err: any) {
           if (err.cause === 'DeadCycle') {
             analyzeErrLog(usefulName, err);
           } else {
-            tryAlert(err, false);
+            tryAlert(err);
           }
           emitPluginEvent(internal, EVENT_NAME.ON_ERROR_OCCURED, { err });
         }

@@ -1,14 +1,14 @@
-import { canUseDeep, isSymbol, prefixValKey, warn } from '@helux/utils';
-import { IOperateParams } from 'limu';
+import { canUseDeep, prefixValKey, warn } from '@helux/utils';
+import type { IOperateParams } from 'limu';
 import { immut } from 'limu';
-import { IS_ATOM, KEY_SPLITER, SHARED_KEY } from '../../consts';
+import { IS_ATOM, KEY_SPLITER, SHARED_KEY, OP_KEYS } from '../../consts';
 import { recordBlockDepKey } from '../../helpers/blockDep';
 import { recordFnDepKeys } from '../../helpers/fnDep';
 import { createOb } from '../../helpers/obj';
 import { mapSharedState } from '../../helpers/state';
 import type { Dict } from '../../types/base';
 import { recordLastest } from '../common/blockScope';
-import { callOnRead, newOpParams, isDict } from '../common/util';
+import { callOnRead, newOpParams, isDict, getDepKeyByPath } from '../common/util';
 import type { ParsedOptions } from './parse';
 
 function cannotSet() {
@@ -17,7 +17,7 @@ function cannotSet() {
 }
 
 /** no options arg here */
-export function handleSymKey(isRoot: boolean, forAtom: boolean, sharedKey: number, key: any, value: any) {
+export function handleHeluxKey(isRoot: boolean, forAtom: boolean, sharedKey: number, key: any, value: any) {
   if (key === IS_ATOM) {
     // 仅根节点才读取 isAtom 表示是否是 atom 对象，其他节点一律返回 false
     return isRoot ? forAtom : false;
@@ -28,8 +28,8 @@ export function handleSymKey(isRoot: boolean, forAtom: boolean, sharedKey: numbe
   return value;
 }
 
-export function handleOpSymKey(opParams: IOperateParams, forAtom: boolean, sharedKey: number) {
-  opParams.replaceValue(handleSymKey(!opParams.parentType, forAtom, sharedKey, opParams.key, opParams.value));
+export function handleCustomKey(opParams: IOperateParams, forAtom: boolean, sharedKey: number) {
+  opParams.replaceValue(handleHeluxKey(opParams.keyPath.length === 0, forAtom, sharedKey, opParams.key, opParams.value));
 }
 
 /**
@@ -37,9 +37,9 @@ export function handleOpSymKey(opParams: IOperateParams, forAtom: boolean, share
  */
 export function buildSharedState(options: ParsedOptions) {
   let sharedRoot: any = {};
-  const { rawState, sharedKey, deep, forAtom, onRead, isPrimitive } = options;
-  const collectDep = (valKey: string, keyPath: string[], val: any) => {
-    const depKey = prefixValKey(valKey, sharedKey);
+  const { rawState, sharedKey, deep, forAtom, onRead, isPrimitive, stopDepth } = options;
+  const collectDep = (keyPath: string[], val: any) => {
+    const depKey = getDepKeyByPath(keyPath, sharedKey);
     // using shared state in derived/watch callback
     recordFnDepKeys([depKey], { sharedKey });
     recordBlockDepKey([depKey]);
@@ -48,40 +48,42 @@ export function buildSharedState(options: ParsedOptions) {
 
   if (canUseDeep(deep)) {
     sharedRoot = immut(rawState, {
+      customKeys: OP_KEYS,
       onOperate: (params: IOperateParams) => {
-        const { isBuiltInFnKey, key, parentType } = params;
-        if (isSymbol(key)) {
-          return handleOpSymKey(params, forAtom, sharedKey);
+        const { isBuiltInFnKey, isCustom } = params;
+        if (isCustom) {
+          return handleCustomKey(params, forAtom, sharedKey);
         }
 
         if (!isBuiltInFnKey) {
           const { fullKeyPath } = params;
           const rawVal = callOnRead(params, onRead);
-          collectDep(fullKeyPath.join(KEY_SPLITER), fullKeyPath, rawVal);
+          collectDep(fullKeyPath, rawVal);
         }
       }
     });
   } else {
     // TODO 这段逻辑迁移到 helux-mini
-    const toShallowProxy = (obj: any, isRoot: boolean, parentKey?: string): any => createOb(obj, {
+    const toShallowProxy = (obj: any, keyLevel: number, parentKeyPath: string[]): any => createOb(obj, {
       set: cannotSet,
       get: (target: Dict, key: any) => {
-        const val = target[key];
-        if (isSymbol(key)) {
-          return handleSymKey(isRoot, forAtom, sharedKey, key, val);
+        const value = target[key];
+        if (OP_KEYS.includes(key)) {
+          return handleHeluxKey(keyLevel === 1, forAtom, sharedKey, key, value);
         }
+        const opParams = newOpParams(key, value, { isChanged: false, parentKeyPath });
         // 为 {} 字典的 atom.val 再包一层监听
-        if (isRoot && isDict(val)) {
-          return toShallowProxy(val, false, key);
+        if (keyLevel < stopDepth && isDict(value)) {
+          return toShallowProxy(value, keyLevel + 1, opParams.fullKeyPath);
         }
-        const rawVal = callOnRead(newOpParams(key, val, false), onRead);
-        const keyPath = isRoot ? [key] : [parentKey, key];
-        collectDep(key, keyPath, rawVal);
+
+        const rawVal = callOnRead(opParams, onRead);
+        collectDep(opParams.fullKeyPath, rawVal);
         return rawVal;
       },
     });
 
-    sharedRoot = toShallowProxy(rawState, true);
+    sharedRoot = toShallowProxy(rawState, 1, []);
   }
 
   let sharedState = sharedRoot;

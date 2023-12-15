@@ -421,7 +421,7 @@ export type SetStateFactory<T = any> = (
   draftNode: any;
   finish: (
     partialStateOrRecipeCb: T extends Atom | ReadOnlyAtom ? PartialArgType<AtomValType<T>> : PartialArgType<T>,
-    options?: IInnerSetStateOptions<any>,
+    options?: IInnerSetStateOptions,
   ) => NextSharedDict | NextAtom;
 };
 
@@ -1084,11 +1084,24 @@ export interface IFnCtx {
   isAsync: boolean;
   /** 是否是一个中转结果的异步函数，内部用的标记 */
   isAsyncTransfer: boolean;
+  /**
+   * default: false
+   * 是否由 simple watch 创建
+   */
+  isSimpleWatch: boolean;
+  /**
+   * 是否正在运行中，辅助判断死循环
+   */
+  isRunning: boolean;
+  /** 标记函数是否可用，异步 task 发现死循环时，会标记暂不可用，以便阻止函数继续不停下钻执行 */
+  isUsable: boolean;
   asyncType: AsyncType;
   subscribe: Fn;
   renderInfo: IRenderInfo;
   /** 记录一些需复用的中间生成的数据 */
   extra;
+  /** 对应的可能存在的子函数描述 */
+  subFnInfo: MutateFnStdItem;
   setLoading: (loading: boolean, err?: any) => void;
 }
 

@@ -75,7 +75,7 @@ const witnessDict = mutateDict(sharedState)({
 
 function changeA() {
   const n = setState((draft) => {
-    draft.f.b1.b2 = 1000;
+    draft.f.b1.b2 = random();
   });
   console.log('n', n);
   ctx.reactive.f.b1.b2 += 1;

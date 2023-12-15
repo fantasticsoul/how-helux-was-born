@@ -1,10 +1,12 @@
 import { dedupList, nodupPush } from '@helux/utils';
+import { markFnEnd } from '../../helpers/fnCtx';
 import { getDepFnStats } from '../../helpers/fnDep';
 import { runFn } from '../../helpers/fnRunner';
 import { markComputing } from '../../helpers/fnStatus';
 import { runInsUpdater } from '../../helpers/insCtx';
 import type { Dict, InsCtxMap } from '../../types/base';
 import { clearDiff, diffVal, hasChangedNode } from '../common/sharedScope';
+import { FN_DEP_KEYS } from '../creator/current';
 import type { InsCtxDef } from './buildInternal';
 import type { ICommitStateOptions } from './commitState';
 import { getGlobalEmptyInternal, getGlobalIdInsKeys } from './globalId';
@@ -25,10 +27,7 @@ export function execDepFns(opts: ICommitStateOptions) {
   const { mutateCtx, internal, desc, isFirstCall, from, sn } = opts;
   const { ids, globalIds, depKeys, triggerReasons } = mutateCtx;
   const { key2InsKeys, id2InsKeys, insCtxMap, rootValKey } = internal;
-  console.log('depKeys', depKeys);
 
-  internal.ver += 1;
-  internal.sn = sn;
   // these associate ins keys will be update
   let dirtyInsKeys: number[] = [];
   let dirtyGlobalInsKeys: number[] = [];
@@ -37,7 +36,11 @@ export function execDepFns(opts: ICommitStateOptions) {
   let dirtyAsyncFnKeys: string[] = [];
   const runCountStats: Dict<number> = {};
 
-  // TODO check markFnEnd 被移除了是否有问题
+  // 提前结束依赖收集，防止后续的 watch 步骤里执行其他函数收集到脏依赖
+  if (isFirstCall) {
+    const depKeys = markFnEnd();
+    FN_DEP_KEYS.set(depKeys);
+  }
 
   const analyzeDepKey = (key: string) => {
     // 值相等就忽略
@@ -103,7 +106,7 @@ export function execDepFns(opts: ICommitStateOptions) {
   // start mark async derive fn computing
   dirtyAsyncFnKeys.forEach((fnKey) => markComputing(fnKey, runCountStats[fnKey]));
   // start execute derive/watch fns
-  dirtyFnKeys.forEach((fnKey) => runFn(fnKey, { sn, from, triggerReasons, internal, desc, isFirstCall }));
+  dirtyFnKeys.forEach((fnKey) => runFn(fnKey, { depKeys, sn, from, triggerReasons, internal, desc, isFirstCall }));
 
   // start trigger rerender
   dirtyInsKeys.forEach((insKey) => updateIns(insCtxMap, insKey, sn));

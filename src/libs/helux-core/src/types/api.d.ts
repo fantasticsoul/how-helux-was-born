@@ -1,6 +1,6 @@
 /*
 |------------------------------------------------------------------------------------------------
-| helux-core@3.5.4
+| helux-core@3.5.5
 | A state library core that integrates atom, signal, collection dep, derive and watch,
 | it supports all react like frameworks ( including react 18 ).
 |------------------------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ import type {
   WatchOptionsType,
 } from './base';
 
-export declare const VER: '3.5.4';
+export declare const VER: '3.5.5';
 
 export declare const LIMU_VER: string;
 
@@ -247,23 +247,23 @@ export function useReactive<T = any>(
  * const updateAllAtomIns = useAtomForceUpdate(someShared);
  * // 和从 ctx 上获取的 useForceUpdate 效果一样，useForceUpdate 自动绑定了对应的共享状态
  * const updateAllAtomIns = ctx.useForceUpdate();
- * 
+ *
  * // 支持预设更新范围，以下两种写法等效
  * const updateSomeAtomIns = useAtomForceUpdate(someShared, state=>[state.a, state.b]);
  * const updateSomeAtomIns = ctx.useForceUpdate(state=>[state.a, state.b]);
- * 
+ *
  * // 支持调用时重写更新范围
  * updateSomeAtomIns(state=>[state.c]); // 本次更新只更新 c 相关的实例
- * 
+ *
  * // 重写为 null，表示更新所有实例，强制覆盖可能存在的 presetDeps
  * updateSomeAtomIns(null)
- * 
+ *
  * // 返回空数组不会做任何更新
- * updateSomeAtomIns(state=>[]); 
- * 
+ * updateSomeAtomIns(state=>[]);
+ *
  * // 返回里包含了自身也会触发更新所有实例
- * updateSomeAtomIns(state=>[state]); 
- * 
+ * updateSomeAtomIns(state=>[state]);
+ *
  * // 因 updateSomeAtomIns 内部对 overWriteDeps 做了是否是函数的检查，
  * // 故 overWriteDeps 类型联合了 Dict， 让 ts 编程不设定 overWriteDeps 时可直接绑定到组件的 onClick 事件而不报编译错误
  * <button onClick={updateSomeAtomIns}>updateSomeAtomIns</button>

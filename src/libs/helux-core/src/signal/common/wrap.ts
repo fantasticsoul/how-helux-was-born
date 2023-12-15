@@ -38,7 +38,6 @@ export function wrapSignalComp(apiCtx: CoreApiCtx, options: IWrapSignalComp): Fu
   const Comp = function () {
     const insCtx = useAtomSimpleLogic(apiCtx, sharedState, { arrDep: true });
     if (insCtx.isFirstRender) {
-      console.log(insCtx.insKey, insCtx.isFirstRender);
       if (keyPath.length >= 2) {
         const paths = getAllPath(keyPath);
         // 基于不对称记录机制，这里需要把走过的父路径都记录一遍
@@ -56,7 +55,6 @@ export function wrapSignalComp(apiCtx: CoreApiCtx, options: IWrapSignalComp): Fu
     }
     // 此处用 rawState 替代 sharedState 依然获取最新的状态，同时也减少了代理对象获取的额外运行损耗
     const val = getVal(insCtx.internal.rawState, keyPath);
-    console.log('---> deps', insCtx.getDeps())
     return format(val);
   };
   return wrapComp(apiCtx, Comp, 'HeluxSignal', true, compare);

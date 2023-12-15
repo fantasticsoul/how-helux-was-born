@@ -5,13 +5,11 @@ import { random, delay, noop } from './logic/util';
 
 const [priceState, setPrice, ctx1] = share({ a: 1, b: 100, ccc: 1000, d: { d1: { d2: 1 } } }, {
   moduleName: 'Api_mutate',
-  enableDraftDep: true,
-  recordLoading: 'no',
+  // recordLoading: 'no',
 });
 const [finalPriceState, setP2, ctx2] = share({ retA: 0, retB: 0, time: 0, time2: 0, f: { f1: 1 } }, {
   moduleName: 'Api_mutate_finalPriceState',
-  enableDraftDep: true,
-  recordLoading: 'no',
+  // recordLoading: 'no',
 });
 
 // 约束各个函数入参类型
@@ -52,8 +50,8 @@ const witness = mutate(finalPriceState)({
   // 初始值函数，只会执行一次
   fn: (draft) => {
     draft.retA = 3000;
-    draft.time += 1;
-    draft.retA += 100; // 触发死循环
+    // draft.time += 1;
+    // draft.retA += 100; // 触发死循环
     // setP2(draft => { draft.retA += 100 });
   },
   deps: () => [priceState.a, finalPriceState.retA, finalPriceState.retB] as const,

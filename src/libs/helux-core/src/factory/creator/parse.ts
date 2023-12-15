@@ -1,6 +1,6 @@
 import { canUseDeep, enureReturnArr, isFn, isJsObj, isObj, nodupPush, noop, noopArr, safeObjGet, setNoop } from '@helux/utils';
 import { immut } from 'limu';
-import { FROM, RECORD_LOADING, SINGLE_MUTATE, STATE_TYPE, STOP_ARR_DEP, STOP_DEPTH } from '../../consts';
+import { FROM, RECORD_LOADING, SINGLE_MUTATE, STATE_TYPE, STOP_ARR_DEP, STOP_DEPTH, MUTATE_FN_ITEM } from '../../consts';
 import { createOb, injectHeluxProto } from '../../helpers/obj';
 import { getSharedKey, markSharedKey } from '../../helpers/state';
 import type { CoreApiCtx } from '../../types/api-ctx';
@@ -79,7 +79,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
   let validItem: MutateFnStdItem | null = null;
   let desc = inputDesc || '';
   if (isFn(fnItem) && fnItem !== noop) {
-    validItem = { fn: fnItem, deps: noopArr, oriDesc: desc, desc, depKeys: [] };
+    validItem = { [MUTATE_FN_ITEM]: 1, fn: fnItem, deps: noopArr, oriDesc: desc, desc, depKeys: [] };
   } else if (isObj(fnItem)) {
     const { fn, desc, deps, task, immediate } = fnItem;
     const descVar = inputDesc || desc || '';
@@ -87,7 +87,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
     const taskVar = isFn(task) ? task : undefined;
     const depsVar = isFn(deps) ? deps : noopArr;
     if (fn || task) {
-      validItem = { fn: fnVar, desc: descVar, oriDesc: descVar, deps: depsVar, task: taskVar, immediate, depKeys: [] };
+      validItem = { [MUTATE_FN_ITEM]: 1, fn: fnVar, desc: descVar, oriDesc: descVar, deps: depsVar, task: taskVar, immediate, depKeys: [] };
     }
   }
 

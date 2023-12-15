@@ -53,17 +53,25 @@ export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
   };
 }
 
-export function newOpParams(key: string, value: any, isChanged = true): IOperateParams {
+export function newOpParams(
+  key: string,
+  value: any,
+  options: { isChanged?: boolean, parentKeyPath: string[], op?: any, parentType?: any }
+): IOperateParams {
+  const { isChanged = true, parentKeyPath = [], op = 'set', parentType = 'Object' } = options;
+  const fullKeyPath = parentKeyPath.slice();
+  fullKeyPath.push(key);
   return {
     isChanged,
-    op: 'set',
+    isCustom: false,
+    op,
     immutBase: false,
     key,
     value,
     proxyValue: value,
-    parentType: 'Object',
-    keyPath: [],
-    fullKeyPath: [key],
+    parentType,
+    keyPath: parentKeyPath,
+    fullKeyPath,
     isBuiltInFnKey: false,
     replaceValue: noop,
     getReplaced: fakeGetReplaced,
@@ -86,7 +94,12 @@ export function getRootValDepKeyInfo(internal: TInternal) {
 }
 
 export function getDepKeyByPath(fullKeyPath: string[], sharedKey: number) {
-  return prefixValKey(fullKeyPath.join(KEY_SPLITER), sharedKey);
+  try {
+    return prefixValKey(fullKeyPath.join(KEY_SPLITER), sharedKey);
+  } catch (err) {
+    console.error('found Symbol key in your path :', fullKeyPath);
+    return `${sharedKey}`;
+  }
 }
 
 export function isValChanged(internal: TInternal, depKey: string) {
@@ -97,9 +110,13 @@ export function isValChanged(internal: TInternal, depKey: string) {
   }
 
   const { keyPath } = getDepKeyInfo(depKey);
+
+  console.log('snap===prevSnap', snap === prevSnap, keyPath);
   try {
     const currVal = getVal(snap, keyPath);
     const prevVal = getVal(prevSnap, keyPath);
+    console.log('currVal !== prevVal', currVal !== prevVal);
+
     return currVal !== prevVal;
   } catch (err: any) {
     // 结构变异，出现了 read property of undefined 错误，返回值已变更，
@@ -113,10 +130,11 @@ export function createImmut(obj: Dict, onOperate: (op: IOperateParams) => void) 
     return immut(obj, { onOperate });
   }
 
+  // TODO  整合 toShallowProxy 为一个公共方法，并复用到此处
   return createOb(obj, {
     get(target, key) {
       const val = target[key];
-      const op = newOpParams(key, val, false);
+      const op = newOpParams(key, val, { isChanged: false, parentKeyPath: [] });
       onOperate(op);
       return val;
     },
@@ -162,4 +180,4 @@ export function isArrLikeVal(val: any) {
   return Array.isArray(val) || isMap(val);
 }
 
-export const { isObject: isDict } = limuUtils;
+export const { isObject: isDict, getDataType } = limuUtils;

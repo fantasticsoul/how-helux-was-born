@@ -1,8 +1,9 @@
 import { enureReturnArr, isPromise, noopVoid, tryAlert } from '@helux/utils';
-import { ASYNC_TYPE, WATCH } from '../consts';
+import { ASYNC_TYPE, WATCH, FROM } from '../consts';
 import { delComputingFnKey, getFnCtx, getFnCtxByObj, putComputingFnKey } from '../factory/common/fnScope';
 import type { TInternal } from '../factory/creator/buildInternal';
-import { probeDeadCycle } from '../factory/creator/deadCycle';
+import { probeFnDeadCycle, probeDepKeyDeadCycle } from '../factory/creator/deadCycle';
+import { REACTIVE_META } from '../factory/creator/current';
 import type { Dict, From, IDeriveFnParams, TriggerReason } from '../types/base';
 import { shouldShowComputing } from './fnCtx';
 import { markComputing } from './fnStatus';
@@ -21,12 +22,13 @@ interface IRnFnOpt {
   forceFn?: boolean;
   forceTask?: boolean;
   throwErr?: boolean;
+  depKeys?: string[];
 }
 
 /**
  * 执行 derive 设置函数
  */
-export function runFn(fnKey: string, options?: IRnFnOpt) {
+export function runFn(fnKey: string, options: IRnFnOpt = {}) {
   const {
     isFirstCall = false,
     forceFn = false,
@@ -38,15 +40,43 @@ export function runFn(fnKey: string, options?: IRnFnOpt) {
     err,
     internal,
     desc,
-  } = options || {};
+  } = options;
   const fnCtx = getFnCtx(fnKey);
   if (!fnCtx) {
     return [null, new Error(`not a valid watch or derive cb for key ${fnKey}`)];
   }
   if (fnCtx.fnType === WATCH) {
-    // 来自 mutate 触发的 watch 才探测死循环
-    from === 'Mutate' && probeDeadCycle(sn, desc, internal);
-    return fnCtx.fn({ isFirstCall, triggerReasons, sn });
+    if (!fnCtx.isUsable) {
+      // 发现来自死循环的不可用标记，恢复可用，直接结束调用，避免无限调用情况产生
+      fnCtx.isUsable = true;
+      return;
+    }
+
+    // simpleWatch 的依赖时转移进去的，不需要判死循环，否则会照成误判
+    if (!fnCtx.isSimpleWatch) {
+      // 来自 reactive 对象或其他 setState 调用
+      if (fnCtx.isRunning && probeDepKeyDeadCycle(fnCtx, options.depKeys || [], internal?.usefulName || '')) {
+        return;
+      }
+      if (FROM.MUTATE === from) {
+        // mutate 多个函数间死循环检测是同步的，会直接报出错误到 mutateFn 里
+        probeFnDeadCycle(sn, desc, internal);
+      }
+    }
+
+    fnCtx.isRunning = true;
+    const ret = fnCtx.fn({ isFirstCall, triggerReasons, sn });
+    // 可能是一个异步执行的 task 任务，再次检查，注，前面的 fnCtx.isRunning 此时是失效，这里需执行 fn 后做后置检查
+    if (ret && ret.task) {
+      const rmeta = REACTIVE_META.current();
+      if (rmeta.from === FROM.MUTATE && probeDepKeyDeadCycle(fnCtx, options.depKeys || [], internal?.usefulName || '')) {
+        // 发现异步 task 有死循环，则暂时标记函数不可用
+        fnCtx.isUsable = false;
+      }
+    }
+
+    fnCtx.isRunning = false;
+    return ret;
   }
 
   const { isAsync, fn, task, isAsyncTransfer, forAtom, result, depKeys } = fnCtx;
@@ -127,7 +157,7 @@ export function runFn(fnKey: string, options?: IRnFnOpt) {
       const result = task(fnParams);
       // 检查 result 是否是 Promise 来反推 task 是否是 async 函数
       if (!isPromise(result)) {
-        tryAlert('ERR_NON_FN: derive task arg should be async function!', throwErr);
+        tryAlert('ERR_NON_FN: derive task arg should be async function!', { throwErr });
         return null;
       }
       return result;
