@@ -151,6 +151,7 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
         // 可能会指向代理对象
         mayProxyVal = getMayProxiedVal(currentVal, {
           key,
+          compareVer,
           parentMeta,
           parentType,
           ver: metaVer,

@@ -60,7 +60,8 @@ export function buildSharedState(options: ParsedOptions) {
           const rawVal = callOnRead(params, onRead);
           collectDep(fullKeyPath, rawVal);
         }
-      }
+      },
+      compareVer: true,
     });
   } else {
     // TODO 这段逻辑迁移到 helux-mini

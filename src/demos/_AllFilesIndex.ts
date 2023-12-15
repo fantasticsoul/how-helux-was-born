@@ -2,7 +2,7 @@
 // export { default as Atom } from './Atom';
 // export { default as AtomExact } from './AtomExact';
 // export { default as AtomAction } from './AtomAction';
-export { default as AtomMutate } from './AtomMutate';
+// export { default as AtomMutate } from './AtomMutate';
 // export { default as Signal } from './Signal';
 // export { default as Signal_atomLoading } from './Signal_atomLoading';
 // export { default as Signal2 } from './Signal2';
@@ -53,12 +53,15 @@ export { default as AtomMutate } from './AtomMutate';
 
 // 这些示例曾因为代码问题引起死循环误判
 // export { default as DeadCycleCase1 } from './dead-cycle/Case1';
+// 多个函数间使用 draft 导致的死循环
 // export { default as DeadCycleCase2 } from './dead-cycle/Case2';
 // export { default as DeadCycleCase3 } from './dead-cycle/Case3';
 // export { default as AtomDC1 } from './bad-case/AtomDC1';
 // export { default as C1_File1 } from './bad-case/C1_File1';
 // export { default as C1_File2 } from './bad-case/C1_File2';
 // export { default as OnlyTask } from './bad-case/OnlyTask';
+// export { default as AtomAdd } from './bad-case/AtomAdd';
+export { default as SeePathPrint } from './bad-case/SeePathPrint';
 // export { default as SetStateInWatch } from './bad-case/SetStateInWatch';
 
 // export { default as Api_mutate } from './Api_mutate';
@@ -68,4 +71,4 @@ export { default as AtomMutate } from './AtomMutate';
 // export { default as MapSignal } from './reactive/MapSignal';
 
 
-export const INITIAL_KEY = 'DeadCycleCase3';
+export const INITIAL_KEY = 'SeePathPrint';

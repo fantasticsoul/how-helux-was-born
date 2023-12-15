@@ -1,5 +1,6 @@
 import React from 'react';
 import { atom, sharex, useAtom, atomx, $ } from 'helux';
+import type { IPlugin } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { log, delay, random } from './logic/util';
 

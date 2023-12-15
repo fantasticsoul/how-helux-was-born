@@ -27,7 +27,6 @@ export function execDepFns(opts: ICommitStateOptions) {
   const { mutateCtx, internal, desc, isFirstCall, from, sn } = opts;
   const { ids, globalIds, depKeys, triggerReasons } = mutateCtx;
   const { key2InsKeys, id2InsKeys, insCtxMap, rootValKey } = internal;
-  console.error('depKeys', depKeys);
 
   // these associate ins keys will be update
   let dirtyInsKeys: number[] = [];
@@ -108,7 +107,6 @@ export function execDepFns(opts: ICommitStateOptions) {
   dirtyAsyncFnKeys.forEach((fnKey) => markComputing(fnKey, runCountStats[fnKey]));
   // start execute derive/watch fns
   dirtyFnKeys.forEach((fnKey) => runFn(fnKey, { depKeys, sn, from, triggerReasons, internal, desc, isFirstCall }));
-  console.error('dirtyInsKeys', dirtyInsKeys);
 
   // start trigger rerender
   dirtyInsKeys.forEach((insKey) => updateIns(insCtxMap, insKey, sn));

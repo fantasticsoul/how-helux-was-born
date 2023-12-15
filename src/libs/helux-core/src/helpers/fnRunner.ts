@@ -43,14 +43,14 @@ function runWatch(fnCtx: IFnCtx, options: IRnFnOpt) {
   if (fnCtx.isSimpleWatch) {
     return fnCtx.fn({ isFirstCall, triggerReasons, sn });
   }
-
+  // 优先开始检查 mutate 多个同步函数间的死循环
+  if (FROM.MUTATE === from) {
+    // 多个fn同步串行之后后，如出现死循环错误会抛到到 mutateFn 里
+    probeFnDeadCycle(internal, sn, desc);
+  }
   // 来自 reactive 对象或其他 setState 调用
   if (fnCtx.isRunning && probeDepKeyDeadCycle(internal, fnCtx, options.depKeys || [])) {
     return;
-  }
-  if (FROM.MUTATE === from) {
-    // mutate 多个函数间死循环检测是同步的，会直接报出错误到 mutateFn 里
-    probeFnDeadCycle(internal, sn, desc);
   }
   fnCtx.isRunning = true;
   const ret = fnCtx.fn({ isFirstCall, triggerReasons, sn });
