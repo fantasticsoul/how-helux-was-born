@@ -1,6 +1,6 @@
 /*
 |------------------------------------------------------------------------------------------------
-| helux-core@3.5.5
+| helux-core@3.5.10
 | A state library core that integrates atom, signal, collection dep, derive and watch,
 | it supports all react like frameworks ( including react 18 ).
 |------------------------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ import type {
   WatchOptionsType,
 } from './base';
 
-export declare const VER: '3.5.5';
+export declare const VER: '3.5.10';
 
 export declare const LIMU_VER: string;
 
@@ -139,10 +139,7 @@ export function sharex<T = PlainObject, O extends ICreateOptions<T> = ICreateOpt
 /**
  * 效果完全等同 atom，唯一的区别是 share 返回元组 [state,setState,call] atom 返回 ctx 自身
  */
-export function atomx<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(
-  rawState: T | (() => T),
-  createOptions?: O,
-): IAtomCtx<T>;
+export function atomx<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(rawState: T | (() => T), createOptions?: O): IAtomCtx<T>;
 
 /**
  * 定义全量派生结果，支持同步和异步，支持返回 pritimive 类型，如果确定返回 dict 数据，可优先考虑使用 deriveDict 接口，
@@ -589,17 +586,6 @@ export function addPlugin(plugin: IPlugin): void;
  * @param sharedDict
  */
 export function action<T = any>(sharedState: T): <P = any>(fn: ActionFnDef<P, T>, desc?: string) => Action<P, T>;
-
-/**
- * get current draft root
- * here pass state just for get return type
- */
-export function currentDraftRoot<T = any>(state?: T): T extends Atom ? { val: T['val'] } : T;
-
-/**
- * setAtomVal('xx') 等效于 currentDraftRoot().val = 'xx';
- */
-export function setAtomVal<T = any>(val?: T): T;
 
 /**
  * test if the input arg is a result returned by atom()

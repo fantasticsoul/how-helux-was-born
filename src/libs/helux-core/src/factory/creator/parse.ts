@@ -1,6 +1,6 @@
-import { canUseDeep, enureReturnArr, isFn, isJsObj, isObj, nodupPush, noop, noopArr, safeObjGet, setNoop, isDebug } from '@helux/utils';
+import { canUseDeep, enureReturnArr, isDebug, isFn, isJsObj, isObj, nodupPush, noop, noopArr, safeObjGet, setNoop } from '@helux/utils';
 import { immut } from 'limu';
-import { FROM, RECORD_LOADING, SINGLE_MUTATE, STATE_TYPE, STOP_ARR_DEP, STOP_DEPTH, MUTATE_FN_ITEM } from '../../consts';
+import { FROM, MUTATE_FN_ITEM, RECORD_LOADING, SINGLE_MUTATE, STATE_TYPE, STOP_ARR_DEP, STOP_DEPTH } from '../../consts';
 import { createOb, injectHeluxProto } from '../../helpers/obj';
 import { getSharedKey, markSharedKey } from '../../helpers/state';
 import type { CoreApiCtx } from '../../types/api-ctx';
@@ -79,15 +79,25 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
   let validItem: MutateFnStdItem | null = null;
   let desc = inputDesc || '';
   if (isFn(fnItem) && fnItem !== noop) {
-    validItem = { [MUTATE_FN_ITEM]: 1, fn: fnItem, deps: noopArr, oriDesc: desc, desc, depKeys: [] };
+    validItem = { [MUTATE_FN_ITEM]: 1, fn: fnItem, deps: noopArr, oriDesc: desc, desc, depKeys: [], checkDeadCycle: undefined };
   } else if (isObj(fnItem)) {
-    const { fn, desc, deps, task, immediate } = fnItem;
+    const { fn, desc, deps, task, immediate, checkDeadCycle } = fnItem;
     const descVar = inputDesc || desc || '';
     const fnVar = isFn(fn) ? fn : undefined;
     const taskVar = isFn(task) ? task : undefined;
     const depsVar = isFn(deps) ? deps : noopArr;
     if (fn || task) {
-      validItem = { [MUTATE_FN_ITEM]: 1, fn: fnVar, desc: descVar, oriDesc: descVar, deps: depsVar, task: taskVar, immediate, depKeys: [] };
+      validItem = {
+        [MUTATE_FN_ITEM]: 1,
+        checkDeadCycle,
+        fn: fnVar,
+        desc: descVar,
+        oriDesc: descVar,
+        deps: depsVar,
+        task: taskVar,
+        immediate,
+        depKeys: [],
+      };
     }
   }
 
@@ -144,6 +154,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const moduleName = options.moduleName || '';
   const alertDeadCycleErr = options.alertDeadCycleErr ?? isDebug();
   const deep = options.deep ?? true;
+  const checkDeadCycle = options.checkDeadCycle ?? true;
   const recordLoading = options.recordLoading || RECORD_LOADING.PRIVATE;
   const rules = options.rules || [];
   const before = options.before || noop;
@@ -161,6 +172,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
     /** TODO 未来支持 atom 对象销毁 */
     isDestroyed: false,
     alertDeadCycleErr,
+    checkDeadCycle,
     rawState,
     sharedKey,
     sharedKeyStr,

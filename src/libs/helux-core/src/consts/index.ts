@@ -4,6 +4,9 @@ export { HAS_SYMBOL };
 
 export const PROTO_KEY = '__proto__';
 
+/** 提供给 sync 返回 undefined 时之用 */
+export const UNDEFINED = createSymbol('HeluxUndefined');
+
 /** 标识对象是一个 MutateFnItem */
 export const MUTATE_FN_ITEM = createSymbol('HeluxMutateFnItem');
 
@@ -90,7 +93,7 @@ export const FROM = {
    * 来自 top setState(draft)、ins setState(draft) 的读写
    * ```ts
    * const [, setState] = atom({a:1});
-   * 
+   *
    * const [, setState] = useAtom();
    * ```
    */
@@ -120,11 +123,11 @@ export const FROM = {
    * mutate({
    *   task: async({ draft }){ },
    * });
-   * 
+   *
    * action(async ({ draft })=>{ });
-   * 
+   *
    * const [,,{ reactive }] = atom({a:1});
-   * 
+   *
    * const [ reactive ] = useReactive(someAtom);
    * ```
    */
@@ -138,11 +141,10 @@ export const FROM = {
    * ```ts
    * import { sync } from 'helux';
    * sync(someState)(to=>to.a.b);
-   * 
+   *
    * const [,,{ sync }] = atom({a:1});
    * sync(to=>to.a.b);
    * ```
    */
   SYNC: 'Sync',
 } as const;
-

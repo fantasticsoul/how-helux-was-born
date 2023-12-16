@@ -22,13 +22,13 @@ function SharedDict() {
     <MarkUpdate>
       syncer<input value={state.a} onChange={ctx.syncer.a} />
       <br />
-      sync<input value={state.a} onChange={ctx.sync(to => to.a, (a, draft) => draft.a = Date.now())} />
+      sync<input value={state.a} onChange={ctx.sync(to => to.a, (a, { draft }) => draft.a = Date.now())} />
       <br />
       sync multi path<input style={{ width: '300px' }} value={state.b.b1.b2} onChange={ctx.sync(to => to.b.b1.b2)} />
       <br />
       sync multi path by path arr<input style={{ width: '300px' }} value={state.b.b1.b2} onChange={ctx.sync(['b', 'b1', 'b2'])} />
       <br />
-      sync multi path with before<input style={{ width: '300px' }} value={state.b.b1.b2} onChange={ctx.sync(to => to.b.b1.b2, (b, draft) => draft.b.b1.b2 = `${b}_${Date.now()}`)} />
+      sync multi path with before<input style={{ width: '300px' }} value={state.b.b1.b2} onChange={ctx.sync(to => to.b.b1.b2, (b, { draft }) => draft.b.b1.b2 = `${b}_${Date.now()}`)} />
       <br />
     </MarkUpdate>
   );

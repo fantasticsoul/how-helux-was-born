@@ -1,39 +1,39 @@
 import { enureReturnArr, isPromise, noop, tryAlert } from '@helux/utils';
-import { EVENT_NAME, SCOPE_TYPE, FROM } from '../../consts';
-import { emitPluginEvent } from '../../factory/common/plugin';
+import { EVENT_NAME, FROM, SCOPE_TYPE } from '../../consts';
 import { getRunningFn } from '../../factory/common/fnScope';
-import { buildReactive, innerFlush } from './reactive';
+import { emitPluginEvent } from '../../factory/common/plugin';
+import { FN_DEP_KEYS, REACTIVE_META } from '../../factory/creator/current';
 import { analyzeErrLog, dcErr, inDeadCycle } from '../../factory/creator/deadCycle';
 import { getStatusKey, setLoadStatus } from '../../factory/creator/loading';
-import { REACTIVE_META, FN_DEP_KEYS } from '../../factory/creator/current';
+import { markFnEnd } from '../../helpers/fnCtx';
 import { markIgnore } from '../../helpers/fnDep';
 import { getInternal } from '../../helpers/state';
-import { markFnEnd } from '../../helpers/fnCtx';
 import type { Fn, From, ICallMutateFnOptions, IInnerSetStateOptions, IWatchAndCallMutateDictOptions, SharedState } from '../../types/base';
 import { createWatchLogic } from '../createWatch';
+import { buildReactive, innerFlush } from './reactive';
 
 interface ICallMutateBase {
+  /** 透传给用户 */
+  isFirstCall?: boolean;
+  /** watchAndCallMutateDict 需要自己捕获错误 */
+  throwErr?: boolean;
   desc?: string;
   sn?: number;
   deps?: Fn;
   from: From;
-  /** watchAndRunMutate 需要自己捕获错误 */
-  throwErr?: boolean;
-  /** 控制死循环探测逻辑执行时机 */
-  isFirstCall?: boolean;
 }
 
 interface ICallMutateFnOpt<T = SharedState> extends ICallMutateBase {
   fn: Fn;
   /** fn 函数调用入参拼装 */
-  getArgs?: (param: { draft: T; draftRoot: T; setState: Fn; desc: string; input: any[] }) => any[];
+  getArgs?: (param: { isFirstCall: boolean; draft: T; draftRoot: T; setState: Fn; desc: string; input: any[] }) => any[];
 }
 
 interface ICallAsyncMutateFnOpt extends ICallMutateBase {
   depKeys: string[];
   task: Fn;
   /** task 函数调用入参拼装，暂不像同步函数逻辑那样提供 draft 给用户直接操作，用户必须使用 setState 修改状态 */
-  getArgs?: (param: { flush: any, draft: any; draftRoot: any; desc: string; setState: Fn; input: any[] }) => any[];
+  getArgs?: (param: { flush: any; draft: any; draftRoot: any; desc: string; setState: Fn; input: any[] }) => any[];
 }
 
 const fnProm = new Map<any, boolean>();
@@ -43,7 +43,7 @@ export function callAsyncMutateFnLogic<T = SharedState>(
   targetState: T,
   options: ICallAsyncMutateFnOpt,
 ): [any, Error | null] | Promise<[any, Error | null]> {
-  const { desc = '', sn, task, getArgs = noop, deps, from, throwErr, depKeys } = options;
+  const { desc = '', sn, task, getArgs = noop, deps, from, throwErr, depKeys, isFirstCall } = options;
   const internal = getInternal(targetState);
   const { sharedKey } = internal;
   const customOptions: IInnerSetStateOptions = { desc, sn, from };
@@ -63,7 +63,7 @@ export function callAsyncMutateFnLogic<T = SharedState>(
     return finish(cb);
   };
 
-  const defaultParams = { desc, setState, input: enureReturnArr(deps, targetState), draft, draftRoot, flush };
+  const defaultParams = { isFirstCall, desc, setState, input: enureReturnArr(deps, targetState), draft, draftRoot, flush };
   const args = getArgs(defaultParams) || [defaultParams];
   const isProm = fnProm.get(task);
   const isUnconfirmedFn = isProm === undefined;
@@ -118,7 +118,7 @@ export function callAsyncMutateFnLogic<T = SharedState>(
 
 /** 呼叫同步函数的逻辑封装 */
 export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICallMutateFnOpt<T>): [any, Error | null] {
-  const { desc = '', sn, fn, getArgs = noop, deps, from, throwErr, isFirstCall } = options;
+  const { desc = '', sn, fn, getArgs = noop, deps, from, throwErr, isFirstCall = false } = options;
   const internal = getInternal(targetState);
   const { forAtom, setStateFactory, sharedState } = internal;
   const innerSetOptions: IInnerSetStateOptions = { desc, sn, from, isFirstCall };
@@ -138,11 +138,11 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
     markIgnore(false); // recover dep collect
   }
   const { draftNode: draft, draftRoot, finish } = setStateFactory({ from, enableDep: true });
-  const args = getArgs({ draft, draftRoot, setState, desc, input }) || [draft, { input, state, draftRoot }];
+  const args = getArgs({ isFirstCall, draft, draftRoot, setState, desc, input }) || [draft, { input, state, draftRoot, isFirstCall }];
 
   try {
     const result = fn(...args);
-    finish(result, innerSetOptions)
+    finish(result, innerSetOptions);
     return [internal.snap, null];
   } catch (err: any) {
     // TODO 同步函数错误发送给插件
@@ -187,7 +187,10 @@ export function watchAndCallMutateDict(options: IWatchAndCallMutateDictOptions) 
         const { desc, fn, task, deps, immediate } = item;
         const fnCtx = getRunningFn().fnCtx;
         if (isFirstCall && fnCtx) {
-          fnCtx.subFnInfo = item; // 将子函数信息挂上去
+          // 将子函数信息挂上去
+          fnCtx.subFnInfo = item;
+          // 优先读子函数配置，在读模块配置
+          fnCtx.checkDeadCycle = item.checkDeadCycle ?? internal.checkDeadCycle;
         }
 
         FN_DEP_KEYS.del();

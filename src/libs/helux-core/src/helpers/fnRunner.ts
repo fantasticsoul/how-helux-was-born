@@ -1,11 +1,11 @@
 import { enureReturnArr, isPromise, noopVoid, tryAlert } from '@helux/utils';
-import { ASYNC_TYPE, WATCH, FROM } from '../consts';
+import { ASYNC_TYPE, FROM, WATCH } from '../consts';
 import { delComputingFnKey, getFnCtx, getFnCtxByObj, putComputingFnKey } from '../factory/common/fnScope';
 import type { TInternal } from '../factory/creator/buildInternal';
-import { probeFnDeadCycle, probeDepKeyDeadCycle } from '../factory/creator/deadCycle';
 import { REACTIVE_META } from '../factory/creator/current';
+import { probeDepKeyDeadCycle, probeFnDeadCycle } from '../factory/creator/deadCycle';
 import { fakeInternal } from '../factory/creator/fake';
-import type { Dict, From, IDeriveFnParams, TriggerReason, IFnCtx } from '../types/base';
+import type { Dict, From, IDeriveFnParams, IFnCtx, TriggerReason } from '../types/base';
 import { shouldShowComputing } from './fnCtx';
 import { markComputing } from './fnStatus';
 
@@ -28,8 +28,8 @@ interface IRnFnOpt {
 
 /**
  * 执行 watch 函数，内部会尝试检测死循环，防止无限调用情况产生
- * @param fnCtx 
- * @param options 
+ * @param fnCtx
+ * @param options
  * @returns
  */
 function runWatch(fnCtx: IFnCtx, options: IRnFnOpt) {
@@ -40,7 +40,8 @@ function runWatch(fnCtx: IFnCtx, options: IRnFnOpt) {
     return;
   }
   // simpleWatch 的依赖时转移进去的，不需要判死循环，否则会照成误判
-  if (fnCtx.isSimpleWatch) {
+  // 设定了 checkDeadCycle 为 false，不检查死循环
+  if (fnCtx.isSimpleWatch || !fnCtx.checkDeadCycle) {
     return fnCtx.fn({ isFirstCall, triggerReasons, sn });
   }
   // 优先开始检查 mutate 多个同步函数间的死循环
@@ -78,15 +79,7 @@ function runWatch(fnCtx: IFnCtx, options: IRnFnOpt) {
  * 执行 derive 设置函数
  */
 export function runFn(fnKey: string, options: IRnFnOpt = {}) {
-  const {
-    isFirstCall = false,
-    forceFn = false,
-    forceTask = false,
-    throwErr = false,
-    triggerReasons = [],
-    sn = 0,
-    err,
-  } = options;
+  const { isFirstCall = false, forceFn = false, forceTask = false, throwErr = false, triggerReasons = [], sn = 0, err } = options;
   const fnCtx = getFnCtx(fnKey);
   if (!fnCtx) {
     return [null, new Error(`not a valid watch or derive cb for key ${fnKey}`)];

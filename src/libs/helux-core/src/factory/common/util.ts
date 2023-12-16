@@ -1,8 +1,8 @@
 import { getVal, isDebug, isFn, isMap, isObj, isProxyAvailable, noop, prefixValKey } from '@helux/utils';
 import { immut, IOperateParams, limuUtils } from 'limu';
-import { ARR, KEY_SPLITER, MAP, STATE_TYPE, FROM } from '../../consts';
+import { ARR, FROM, KEY_SPLITER, MAP, STATE_TYPE } from '../../consts';
 import { createOb } from '../../helpers/obj';
-import type { IMutateCtx, Dict, IInnerSetStateOptions } from '../../types/base';
+import type { Dict, IInnerSetStateOptions, IMutateCtx } from '../../types/base';
 import { DepKeyInfo } from '../../types/inner';
 import type { TInternal } from '../creator/buildInternal';
 
@@ -53,7 +53,7 @@ export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
 export function newOpParams(
   key: string,
   value: any,
-  options: { isChanged?: boolean, parentKeyPath: string[], op?: any, parentType?: any }
+  options: { isChanged?: boolean; parentKeyPath: string[]; op?: any; parentType?: any },
 ): IOperateParams {
   const { isChanged = true, parentKeyPath = [], op = 'set', parentType = 'Object' } = options;
   const fullKeyPath = parentKeyPath.slice();
@@ -92,9 +92,10 @@ export function getRootValDepKeyInfo(internal: TInternal) {
 
 export function getDepKeyByPath(fullKeyPath: string[], sharedKey: number) {
   try {
+    // console.trace(fullKeyPath);
     return prefixValKey(fullKeyPath.join(KEY_SPLITER), sharedKey);
   } catch (err) {
-    console.error('found Symbol key in your path :', fullKeyPath);
+    console.trace('found Symbol key in your path :', fullKeyPath);
     return `${sharedKey}`;
   }
 }
@@ -139,7 +140,7 @@ export function createImmut(obj: Dict, onOperate: (op: IOperateParams) => void) 
  * 区分是 atom 还是 shared 返回的部分状态，atom 返回要自动装箱为 { val: T }
  */
 export function wrapPartial(forAtom: boolean, val: any) {
-  if (val === undefined) return; // undefined 丢弃，如真需要赋值 undefined，调用 setAtomVal
+  if (val === undefined) return; // undefined 丢弃
   if (forAtom) return { val };
   if (isObj(val)) return val;
 }

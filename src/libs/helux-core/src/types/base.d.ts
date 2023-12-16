@@ -230,6 +230,8 @@ export interface IRunMutateOptions {
 }
 
 export interface IMutateTaskParam<T = SharedState, P = any[]> {
+  /** 是否第一次调用 */
+  isFirstCall;
   /** 异步任务提供的 draft 是全局响应式对象 */
   draftRoot: DraftRootType<T>;
   draft: DraftType<T>;
@@ -270,10 +272,22 @@ export type MutateWitness<T = any> = {
 // for mutate task
 export type MutateTask<T = SharedState, P = ReadOnlyArr> = (param: IMutateTaskParam<T, P>) => Promise<void>;
 
+export type MutateFnParams<T = SharedState, P = ReadOnlyArr> = {
+  /** 是否第一次调用 */
+  isFirstCall: boolean;
+  /** mutate deps 函数的返回值 */
+  input: P;
+  /** 只读状态 */
+  state: StateType<T>;
+  /** 草稿根状态，对与 atom 对象，根状态是未拆箱的值 */
+  draftRoot: DraftRootType<T>;
+};
+
 /** 如定义了 task 函数，则 fn 在异步函数执行之前回执行一次，且只在首次执行一次，后续不会执行 */
 export type MutateFn<T = SharedState, P = ReadOnlyArr> = (
+  /** 草稿状态，对与 atom 对象 draft 是已拆箱的值，如需操作未拆箱值可读取下面的 params.draftRoot */
   draft: DraftType<T>,
-  params: { input: P; state: StateType<T>; draftRoot: DraftRootType<T> },
+  params: MutateFnParams<T, P>,
 ) => void;
 
 export type MutateFnItem<T = SharedState, P = ReadOnlyArr> = {
@@ -284,6 +298,11 @@ export type MutateFnItem<T = SharedState, P = ReadOnlyArr> = {
   task?: MutateTask<T, P>;
   /** default: false, task 是否立即执行 */
   immediate?: boolean;
+  /**
+   * default: undefined，是否检测死循环，设置为 false 表示不检查
+   * 未设定时，使用 atom、share 接口设定的checkDeadCycle值
+   */
+  checkDeadCycle?: boolean;
 };
 
 /** std item 确保了 desc 一定存在 */
@@ -371,7 +390,7 @@ export interface ISetFactoryOpts extends ISetStateOptions {
   isReactive?: boolean;
   /** inner sync */
   calledBy?: string;
-  /** 
+  /**
    * 目前通用 operateState 里支持依赖收集的场景：
    * 1 mutate( draft=> draft.xx );
    * 2 mutate( (draft, { draftRoot })=> draftRoot.xx )
@@ -404,9 +423,7 @@ export type InnerSetState<T = any> = (
   options?: IInnerSetStateOptions,
 ) => NextSharedDict<T>;
 
-export type SetStateFactory<T = any> = (
-  options?: ISetFactoryOpts,
-) => {
+export type SetStateFactory<T = any> = (options?: ISetFactoryOpts) => {
   draftRoot: any;
   draftNode: any;
   finish: (
@@ -445,11 +462,25 @@ export type SyncerFn = (mayEvent: any, ...args: any[]) => void;
 
 export type PathRecorder<T = SharedState, V = any> = (target: DraftType<T>) => V;
 
+export type SyncBeforeFnParams<T = SharedState> = {
+  draft: DraftType<T>;
+  draftRoot: DraftRootType<T>;
+  path: string[];
+  /** 如需赋新值为 undefined，需返回这个 UNDEFINED 值表示 undefined */
+  UNDEFINED: symbol;
+  /** 当前对象是否由 atom 创建 */
+  isAtom: boolean;
+};
+
 // 此处用 V 约束 before 函数的返回类型
 export type SyncFnBuilder<T = SharedState, V = any> = (
   pathOrRecorder: string[] | PathRecorder<T>,
-  /** 在提交数据之前，还可以修改其他数据或自身数据的函数 */
-  before?: (eventNewVal: V, draft: DraftType<T>) => void,
+  /**
+   * 在提交数据之前，还可以修改其他数据或自身数据的函数
+   * 此函数也支持返回 path 对应的修改新值，如需修改为 undefined
+   * 需返回 params.UNDEFEIND 才有效，如果此函数不返回任何值或返回 undefined 均不会干预赋值操作
+   */
+  before?: (eventNewVal: V, params: SyncBeforeFnParams<T>) => any,
 ) => SyncerFn;
 
 export type Syncer<T = SharedState> = T extends Atom | ReadOnlyAtom
@@ -492,7 +523,7 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
    * ```ts
    * const fn = action(()=>{}, 'someAction');
    * // 调用方法，错误会传递到 err 位置
-   * const [ snap, err ] = fn(1); 
+   * const [ snap, err ] = fn(1);
    * // 调用方法并抛出错误，此时错误既发给插件和伴生loading状态，也向上抛出，用户需自己 catch
    * const [ snap ] = fn(1, true);
    * ```
@@ -530,17 +561,15 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
   /** 使用 Action 状态 */
   useActionLoading: () => [SafeLoading<T, O>, SetState<LoadingState>, IInsRenderInfo];
   reactiveDesc: (desc: string) => number;
-  useLocalState: <T extends object = PlainObject>(initialState: T | (() => T)) => [
-    T,
-    (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void,
-    ILocalStateApi<T>,
-  ];
+  useLocalState: <T extends object = PlainObject>(
+    initialState: T | (() => T),
+  ) => [T, (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void, ILocalStateApi<T>];
   /**
    * 只更新当前组件实例，效果同顶层 api useLocalForceUpdate
    * ```ts
    * import { useLocalForceUpdate } from 'helux';
    * const ctx = atomx(1);
-   * 
+   *
    * // 两着等效
    * ctx.useLocalForceUpdate()
    * useLocalForceUpdate()
@@ -559,41 +588,39 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
    * 推荐设定 presetDeps、overWriteDeps 函数减少更新范围
    * ```ts
    * const updateAllAtomIns = ctx.useForceUpdate();
-   * 
+   *
    * // 支持预设更新范围
    * const updateSomeAtomIns = ctx.useForceUpdate(state=>[state.a, state.b]);
    *
    * // 支持调用时重写更新范围
    * updateSomeAtomIns(state=>[state.c]); // 本次更新只更新 c 相关的实例
-   * 
+   *
    * // 重写为 null，表示更新所有实例，强制覆盖可能存在的 presetDeps
    * updateSomeAtomIns(null)
-   * 
+   *
    * // 返回空数组不会做任何更新
-   * updateSomeAtomIns(state=>[]); 
-   * 
+   * updateSomeAtomIns(state=>[]);
+   *
    * // 返回里包含了自身也会触发更新所有实例
-   * updateSomeAtomIns(state=>[state]); 
-   * 
+   * updateSomeAtomIns(state=>[state]);
+   *
    * // 因 updateSomeAtomIns 内部对 overWriteDeps 做了是否是函数的检查，
    * // 故 overWriteDeps 类型联合了 Dict， 让 ts 编程不设定 overWriteDeps 时可直接绑定到组件的 onClick 事件而不报编译错误
    * <button onClick={updateSomeAtomIns}>updateSomeAtomIns</button>
    * ```
    */
-  useForceUpdate: (
-    presetDeps?: (sharedState: T) => any[],
-  ) => (overWriteDeps?: ((sharedState: T) => any[]) | Dict | null) => void;
+  useForceUpdate: (presetDeps?: (sharedState: T) => any[]) => (overWriteDeps?: ((sharedState: T) => any[]) | Dict | null) => void;
   /**
    * 当前共享状态对应的响应式对象，可用来直接更新数据，
    * 给实例用的响应式对象必须使用通过 `useReactive` 获取
    * ```ts
    * // bad，响应式更新不会工作
    * <button>{ctx.reative.a}</button>
-   * 
+   *
    * // ok，使用 useReactive 返回的响应式对象
    * const reative = ctx.useReactive();
    * <button>{reative.a}</button>
-   * 
+   *
    * // ok，将 ctx.reative 交给 signal 区域，响应式更新也能工作
    * import { $ } from 'helux';
    * <button>{$(ctx.reative.a)}</button>
@@ -605,7 +632,7 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
    * ```ts
    *   const {reactiveRoot} = atomx(1);
    *   const [,,{reactiveRoot}] = atom(1);
-   * 
+   *
    *   reactiveRoot.val+=1;
    * ```
    */
@@ -623,7 +650,7 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
    *   changeA: [number, number];
    *   foo: boolean | undefined;
    * };
-   * 
+   *
    * const { actions, useLoading, getLoading } = ctxp.defineActions<Payloads>()({
    *   // 同步 action，直接修改草稿
    *   changeA1({ draft, payload }) {
@@ -653,7 +680,7 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
    *     return { list }; // 等价于 draft.list = list
    *   },
    * });
-   * 
+   *
    * // action 方法的异常默认被拦截掉不再继续抛出，只是并发送给插件和伴生loading状态
    * const [snap, err] = actions.changeA([1,1]);
    * //  调用方法并抛出错误，此时错误既发给插件和伴生loading状态，也向上抛出，用户需自己 catch
@@ -716,10 +743,9 @@ export interface ISharedCtx<T = SharedDict> extends ISharedStateCtxBase<T> {
 export interface IAtomCtx<T = any> extends ISharedStateCtxBase<Atom<T>> {
   state: ReadOnlyAtom<T>;
   useState: (options?: IUseSharedStateOptions<T>) => [T, SetState<T>, IInsRenderInfo];
-  setAtomVal: (val: T) => void;
 }
 
-export interface IMutateFnParams<T = SharedState> {
+export interface BeforeFnParams<T = SharedState> {
   from: From;
   desc?: FnDesc;
   sn?: number;
@@ -758,7 +784,7 @@ export interface ICreateOptionsFull<T = SharedState> {
    * @deprecated
    * default: true
    * when true, it means using deep dependency collection strategy in component, using mutable state to generate new state
-   * 非 deep 存在的意义主要是为了支持无 Proxy 的运行环境 
+   * 非 deep 存在的意义主要是为了支持无 Proxy 的运行环境
    * 很多行为都会有缺失，考虑如何和 deep 对齐比较困难， 暂不推荐修改设置为 false，走默认的 true 就好
    */
   deep: boolean;
@@ -791,12 +817,16 @@ export interface ICreateOptionsFull<T = SharedState> {
    * action、mutate、setState、sync提交状态之前的函数，建议优先对 draft 操作，
    * 如需要返回则返回的部分对象是全新值才是安全的草稿，该函数执行时机是在中间件之前
    */
-  before: (params: IMutateFnParams<T>) => void | Partial<T>;
+  before: (params: BeforeFnParams<T>) => void | Partial<T>;
   /**
    * deafult: undefined
    * 不配置此项时，开发环境弹死循环提示，生产环境不弹
    */
   alertDeadCycleErr: boolean;
+  /**
+   * default: true，是否检测死循环，设置为 false 表示不检查
+   */
+  checkDeadCycle?: boolean;
 }
 
 export interface IInnerCreateOptions<T = SharedState> extends ICreateOptionsFull<SharedState> {
@@ -880,7 +910,7 @@ export interface IUseSharedStateOptions<T = any> {
    * const [ dict ] = useAtom(dictAtom);
    * // 以下读值操作，收集到依赖有 2 项，是 dict, dict.list[0]
    * dict.list[0];
-   * 
+   *
    * // 重置 list，引发当前组件重渲染
    * setDictAtom(draft=> draft.list = draft.list.slice());
    *
@@ -888,7 +918,7 @@ export interface IUseSharedStateOptions<T = any> {
    * const [ dict ] = useAtom(dictAtom, { arrDep: false });
    * // 以下读值操作，收集到依赖只有 1 项，是 dict.list[0]
    * dict.list[0];
-   * 
+   *
    * // 重置 list，不会引发当前组件重渲染
    * setDictAtom(draft=> draft.list = draft.list.slice());
    * ```
@@ -1097,6 +1127,8 @@ export interface IFnCtx {
   extra;
   /** 对应的可能存在的子函数描述 */
   subFnInfo: MutateFnStdItem;
+  /** 由 createSharedOptions.checkDeadCycle 和 mutateFnItem.checkDeadCycle 共同生成 */
+  checkDeadCycle: boolean;
   setLoading: (loading: boolean, err?: any) => void;
 }
 

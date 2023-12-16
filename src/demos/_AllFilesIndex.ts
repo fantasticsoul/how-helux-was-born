@@ -43,7 +43,7 @@
 // export { default as AtomItemChange } from './special/AtomItemChange';
 
 // export { default as MutateSelf } from './special/MutateSelf';
-// export { default as AtomSyncer } from './AtomSyncer';
+export { default as AtomSyncer } from './AtomSyncer';
 // export * from './scenes';
 // export { default as Syncer } from './Syncer';
 // export { default as SyncerTop } from './SyncerTop';

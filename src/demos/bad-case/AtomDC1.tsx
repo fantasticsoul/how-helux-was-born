@@ -53,52 +53,12 @@ const witness = mutate(finalPriceState)({
   fn: (draft) => {
     draft.retA = 3000;
     draft.time += 1;
-    draft.retA += 100; // 触发死循环
-    // setP2(draft => { draft.retA += 100 });
+    draft.retA += 100; // 读取自己触发死循环
   },
   deps: () => [priceState.a, finalPriceState.retA, finalPriceState.retB] as const,
   task: async ({ input: [a], setState, draft }) => {
-    console.error('trigger task');
-    // reactiveDesc(draft, 'change1');
-    const result = draft.retA + a
-    // console.error('trigger task draft.retA += a', result);
-    // ctx1.reactive.ccc += 1000;
-    // console.log('ctxp.reactive.ccc ', ctx1.reactive.ccc);
-
-    // const d1 = ctx1.reactive.d.d1;
-    noop(ctx2.reactive.f.f1);
-    // d1.d2 = 3000;
-    noop(ctx2.reactive.f.f1);
-    noop(draft.f.f1);
-
-    // ctxp.reactive.a += 1;
-    // ctxp.reactive.a += 1;
-    // ctxp.reactive.a += 100;
-    // console.log('after ctxp.reactive.a', ctxp.reactive.a);
-    // await delay(1000);
-    // reactiveDesc(draft, 'change2');
-    // draft.retA += a;
-    // await delay(1000);
-    // reactiveDesc(draft, 'change-->3');
-    // draft.retA += a;
-    // await delay(1000);
-    // ctx.reactiveDesc('change-->4');
-    // draft.retA += a;
-    // await delay(1000);
-    // ctx.reactiveDesc('change-->5');
-    // draft.retA += a;
-    // await delay(1000);
-
-    // draft.retA += a;
-    // flush(draft, 'flush1'); // 主动提交变更
-    // draft.retA += a;
-    // flush(draft, 'flush2');
-    // draft.retA += a;
-    // flush(draft, 'flush3');
-
-    draft.retA += a;
-    setState(draft => { draft.retB += a });
-    console.error('after ----------------------------------------------------------------');
+    draft.retA += a; // 触发死循环
+    setState(draft => { draft.retB += a }); // 触发死循环
   },
   desc: 'dangerousMutate',
   immediate: true, // 控制 task 立即执行
