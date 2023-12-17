@@ -16,7 +16,7 @@ type DR = {
   c: { deps: [number, string], result: number };
 };
 
-const fd = ctxp.defineFullDerive<DR>()({
+const fd = ctxp.defineFullDerive<DR>({
   a: () => priceState.a.b.c + 10000,
   b: () => priceState.a.b.c + 20000,
   c: {

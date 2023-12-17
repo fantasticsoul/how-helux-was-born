@@ -21,3 +21,22 @@ export type PartialArgType<T> = T extends PlainObject ? Partial<T> | ((draft: T)
 AtomSyncFnBuilder;
 AtomSyncer;
 ```
+
+##
+
+```ts
+// 这个写法失败，调用时推导不出payload
+  defineActions: <
+    P = any,
+    D = P extends Dict ? { [K in keyof P]: ActionFnDef<P[K], T> } : { [K in keyof D]: ActionFnDef<2, T> },
+  >(actionsDef: D, throwErr?:boolean) => {
+    actions: {
+      [K in keyof D]: (
+        payload: any,
+        throwErr?: boolean,
+      ) => ReturnType<D[K]> extends Promise<any> ? Promise<[NextState<T>, Error | null]> : [NextState<T>, Error | null];
+    };
+    getLoading: () => Ext<LoadingState<P>>;
+    useLoading: () => [Ext<LoadingState<P>>, SetState<LoadingState>, IInsRenderInfo];
+  };
+```

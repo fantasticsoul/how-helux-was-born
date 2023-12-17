@@ -1,4 +1,6 @@
 // export { default as Block } from './Block';
+// export { default as Api_runMutate } from './Api_runMutate';
+// export { default as Api_defineActions } from './Api_defineActions';
 // export { default as Atom } from './Atom';
 // export { default as AtomExact } from './AtomExact';
 // export { default as AtomAction } from './AtomAction';
@@ -29,22 +31,21 @@
 // export { default as CreateModel } from './CreateModel';
 // export { default as MutateTask } from './MutateTask';
 // export { default as AtomObjectMutate } from './AtomObjectMutate';
-// export { default as Api_runMutate } from './Api_runMutate';
 // export { default as Feat_arrStopDep } from './Feat_arrStopDep';
 // export { default as UseService } from './UseService';
 // export { default as UseWatch } from './UseWatch';
 // export { default as UseMemoFns } from './hooks/UseMemoFns';
 // export { default as UseStable } from './hooks/UseStable';
 
-// // // 检查 M2 取draft为何没拦住
+// // // 检查 M2 取 draft 为何没拦住
 // export { default as M2 } from './special/M2';
 
 // // 【FIXED】这个示例触发 proxy 对象上写入了 symbol属性
 // export { default as AtomItemChange } from './special/AtomItemChange';
 
 // export { default as MutateSelf } from './special/MutateSelf';
-export { default as AtomSyncer } from './AtomSyncer';
-// export * from './scenes';
+// export { default as AtomSyncer } from './AtomSyncer';
+export * from './scenes';
 // export { default as Syncer } from './Syncer';
 // export { default as SyncerTop } from './SyncerTop';
 // export { default as MutateTask3_detectShareDc } from './MutateTask3_detectShareDc';
@@ -56,12 +57,13 @@ export { default as AtomSyncer } from './AtomSyncer';
 // 多个函数间使用 draft 导致的死循环
 // export { default as DeadCycleCase2 } from './dead-cycle/Case2';
 // export { default as DeadCycleCase3 } from './dead-cycle/Case3';
+// export { default as CanNotStop } from './dead-cycle/CanNotStop';
 // export { default as AtomDC1 } from './bad-case/AtomDC1';
 // export { default as C1_File1 } from './bad-case/C1_File1';
 // export { default as C1_File2 } from './bad-case/C1_File2';
 // export { default as OnlyTask } from './bad-case/OnlyTask';
 // export { default as AtomAdd } from './bad-case/AtomAdd';
-export { default as SeePathPrint } from './bad-case/SeePathPrint';
+// export { default as SeePathPrint } from './bad-case/SeePathPrint';
 // export { default as SetStateInWatch } from './bad-case/SetStateInWatch';
 
 // export { default as Api_mutate } from './Api_mutate';
@@ -70,5 +72,15 @@ export { default as SeePathPrint } from './bad-case/SeePathPrint';
 
 // export { default as MapSignal } from './reactive/MapSignal';
 
+// export { default as useMutateLoading_test } from './core-tests/useMutateLoading_test';
 
-export const INITIAL_KEY = 'SeePathPrint';
+// export {
+//   WatchCb,
+// } from './dead-cycle/shoud-have';
+
+// export {
+//   WatchCb,
+// } from './dead-cycle/shoud-not';
+
+
+export const INITIAL_KEY = 'CanNotStop';

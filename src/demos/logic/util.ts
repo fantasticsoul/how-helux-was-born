@@ -16,6 +16,10 @@ export function getLocaleTime(date?: Date) {
   return `${str1} ${str2}`;
 }
 
+export function getAtionFns(actions: any) {
+  return Object.keys(actions).map(key => actions[key]);
+}
+
 export function noop(...args: any[]) { }
 
 export function random(seed = 100) {

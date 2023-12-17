@@ -1,6 +1,5 @@
 import { getVal, matchDictKey, nodupPush } from '@helux/utils';
 import { IOperateParams } from 'limu';
-import { FROM } from '../../consts';
 import { recordBlockDepKey } from '../../helpers/blockDep';
 import { recordFnDepKeys } from '../../helpers/fnDep';
 import type { IMutateCtx, KeyIdsDict, NumStrSymbol } from '../../types/base';
@@ -11,8 +10,6 @@ import { getDepKeyByPath, isArrLike } from '../common/util';
 import type { TInternal } from './buildInternal';
 import { REACTIVE_META } from './current';
 import { markExpired, nextTickFlush } from './reactive';
-
-const { MUTATE } = FROM;
 
 /**
  * 如果变化命中了 rules[].ids 或 globaIds 规则，则添加到 mutateCtx.ids 或 globalIds 里
@@ -86,7 +83,7 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
   const { writeKeyPathInfo, ids, globalIds, writeKeys } = mutateCtx;
   const writeKey = getDepKeyByPath(fullKeyPath, sharedKey);
 
-  if (currReactive.isReactive) {
+  if (currReactive.isTop) {
     nodupPush(currReactive.writeKeys, writeKey);
   }
 
@@ -129,11 +126,13 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
     putId(ruleConf.globalIdsDict, { ids: globalIds, writeKey, internal, opParams });
   }
 
+  // 是响应式对象在操作对象变更
   if (isReactive) {
     // 来自响应对象的变更操作，主动触发 nextTickFlush
-    nextTickFlush(sharedKey);
+    nextTickFlush(sharedKey, currReactive.desc);
   } else {
     // 发现 sharedKey 对应的对象已变化，主动标记 sharedKey 对应的响应对象已过期
+    // 用户其他地方再次使用 reactive 对象时，内部会自动创建一个新的返回给用户
     markExpired(sharedKey);
   }
 }

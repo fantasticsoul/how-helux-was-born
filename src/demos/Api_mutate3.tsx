@@ -16,7 +16,7 @@ type Payloads = {
   foo: boolean | undefined;
 };
 
-const { actions, useLoading, getLoading } = ctx1.defineActions<Payloads>()({
+const { actions, useLoading, getLoading } = ctx1.defineActions<Payloads>({
   changeA({ draftRoot, payload }) {
     draftRoot.a = 200;
   },
@@ -25,6 +25,19 @@ const { actions, useLoading, getLoading } = ctx1.defineActions<Payloads>()({
     draftRoot.ccc += 1000;
   },
 });
+
+const { actions: ac2 } = ctx1.defineActions({
+  changeA({ draftRoot, payload }) {
+    draftRoot.a = 200;
+  },
+  async foo({ draftRoot, payload }) {
+    await delay(3000);
+    draftRoot.ccc += 1000;
+  },
+});
+// ac2.
+
+
 
 // const s = actions.changeA([1, 2]);
 // console.log('111 is ', s);

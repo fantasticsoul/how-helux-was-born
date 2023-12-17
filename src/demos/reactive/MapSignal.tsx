@@ -14,7 +14,7 @@ const { reactive, defineActions, state: atomObj } = atomx({
 }, { moduleName: 'ruikun2', recordLoading: 'no' });
 
 
-const { actions } = defineActions()({
+const { actions } = defineActions({
   changeC({ draft, payload }) {
     const c = typeof payload === 'number' ? payload : random();
     draft.c = c;
@@ -45,7 +45,8 @@ function Test1() {
 }
 
 const Demo = () => (
-  <Entry fns={Object.keys(actions).map(key => actions[key])}>
+  // @ts-ignore
+  <Entry fns={Object.keys(actions).map((key) => actions[key])}>
     <Test1 />
     <Test1 />
   </Entry>

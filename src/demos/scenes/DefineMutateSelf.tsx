@@ -3,7 +3,7 @@ import { $, share } from 'helux';
 import { MarkUpdate, Entry } from '../comps';
 import { dictFactory, delay } from '../logic/util';
 
-const [priceState, , ctxp] = share(dictFactory, { moduleName: 'DefineApi3' });
+const [priceState, , ctxp] = share(dictFactory, { moduleName: 'DefineApi3', alertDeadCycleErr: false });
 
 const ms = ctxp.defineMutateSelf({
   toBeDrive: (draft, params) => {

@@ -1,6 +1,6 @@
 import { getVal, setVal } from '@helux/utils';
 import { OP_KEYS } from '../../consts';
-import { createOneLevelOb } from '../../helpers/obj';
+import { createDpOb } from '../../helpers/obj';
 import type { Dict, IInnerSetStateOptions } from '../../types/base';
 import { getDataType, isDict, newMutateCtx, newOpParams } from '../common/util';
 import type { TInternal } from './buildInternal';
@@ -35,7 +35,7 @@ export function prepareDowngradeMutate(opts: IPrepareDowngradeMutateOpts) {
   // 非 deep 存在的意义主要是为了支持无 Proxy 的运行环境
   // 很多行为都会有缺失，考虑如何和 deep 完全对齐还是一个正在进行中的工作，欢迎测试，现阶段暂不推荐使用
   const toShallowProxy = (obj: any, keyLevel: number, parentKeyPath: string[]): any =>
-    createOneLevelOb(obj, {
+    createDpOb(obj, {
       set: (target: Dict, key: any, value: any) => {
         handleValueChange(target, key, value, parentKeyPath);
         return true;

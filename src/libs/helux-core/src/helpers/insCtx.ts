@@ -16,6 +16,9 @@ import { clearDep } from './insDep';
 import { createOb } from './obj';
 import { getInternal } from './state';
 
+/**
+ * 开始收集依赖
+ */
 function collectDep(insCtx: InsCtxDef, info: DepKeyInfo, options: { parentType: string; rawVal: any }) {
   if (!insCtx.canCollect) {
     // 无需收集依赖
@@ -29,6 +32,9 @@ function collectDep(insCtx: InsCtxDef, info: DepKeyInfo, options: { parentType: 
   insCtx.recordDep(info, parentType, isValArrLike);
 }
 
+/**
+ * 获取当前实例收集到依赖项（包含固定住的依赖）
+ */
 function getInsDeps(insCtx: InsCtxDef, isCurrent: boolean) {
   const { depKeys, currentDepKeys, fixedDepKeys } = insCtx;
   const dynamic = isCurrent ? currentDepKeys : depKeys;
@@ -44,6 +50,9 @@ export function runInsUpdater(insCtx: InsCtxDef | undefined) {
   updater();
 }
 
+/**
+ * 为实例创建代理对象并追加到 insCtx 上
+ */
 export function attachInsProxyState(insCtx: InsCtxDef) {
   const { internal, isReactive } = insCtx;
   const { rawState, isDeep, sharedKey, onRead, forAtom } = internal;
@@ -54,28 +63,34 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
       if (isSymbol(key)) {
         return handleCustomKey(opParams, forAtom, sharedKey);
       }
+      
+      // TODO，这个逻辑待删除，写操作在 operateState 里已执行，这里不会触发写逻辑
+      // 是响应式对象在写数据
+      if (isReactive && opParams.isChanged) {
+        nextTickFlush(sharedKey);
+        return;
+      }
 
       const { fullKeyPath, keyPath, parentType } = opParams;
       const rawVal = callOnRead(opParams, onRead);
       const depKey = getDepKeyByPath(fullKeyPath, sharedKey);
       const depKeyInfo = { depKey, keyPath: fullKeyPath, parentKeyPath: keyPath, sharedKey };
       collectDep(insCtx, depKeyInfo, { parentType, rawVal });
-
-      // 响应式对象会触发到变化行为
-      if (isReactive && opParams.isChanged) {
-        nextTickFlush(sharedKey);
-      }
     };
 
     if (isReactive) {
-      const { draft, draftRoot } = buildReactive(internal, [], { onRead: onOperate });
+      // 组件实例使用 useReactive(state) 返回的 reactive 对象时，会在 creator/operateState 里操作实例自己的 onOperate 句柄
+      const { draft, draftRoot } = buildReactive(internal, { onRead: onOperate });
       insCtx.proxyState = draftRoot;
       insCtx.proxyStateVal = draft;
     } else {
+      // 非 reactive 对象，外部 prepareTuple 里会自动拆箱，这里只需创建跟代理对象即可
       insCtx.proxyState = immut(rawState, { onOperate, compareVer: true });
     }
   } else {
-    // TODO  待 toShallowCopy 抽象完毕后，统一调用 toShallowCopy
+    // TODO  
+    // 1 待 toShallowCopy 抽象完毕后，统一调用 toShallowCopy
+    // 2 非 Proxy环境，对于数组 push pop 等操作，提供 markChanged 接口让 helux 感知到变化
     insCtx.proxyState = createOb(rawState, {
       set: () => {
         warn('changing shared state is invalid');
@@ -96,6 +111,9 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
   }
 }
 
+/**
+ * 为组件构建 insCtx
+ */
 export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
   const {
     updater,
@@ -156,6 +174,7 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
     extra: {},
     getDeps: () => getInsDeps(insCtx, true),
     renderInfo: {
+      time: Date.now(),
       sn: 0,
       snap,
       insKey,
@@ -254,6 +273,9 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
   return insCtx;
 }
 
+/**
+ * 为组件创建全量导出结果代理对象
+ */
 export function attachInsDerivedResult(fnCtx: IFnCtx) {
   const { result, forAtom } = fnCtx;
 

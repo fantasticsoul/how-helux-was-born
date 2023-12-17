@@ -16,6 +16,7 @@ const [state] = atom(
         draft.a = draft.c + 30;
       },
     },
+    alertDeadCycleErr: false,
   },
 );
 

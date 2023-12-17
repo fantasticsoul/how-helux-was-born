@@ -1,4 +1,3 @@
-import { noop } from '@helux/utils';
 import { FROM, STATE_TYPE } from '../consts';
 import { runDerive, runDeriveTask } from '../helpers/fnRunner';
 import { useAtom, useAtomForceUpdate, useDerived, useLocalForceUpdate, useMutable, useReactive } from '../hooks';
@@ -100,11 +99,10 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     state, // 指向 root
     stateVal, // atom 的话 stateVal 是拆箱后的值，share 对象的话，stateVal 指向 root 自身
     setState,
-    defineActions: (throwErr?: boolean) => (actionDict: Dict) =>
-      defineActions({ ...common, ldAction, actionCreator, actionDict }, throwErr),
+    defineActions: (actionDict: Dict, throwErr?: boolean) => defineActions({ ...common, ldAction, actionCreator, actionDict }, throwErr),
     defineMutateDerive: (inital: Dict, mutateFnDict: Dict) => defineMutateDerive({ ...common, ldMutate, inital, mutateFnDict }),
     defineMutateSelf: (mutateFnDict: Dict) => defineMutate({ ldMutate, state, mutateFnDict }),
-    defineFullDerive: (throwErr?: boolean) => (deriveFnDict: Dict) => defineFullDerive({ apiCtx, deriveFnDict, throwErr }),
+    defineFullDerive: (deriveFnDict: Dict, throwErr?: boolean) => defineFullDerive({ apiCtx, deriveFnDict, throwErr }),
     mutate: mutate(state),
     runMutate: (descOrOptions: string | IRunMutateOptions) => runMutate(state, descOrOptions),
     runMutateTask: (descOrOptions: string | IRunMutateOptions) => runMutateTask(state, descOrOptions),

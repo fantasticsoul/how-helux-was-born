@@ -31,7 +31,8 @@ const x = atomx({ a: 1, b: 2 }, { moduleName: 'yy', alertDeadCycleErr: false });
 
 // x.mutate(() => ({ a: 3, b: 4 }));
 x.mutate({
-  // TODO  死循环示例
+  // TODO  这个是拦不住的死循环示例
+  // DONE  目前已经可以挡住了
   fn: (draft, { draftRoot }) => {
     // console.error('trigger fn');
     // // draftRoot.val = { a: 3, b: 4 }; // dc
@@ -40,6 +41,7 @@ x.mutate({
     // // draft.a = draft.b + 8;
     // draft.a = draftRoot.val.b + 8;
     console.log('a is', draft.a);
+    changeA();
   },
   desc: 'xx',
 });

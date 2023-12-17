@@ -6,16 +6,16 @@ interface IProps {
   info?: IRenderInfo | Array<IRenderInfo>;
   name?: string;
   children: any;
+  /** 强制按顺序读取新颜色 */
   forceColor?: boolean;
 }
 
 const colors = ["#0944d0", "#fc774b", "#1da187", "#fdc536", "#1789f5"];
 let curIdx = 0;
 
-function getColor(sn: number, forceColor?: boolean) {
+function getColor(sn: number, forceColor = false) {
   let idx = 0;
-  const force = sn === 0 && forceColor === undefined ? true : forceColor;
-  if (force) {
+  if (forceColor) {
     idx = curIdx % colors.length;
     curIdx++;
   } else {
@@ -26,7 +26,7 @@ function getColor(sn: number, forceColor?: boolean) {
   return color;
 }
 
-const fakeInfo = { sn: 0, insKey:0, getDeps: () => [] };
+const fakeInfo = { time: 0, sn: 0, insKey: 0, getDeps: () => [] };
 
 function ensureInfos(info: IRenderInfo | Array<IRenderInfo>) {
   let infos: IRenderInfo[] = [];
@@ -40,42 +40,31 @@ function ensureInfos(info: IRenderInfo | Array<IRenderInfo>) {
 
 function getInfoData(
   info: IRenderInfo | Array<IRenderInfo>,
-  genDepStr?: boolean
 ) {
   const infos = ensureInfos(info);
   let sn = 0;
   let depStr = "";
-  const insKeyStr = infos.map(item=>item.insKey).join(',');
+  const insKeyStr = infos.map(item => item.insKey).join(',');
   const deps: string[] = [];
   infos.forEach((item) => {
     sn += item.sn;
-    if (genDepStr) {
-      item.getDeps().forEach((dep) => nodupPush(deps, dep));
-    }
+    const currDeps = item.getDeps();
+    currDeps.forEach((dep) => nodupPush(deps, dep));
   });
   depStr = deps.join(" , ");
+  const snStr = infos.length > 1 ? `(sn sum ${sn})` : `(sn ${sn})`
+
   return {
     sn,
     depStr,
+    snStr,
     insKeyStr,
   };
 }
 
-function useMarkUpdate(info: IRenderInfo | Array<IRenderInfo>) {
-  const [depStr, setDepStr] = useState("");
-  const { sn, insKeyStr } = getInfoData(info);
-  useEffect(() => {
-    setDepStr(getInfoData(info, true).depStr); // 此时调用获取到当前的渲染依赖
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sn, info]);
-  let snLabel = Array.isArray(info) ? "sn sum" : "sn";
-  const snNode = sn ? `(${snLabel} ${sn})` : "";
-  return { depStr, snNode, sn, insKeyStr };
-}
-
 function Ui(props: IProps) {
   const { name = "MarkUpdate", info = fakeInfo, forceColor } = props;
-  const { snNode, depStr, sn, insKeyStr } = useMarkUpdate(info);
+  const { sn, insKeyStr, depStr, snStr } = getInfoData(info);
   return (
     <div className="box">
       {props.children}
@@ -83,7 +72,7 @@ function Ui(props: IProps) {
         className="info"
         style={{ backgroundColor: getColor(sn, forceColor) }}
       >
-        [{name}] update at {getLocaleTime()} {snNode} (insKey {insKeyStr})
+        [{name}] update at {getLocaleTime()} {snStr} (insKey {insKeyStr})
       </div>
       {depStr && <div style={{ color: "green" }}> deps is [ {depStr} ]</div>}
     </div>

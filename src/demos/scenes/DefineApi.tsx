@@ -11,10 +11,10 @@ export type DepsResult = { deps: any[], result: any };
 // 约束各个函数入参类型
 type Payloads = {
   changeA: [number, number];
-  foo: boolean | undefined;
+  // foo: boolean | undefined;
 };
 
-const { actions, useLoading, getLoading } = ctxp.defineActions<Payloads>()({
+const { actions, useLoading, getLoading } = ctxp.defineActions<Payloads>({
   changeA({ draft, payload }) {
     draft.a.b.c = 200;
   },
@@ -23,13 +23,15 @@ const { actions, useLoading, getLoading } = ctxp.defineActions<Payloads>()({
     draft.a.b.c += 1000;
   },
 });
+actions.foo(true)
 
 type DR = {
   a: { result: number };
+  // b: { result: number };
   c: { deps: [number, string], result: number };
 };
 
-const fd = ctxp.defineFullDerive<DR>()({
+const fd = ctxp.defineFullDerive<DR>({
   a() {
     return priceState.a.b.c + 10000;
   },
@@ -47,8 +49,12 @@ const fd = ctxp.defineFullDerive<DR>()({
   }
 });
 
-// const a = fd.derivedResult.a;
-// const c = fd.derivedResult.c;
+const a = fd.derivedResult.a;
+const c = fd.derivedResult.c;
+// a.z__is_atom_result__
+// a.__helux_ts_type_helper_attr__
+
+// a.val
 // console.log('---> ', a.val);
 // console.log('---> ', c.val);
 

@@ -5,7 +5,7 @@ import type { Dict, From, OnOperate } from '../../types/base';
 import type { IReactive, IReactiveMeta } from '../../types/inner';
 import { getReactiveKey } from '../common/key';
 import type { TInternal } from './buildInternal';
-import { REACTIVE_DESC, REACTIVE_META } from './current';
+import { REACTIVE_DESC, REACTIVE_META, TRIGGERED_WATCH } from './current';
 
 /** key: sharedKey, value: reactive object */
 const reactives: Map<number, IReactive> = new Map();
@@ -42,6 +42,17 @@ export function reactiveDesc(sharedState: any, desc?: string) {
 export function flush(sharedState: any, desc?: string) {
   const sharedKey = getSharedKey(sharedState);
   innerFlush(sharedKey, desc);
+}
+
+/**
+ * 刷新可能在活跃中的 reaactive 对象，提交后就删除
+ */
+export function flushActive() {
+  const rmeta = REACTIVE_META.current();
+  if (rmeta.isTop) {
+    innerFlush(rmeta.sharedKey, rmeta.desc);
+    REACTIVE_META.del(rmeta.key);
+  }
 }
 
 /**
@@ -119,18 +130,41 @@ function getReactiveVal(internal: TInternal, forAtom: boolean) {
   return forAtom ? draft.val : draft;
 }
 
+function markUsing(rKey: string) {
+  REACTIVE_META.markUsing(rKey);
+  const watchFnKey = TRIGGERED_WATCH.current();
+  if (watchFnKey) {
+    const rmeta = REACTIVE_META.current();
+    rmeta.fnKey = watchFnKey;
+  }
+}
+
 /**
- * 创建全局使用的响应式共享对象
+ * 创建响应式共享对象
  */
-export function buildReactive(internal: TInternal, fnDepKeys: string[], options?: { desc?: string; onRead?: OnOperate; from?: From }) {
+export function buildReactive(
+  internal: TInternal,
+  options?: { isTop?: boolean; depKeys?: string[]; desc?: string; onRead?: OnOperate; from?: From },
+) {
   // 提供 draftRoot、draft，和 mutate、aciont 回调里对齐，方便用户使用 atom 时少一层 .val 操作
   let draftRoot: any = {};
   let draft: any = {};
   const { rawState, deep, forAtom, isPrimitive, sharedKey, moduleName } = internal;
-  const { desc, onRead, from = FROM.REACTIVE } = options || {};
+  const { desc, onRead, from = FROM.REACTIVE, depKeys = [], isTop = false } = options || {};
 
   const rKey = getReactiveKey();
-  const meta: IReactiveMeta = { isReactive: true, moduleName, key: rKey, desc: desc || '', sharedKey, writeKeys: [], onRead, from };
+  const meta: IReactiveMeta = {
+    isTop,
+    moduleName,
+    key: rKey,
+    fnKey: '',
+    desc: desc || '',
+    sharedKey,
+    depKeys,
+    writeKeys: [],
+    onRead,
+    from,
+  };
   if (canUseDeep(deep)) {
     const innerData = {
       [REACTIVE_META_KEY]: meta,
@@ -138,14 +172,14 @@ export function buildReactive(internal: TInternal, fnDepKeys: string[], options?
       [IS_ATOM]: forAtom,
     };
     const set = (forAtom: boolean, key: any, value: any) => {
-      REACTIVE_META.markUsing(rKey);
+      markUsing(rKey);
       const draftVal = getReactiveVal(internal, forAtom);
       // handleOperate 里会自动触发 nextTickFlush
       draftVal[key] = value;
       return true;
     };
     const get = (forAtom: boolean, key: any, innerData: Dict) => {
-      REACTIVE_META.markUsing(rKey);
+      markUsing(rKey);
       const val = innerData[key];
       if (val !== undefined) {
         return val;
@@ -167,9 +201,9 @@ export function buildReactive(internal: TInternal, fnDepKeys: string[], options?
       draft = isPrimitive
         ? rawState.val
         : new Proxy(rawState.val, {
-            set: (t: any, key: any, value: any) => set(true, key, value),
-            get: (t: any, key: any) => get(true, key, subInnerData),
-          });
+          set: (t: any, key: any, value: any) => set(true, key, value),
+          get: (t: any, key: any) => get(true, key, subInnerData),
+        });
     }
   } else {
     // 非 Proxy 环境暂不支持 reactive

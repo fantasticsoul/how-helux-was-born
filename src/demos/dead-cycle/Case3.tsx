@@ -3,7 +3,7 @@ import { $, share, watch } from 'helux';
 import { MarkUpdate, Entry } from '../comps';
 import { dictFactory, delay } from '../logic/util';
 
-const [state, setState, ctxp] = share(dictFactory, { moduleName: 'Case3' });
+const [state, setState, ctxp] = share(dictFactory, { moduleName: 'Case3', alertDeadCycleErr: false });
 
 // 依赖f，回调里修改f
 watch(() => {
