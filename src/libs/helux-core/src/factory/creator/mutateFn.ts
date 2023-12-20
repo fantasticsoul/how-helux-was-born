@@ -9,11 +9,11 @@ import { getStatusKey, setLoadStatus } from '../../factory/creator/loading';
 import { markFnEnd } from '../../helpers/fnCtx';
 import { markIgnore } from '../../helpers/fnDep';
 import { getInternal } from '../../helpers/state';
-import type { Fn, From, IInnerSetStateOptions, IWatchAndCallMutateDictOptions, MutateFnStdItem, SharedState } from '../../types/base';
+import type { Fn, From, IInnerSetStateOptions, IWatchAndCallMutateDictOptions, MutateFnStdItem, SharedState, ActionReturn, ActionAsyncReturn } from '../../types/base';
 import { createWatchLogic } from '../createWatch';
 import { buildReactive, flushActive, innerFlush } from './reactive';
 
-const noopAny: any = () => {};
+const noopAny: any = () => { };
 
 interface ICallMutateBase {
   /** 透传给用户 */
@@ -31,18 +31,26 @@ interface ICallMutateFnOpt<T = SharedState> extends ICallMutateBase {
 }
 
 interface ICallAsyncMutateFnOpt extends ICallMutateBase {
+  mergeReturn?: boolean;
   /** task 函数调用入参拼装，暂不像同步函数逻辑那样提供 draft 给用户直接操作，用户必须使用 setState 修改状态 */
   getArgs?: (param: { flush: any; draft: any; draftRoot: any; desc: string; setState: Fn; input: any[] }) => any[];
 }
 
-const fnProm = new Map<any, boolean>();
+const taskProm = new Map<any, boolean>();
+
+/**
+ * task 是否是一个异步函数，首次执行完毕即可分析得到结果并缓存到 taskProm 中
+ */
+export function isTaskProm(task: any) {
+  return taskProm.get(task) ?? false;
+}
 
 /** 呼叫异步函数的逻辑封装，mutate task 执行或 action 定义的函数（同步或异步）执行都会走到此逻辑 */
 export function callAsyncMutateFnLogic<T = SharedState>(
   targetState: T,
   options: ICallAsyncMutateFnOpt,
-): [any, Error | null] | Promise<[any, Error | null]> {
-  const { sn, getArgs = noop, from, throwErr, isFirstCall, fnItem } = options;
+): ActionReturn | ActionAsyncReturn {
+  const { sn, getArgs = noop, from, throwErr, isFirstCall, fnItem, mergeReturn } = options;
   const { desc = '', deps, depKeys, task = noopAny } = fnItem;
   const internal = getInternal(targetState);
   const { sharedKey } = internal;
@@ -65,7 +73,7 @@ export function callAsyncMutateFnLogic<T = SharedState>(
 
   const defaultParams = { isFirstCall, desc, setState, input: enureReturnArr(deps, targetState), draft, draftRoot, flush };
   const args = getArgs(defaultParams) || [defaultParams];
-  const isProm = fnProm.get(task);
+  const isProm = taskProm.get(task);
   const isUnconfirmedFn = isProm === undefined;
   const setStatus = (loading: boolean, err: any, ok: boolean) => {
     if (isUnconfirmedFn || isProm) {
@@ -81,33 +89,37 @@ export function callAsyncMutateFnLogic<T = SharedState>(
   };
 
   setStatus(true, null, false);
-  const handleErr = (err: any): [any, Error | null] => {
+  const handleErr = (err: any): ActionReturn => {
     REACTIVE_META.del(meta.key);
     FN_DEP_KEYS.del();
     setStatus(false, err, false);
     if (throwErr) {
       throw err;
     }
-    return [internal.snap, err];
+    return { snap: internal.snap, err, result: null };
   };
-  const handlePartial = (partial: any): [any, Error | null] => {
-    partial && setState(partial);
+  const handlePartial = (partial: any): ActionReturn => {
+    // 来自 mutate 调用时，task 返回结果自动合并
+    if (mergeReturn) {
+      partial && setState(partial);
+    }
     setStatus(false, null, true);
     // 这里需要主动 flush 一次，让返回的 snap 是最新值（ flush 内部会主动判断 reactive 是否已过期，不会有冗余的刷新动作产生 ）
     // const nextState = actions.xxxMethod(); //  nextState 为最新值
     flush(desc);
-    // del mutate or action reactive data
+    // del mutate or action reactive meta data
     REACTIVE_META.del(meta.key);
 
-    return [internal.snap, null];
+    return { snap: internal.snap, err: null, result: partial };
   };
 
   try {
     const result = task(...args);
-    const isResultProm = isPromise(result);
+    // is result a promise
+    const isProm = isPromise(result);
     // 注：只能从结果判断函数是否是 Promise，因为编译后的函数很可能再套一层函数
-    fnProm.set(task, isResultProm);
-    if (isResultProm) {
+    taskProm.set(task, isProm);
+    if (isProm) {
       return Promise.resolve(result).then(handlePartial).catch(handleErr);
     }
     return handlePartial(result);
@@ -117,7 +129,7 @@ export function callAsyncMutateFnLogic<T = SharedState>(
 }
 
 /** 呼叫同步函数的逻辑封装 */
-export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICallMutateFnOpt<T>): [any, Error | null] {
+export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICallMutateFnOpt<T>): ActionReturn {
   const { sn, getArgs = noop, from, throwErr, isFirstCall = false, fnItem } = options;
   const { deps, desc = '', watchKey, fn = noopAny } = fnItem;
   const isMutate = FROM.MUTATE === from;
@@ -149,20 +161,20 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
     // 当前函数已存在死循环
     if (fnCtx.dcErrorInfo.err) {
       alertDepKeyDeadCycleErr(internal, fnCtx.dcErrorInfo);
-      return [internal.snap, null];
+      return { snap: internal.snap, err: null, result: null };
     }
 
     const result = fn(...args);
     finish(result, innerSetOptions);
     afterFnRun(internal, fnItem, isFirstCall);
-    return [internal.snap, null];
+    return { snap: internal.snap, err: null, result: null };
   } catch (err: any) {
     TRIGGERED_WATCH.del();
     // TODO 同步函数错误发送给插件
     if (throwErr) {
       throw err;
     }
-    return [internal.snap, err];
+    return { snap: internal.snap, err, result: null };
   }
 }
 

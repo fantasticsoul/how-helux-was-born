@@ -1,29 +1,92 @@
 import React from 'react';
-import { mutate, share, useAtom, $ } from 'helux';
+import { mutate, share, useAtom, $, action, ActionFnParam } from 'helux';
 import { MarkUpdate, Entry } from '../comps';
 import { dictFactory, delay } from '../logic/util';
 
 const [priceState, setPrice, ctxp] = share(dictFactory, { moduleName: 'DefineApi' });
-
+type S = typeof dictFactory;
 
 export type DepsResult = { deps: any[], result: any };
 
 // 约束各个函数入参类型
 type Payloads = {
   changeA: [number, number];
-  // foo: boolean | undefined;
+  foo: boolean | undefined;
 };
 
-const { actions, useLoading, getLoading } = ctxp.defineActions<Payloads>({
-  changeA({ draft, payload }) {
+const fn = action(priceState)<number>()(async (params) => {
+  const p = params.payload;
+  params.draft.f += 1;
+})
+
+fn(1);
+
+// TODO  action 允许自定义返回值
+// 新增 eActions，返回 [ result, err ] 对
+const { actions, eActions, useLoading, getLoading } = ctxp.defineActions<Payloads>()({
+  // const { actions, eActions, useLoading, getLoading } = ctxp.defineActions()({
+  changeA: ({ draft, payload }) => {
     draft.a.b.c = 200;
+    // return { f: 1 };
+    return 1;
   },
   async foo({ draft, payload }) {
     await delay(3000);
     draft.a.b.c += 1000;
+    return 1;
+  },
+  cc({ draft, payload }) {
+    // return 1;
+    return { f2: 1 }
+  },
+  dd({ draft, payload }: ActionFnParam<number, S>) {
+    // return 1;
+    return { f2: 1 }
   },
 });
-actions.foo(true)
+
+async function test() {
+  const a = actions.changeA([1, 2])
+  const b = await actions.foo(true)
+  const ee = actions.cc();
+  const xx = actions.dd(1);
+  const ret = await eActions.foo(true);
+  console.log(1);
+}
+test();
+
+const { actions: a2, eActions: ea2, useLoading: u2, getLoading: g2 } = ctxp.defineTpActions()({
+  changeA: ctxp.action<number>()(({ draft, payload }) => { // 此处 payload 获得类型提示
+    draft.a.b.c = 200;
+    return { a: 1 };
+  }),
+  changeB: ctxp.action<boolean>()(async ({ draft, payload }) => {
+    draft.a.b.c = 200;
+    return 2;
+  }),
+});
+
+
+async function test2() {
+  const a1 = ea2.changeA(1);
+  const b1 = await ea2.changeB(true);
+
+  const ret1 = a2.changeA(1); // 此处入参 payload 获得类型校验
+  const ret2 = await a2.changeB(true); // 此处入参 payload 获得类型校验
+  const a = ret2;
+  console.log(1);
+}
+test2();
+
+const actions2 = {
+  changeB: ctxp.action<number>()(({ draft, payload }) => {
+    draft.a.b.c = 200;
+  }),
+}
+
+actions2.changeB(1)
+
+// actions.
 
 type DR = {
   a: { result: number };
@@ -125,3 +188,4 @@ const Demo = () => (
 );
 
 export default Demo;
+// 

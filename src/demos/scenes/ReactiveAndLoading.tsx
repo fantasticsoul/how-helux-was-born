@@ -7,7 +7,7 @@ const [shared, , sctx] = share(dictFactory, { moduleName: 'ReactiveAndLoding' })
 const [atomDict, , ctx] = atom(dictFactory);
 const { reactive } = sctx;
 
-const { actions, useLoading } = ctx.defineActions({
+const { actions, useLoading } = ctx.defineActions()({
   async asyncAdd({draft}){
     await delay(3000);
     draft.a.b.c++;

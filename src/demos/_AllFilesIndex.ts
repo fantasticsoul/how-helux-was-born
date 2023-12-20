@@ -36,6 +36,7 @@
 // export { default as UseWatch } from './UseWatch';
 // export { default as UseMemoFns } from './hooks/UseMemoFns';
 // export { default as UseStable } from './hooks/UseStable';
+// export { default as UseReactive } from './UseReactive';
 
 // // // 检查 M2 取 draft 为何没拦住
 // export { default as M2 } from './special/M2';
@@ -83,4 +84,4 @@ export * from './scenes';
 // } from './dead-cycle/shoud-not';
 
 
-export const INITIAL_KEY = 'CanNotStop';
+export const INITIAL_KEY = 'UseReactive';

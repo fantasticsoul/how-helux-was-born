@@ -5,7 +5,7 @@ import type { Dict, Ext, IInnerSetStateOptions, IMutateCtx, ISetFactoryOpts } fr
 import { genRenderSN } from '../common/key';
 import { runMiddlewares } from '../common/middleware';
 import { emitDataChanged } from '../common/plugin';
-import { newMutateCtx } from '../common/util';
+import { newMutateCtx, isDict } from '../common/util';
 import type { TInternal } from './buildInternal';
 import { handleCustomKey } from './buildShared';
 import { commitState } from './commitState';
@@ -27,48 +27,38 @@ interface ISnCommitOpts extends ICommitOpts {
   sn: number;
 }
 
-function handlePartial(opts: Ext<{ mutateCtx: IMutateCtx }>) {
-  const { partial, forAtom, mutateCtx, isPrimitive, draftRoot, draftNode } = opts;
-  // 把深依赖和浅依赖收集到的 keys 合并起来
-  if (!isObj(partial)) {
+interface IHandlePartialOpts {
+  forAtom: boolean;
+  isPrimitive: boolean;
+  partial: any;
+  draftRoot: any;
+  draftNode: any;
+}
+
+function handleDict(draftNode: any, dict: Dict) {
+  // [object Object]
+  Object.keys(dict).forEach((key) => {
+    // 触发 writeKeys 里记录当前变化key
+    draftNode[key] = dict[key];
+  });
+};
+
+export function handlePartial(opts: IHandlePartialOpts) {
+  const { partial, forAtom, isPrimitive, draftRoot, draftNode } = opts;
+  const isPartialDict = isDict(partial);
+  // 非 atom setState 返回值，只对字典做浅合并
+  if (!forAtom) {
+    isPartialDict && handleDict(draftNode, partial);
     return;
   }
-  // 触发 writeKeys 里记录当前变化key
-  if (forAtom) {
-    // 对于 primitive atom 来说，如果操作了 currentDraftRoot().val=xx 赋值，则丢弃 partial.val
-    // 例如写为 sync(to=>to.a, ()=>currentDraftRoot().val=1) 而不是 sync(to=>to.a, draft=>{currentDraftRoot().val=1}) 时
-    // 这里的 ()=>currentDraftRoot().val=1 其实还同时返回了值 1，这个 1 被包裹为 { val: 1 } 到这里后，
-    // 如果写入就会造成草稿对象被污染，故这里判断一下 mutateCtx.isChanged 做个保护
-    const val = partial.val;
-    const handleObjVal = () => {
-      if (isJsObj(val)) {
-        // 仅字典做合并，其他的走完整替换策略
-        if (limuUtils.isObject(val)) {
-          // [object Object]
-          Object.keys(val).forEach((key) => {
-            draftNode[key] = (val as any)[key];
-          });
-        } else {
-          draftRoot.val = val;
-        }
-      }
-    };
 
-    if (mutateCtx.handleAtomCbReturn) {
-      if (isPrimitive) {
-        draftRoot.val = val;
-      } else {
-        handleObjVal();
-      }
-    } else {
-      // 未做任何改变时，继续处理返回的对象
-      handleObjVal();
-    }
-  } else {
-    Object.keys(partial).forEach((key) => {
-      draftRoot[key] = partial[key];
-    });
+  const val = partial.val;
+  if (isPrimitive || !isPartialDict) {
+    draftRoot.val = val;
+    return;
   }
+
+  handleDict(draftNode, val);
 }
 
 /**
@@ -96,11 +86,13 @@ export function execFinish(
   innerSetOptions: IInnerSetStateOptions = {},
 ) {
   const { mutateCtx, internal } = commitOpts;
-  const { writeKeys, writeKeyPathInfo } = mutateCtx;
+  const { writeKeys, writeKeyPathInfo, handleCbReturn } = mutateCtx;
   const { forAtom, isPrimitive } = internal;
 
   // TODO: discussion 是否添加 ignoreCbReturn 参数，允许用户强制忽略 cb 返回值
-  handlePartial({ partial, forAtom, mutateCtx, isPrimitive, draftRoot, draftNode });
+  if (handleCbReturn) {
+    handlePartial({ partial, forAtom, isPrimitive, draftRoot, draftNode });
+  }
   const opts = beforeCommit(commitOpts, innerSetOptions, draftRoot);
   mutateCtx.depKeys = Object.keys(writeKeys);
   DRAFT_ROOT.del();

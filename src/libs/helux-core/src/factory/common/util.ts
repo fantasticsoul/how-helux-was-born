@@ -42,7 +42,7 @@ export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
     writeKeys: {},
     arrKeyDict: {}, // 记录读取过程中遇到的数组 key
     writeKeyPathInfo: {},
-    handleAtomCbReturn: true,
+    handleCbReturn: true,
     draftVal: null,
     from,
     isReactive,

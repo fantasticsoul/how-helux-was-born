@@ -87,7 +87,7 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
     nodupPush(currReactive.writeKeys, writeKey);
   }
 
-  mutateCtx.handleAtomCbReturn = false;
+  mutateCtx.handleCbReturn = false;
   // 主动把数组自身节点 key 也记录一下
   if (arrLike) {
     const arrKey = getDepKeyByPath(keyPath, sharedKey);

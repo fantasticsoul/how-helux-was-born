@@ -11,11 +11,11 @@ import { random, delay } from './logic/util';
 const [numAtom, , ctx] = atom(1, { moduleName: 'AtomAction' });
 const [shared, , ctx2] = share({ a: 1, b: 2 }, { moduleName: 'AtomAction2' });
 
-const someAction = ctx.action(({ draftRoot, payload }) => {
+const someAction = ctx.action()(({ draftRoot, payload }) => {
   draftRoot.val = (payload && Number.isInteger(payload)) ? payload : random();
 }, 'someAction');
 
-const someAsyncAction = ctx.action<number>(async ({ setState, payload }) => {
+const someAsyncAction = ctx.action<number>()(async ({ setState, payload }) => {
   await delay(2000);
   const val = (payload && Number.isInteger(payload)) ? payload : random();
   // setState((_, draftRoot) => draftRoot.val = val);
@@ -30,7 +30,7 @@ setTimeout(() => {
 // createAction3(numAtom)(fnDef, desc) --> actionFn
 // createAction3(numAtom)<[...]>(fnDef, desc) --> actionFn
 
-const normalAction = action(numAtom)<[number, string]>(
+const normalAction = action(numAtom)<[number, string]>()(
   ({ setState, payload: args }) => {
     const val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();
     // return val;
@@ -39,7 +39,7 @@ const normalAction = action(numAtom)<[number, string]>(
   'normalAction'
 );
 
-const asyncAction = action(numAtom)<[number, string]>(
+const asyncAction = action(numAtom)<[number, string]>()(
   async ({ setState, payload: args }) => {
     await delay(2000);
     const val = (args[0] && Number.isInteger(args[0])) ? args[0] : random();

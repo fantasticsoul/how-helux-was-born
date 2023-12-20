@@ -9,6 +9,7 @@ import type { MutableRefObject, ReactNode } from '@helux/types';
 import type { Draft, GenNewStateCb, ICreateDraftOptions } from 'limu';
 import type {
   Action,
+  ActionAsync,
   ActionFnDef,
   Atom,
   AtomValType,
@@ -75,17 +76,16 @@ export declare const RECORD_LOADING: {
 };
 
 /**
- * 创建浅依赖收集的共享对象
+ * 创建字典型共享对象
  *
  * ```
  *  const [ state, setState, ctx ] = share({ a: 100, b: 2 });
  *  // state 可透传给 useSharedObject
  *  // setState 可以直接修改状态
- *  // ctx.call 可以调用服务函数，并透传上下文
- *
- *  // share({ a: 100, b: 2 }, true); // 创建响应式状态
- *  // share({ a: 100, b: 2 }, 'demo'); // 指定模块名
- *  // share({ a: 100, b: 2 }, { moduleName: 'demo', enableReactive: true }); // 既指定模块名，也设定响应式为true
+ *  // 推荐使用 ctx.defineActions 或  ctx.defineTpActions 创建修改函数
+ *  
+ *  // 指定模块名后，可接入devtool工具查看数据变更
+ *  share({ a: 100, b: 2 }, { moduleName: 'demo' });
  *
  * ```
  *  以下将举例两种具体的调用方式
@@ -95,23 +95,8 @@ export declare const RECORD_LOADING: {
  *    ctx.setState({ a, b });
  * }
  *
- * // 第二种方式，使用 ret.call(srvFn, ...args) 调用定义在call函数参数第一位的服务函数
- * function changeA(a: number, b: number) {
- *    ctx.call(async function (fnCtx) { // ctx 即是透传的调用上下文，
- *      // args：使用 call 调用函数时透传的参数列表，state：状态，setState：更新状态句柄
- *      // 此处可全部感知到具体的类型
- *      // const { args, state, setState, draft } = fnCtx;
- *
- *      // 直接返回变化的部分数据
- *      return { a, b };
- *      // or 修改 draft
- *      draft.a = a;
- *      drqft.b = b;
- *      // or 混合使用（既修改draft，也返回变化数据）
- *      draft.a = a;
- *      return { b };
- *    }, a, b);
- *  }
+ * // 第二种方式，推荐使用 ctx.defineActions 或  ctx.defineTpActions 创建修改函数
+ * @see TODO add link
  * ```
  * 如需感知组件上下文，则需要`useService`接口去定义服务函数，可查看 useService 相关说明
  */
@@ -121,7 +106,7 @@ export function share<T extends PlainObject, O extends ICreateOptions<T> = ICrea
 ): readonly [ReadOnlyDict<T>, SetState<T>, ISharedCtx<T>];
 
 /**
- * 支持共享 primitive 类型值的接口
+ * 支持共享所有类型值的接口，会自动装箱为 {val:T} 结构的数据
  */
 export function atom<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(
   rawState: T | (() => T),
@@ -574,18 +559,20 @@ export function addPlugin(plugin: IPlugin): void;
 /**
  * ```ts
  * // 不约束args类型，fnDef 函数定义的参数args将是 any[]
- * const someAction = action(shared)(fnDef, desc);
+ * const someAction = action(shared)()(fnDef, desc);
  * someAction(); // 无约束
  *
  * // 约束args类型
- * const someAction = action(shared)<[number, string]>((param)=>{
- *   const args = param.args; // 提示类型 [number, string]
+ * const someAction = action(shared)<[number, string]>()((param)=>{
+ *   const payload = param.payload; // 提示类型 [number, string]
  * }, 'someAction');
- * someAction(1,1); // 这里第二位参数将提示类型错误
+ * someAction([1,1]); // 这里第二位参数将提示类型错误
  * ```
- * @param sharedDict
+ * 注意此处采用了柯里化调用方式是为了能自动推导出返回函数的返回值类型
  */
-export function action<T = any>(sharedState: T): <P = any>(fn: ActionFnDef<P, T>, desc?: string) => Action<P, T>;
+export function action<T = any>(sharedState: T): <P = any>() => <F = ActionFnDef<P, T>>(
+  fn: F, desc?: string,
+) => ReturnType<F> extends Promise<any> ? ActionAsync<F, P, T> : Action<F, P, T>;
 
 /**
  * test if the input arg is a result returned by atom()

@@ -14,7 +14,7 @@ const { reactive, defineActions, state: atomObj } = atomx({
 }, { moduleName: 'ruikun2', recordLoading: 'no' });
 
 
-const { actions } = defineActions({
+const { actions } = defineActions()({
   changeC({ draft, payload }) {
     const c = typeof payload === 'number' ? payload : random();
     draft.c = c;

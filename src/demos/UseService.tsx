@@ -4,7 +4,7 @@ import { MarkUpdate, Entry } from './comps';
 
 const [priceState, setPrice, ctx] = share({ a: 1, b: 100 });
 
-const changeA = ctx.action<number>((params) => {
+const changeA = ctx.action<number>()((params) => {
   params.draft.a += params.payload;
 }, 'changeA');
 

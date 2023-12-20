@@ -7,16 +7,16 @@ const [sharedState, setState, ctx] = share({ a: 1, b: { b1: { b2: 200 } } }, { m
 const [sharedState2, setState2, ctx2] = atom({ a: 1, b: { b1: { b2: 200 } } }, { moduleName: 'ActionLoadingAtom' });
 
 
-action(sharedState2)((params) => {
+action(sharedState2)()((params) => {
   const { draft, draftRoot, setState } = params;
   setState(draft => { draft.a = 2 });
 })
 
-const myAction = action(sharedState)(({ draft }) => {
+const myAction = action(sharedState)()(({ draft }) => {
   draft.a += 100;
 }, 'action')
 
-const myAsyncAction = action(sharedState)(async ({ setState }) => {
+const myAsyncAction = action(sharedState)()(async ({ setState }) => {
   await delay(2000);
   setState(draft => { draft.a += 100 });
 }, 'myAsyncAction')

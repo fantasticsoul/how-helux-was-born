@@ -19,7 +19,7 @@ type Payloads = {
   foo: boolean | undefined;
 };
 
-const { actions, useLoading } = ctx1.defineActions<Payloads>({
+const { actions, useLoading } = ctx1.defineActions<Payloads>()({
   changeA({ draftRoot, payload }) {
     draftRoot.a = 200;
   },

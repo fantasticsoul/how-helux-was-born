@@ -1,6 +1,6 @@
 import { FROM, SINGLE_MUTATE } from '../consts';
 import { getInternal } from '../helpers/state';
-import type { Dict, IRunMutateOptions, MutateFn, MutateFnDict, MutateFnLooseItem, MutateWitness, SharedState } from '../types/base';
+import type { Dict, IRunMutateOptions, MutateFn, MutateFnDict, MutateFnLooseItem, MutateWitness, SharedState, ActionReturn } from '../types/base';
 import { checkShared, checkSharedStrict } from './common/check';
 import type { TInternal } from './creator/buildInternal';
 import { callAsyncMutateFnLogic, callMutateFnLogic, watchAndCallMutateDict } from './creator/mutateFn';
@@ -12,6 +12,8 @@ interface ILogicOptions {
   forTask?: boolean;
 }
 
+const toMutateRet = (ret: ActionReturn) => [ret.snap, ret.err] as [any, Error | null];
+
 /**
  * 查找到配置到 mutate 函数并执行
  */
@@ -21,9 +23,9 @@ function runMutateFnItem<T = SharedState>(options: { target: T; desc?: string; f
   const desc = inputDesc || SINGLE_MUTATE; // 未传递任何描述，尝试调用可能存在的单函数
 
   const item = mutateFnDict[desc];
-  if (!item) return [snap, new Error(`mutate fn ${desc} not defined`)] as [any, Error | null];
+  if (!item) return { snap, err: new Error(`mutate fn ${desc} not defined`), result: null };
   // 指定了 task 但未配置 task，返回最近一次修改结果的快照
-  if (forTask && !item.task) return [snap, new Error(`mutate task ${desc} not defined`)] as [any, Error | null];
+  if (forTask && !item.task) return { snap, err: new Error(`mutate task ${desc} not defined`), result: null };
 
   const baseOpts = { sn: 0, fnItem: item, from: FROM.MUTATE };
   // 调用 desc 对应的函数
@@ -35,8 +37,14 @@ function runMutateFnItem<T = SharedState>(options: { target: T; desc?: string; f
 
 function makeWitness(target: SharedState, desc: string, oriDesc: string, internal: TInternal) {
   return {
-    run: () => runMutateFnItem({ target, desc }) as [any, Error | null], // 呼叫同步函数的句柄
-    runTask: () => Promise.resolve(runMutateFnItem({ target, desc, forTask: true })), // 呼叫异步函数的句柄
+    run: () => { // 呼叫同步函数的句柄
+      const ret = runMutateFnItem({ target, desc }) as ActionReturn;
+      return toMutateRet(ret);
+    },
+    // 呼叫异步函数的句柄
+    runTask: () => Promise
+      .resolve(runMutateFnItem({ target, desc, forTask: true }))
+      .then(toMutateRet),
     desc,
     oriDesc,
     getSnap: () => internal.snap,
@@ -116,7 +124,7 @@ export function runMutateLogic<T extends SharedState>(target: T, options: ILogic
     return forTask ? Promise.resolve([target, err]) : [target, err];
   }
   const result = runMutateFnItem({ target, desc, forTask });
-  return forTask ? Promise.resolve(result) : result;
+  return forTask ? Promise.resolve(result).then(toMutateRet) : toMutateRet(result as ActionReturn);
 }
 
 /**

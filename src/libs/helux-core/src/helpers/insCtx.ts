@@ -64,13 +64,6 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
         return handleCustomKey(opParams, forAtom, sharedKey);
       }
       
-      // TODO，这个逻辑待删除，写操作在 operateState 里已执行，这里不会触发写逻辑
-      // 是响应式对象在写数据
-      if (isReactive && opParams.isChanged) {
-        nextTickFlush(sharedKey);
-        return;
-      }
-
       const { fullKeyPath, keyPath, parentType } = opParams;
       const rawVal = callOnRead(opParams, onRead);
       const depKey = getDepKeyByPath(fullKeyPath, sharedKey);
@@ -84,11 +77,13 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
       insCtx.proxyState = draftRoot;
       insCtx.proxyStateVal = draft;
     } else {
-      // 非 reactive 对象，外部 prepareTuple 里会自动拆箱，这里只需创建跟代理对象即可
+      // 非 reactive 对象，外部 prepareTuple 里会自动拆箱，这里只需创建根代理对象即可
+      // 对于 immut 对象来说，只会触发读操作
       insCtx.proxyState = immut(rawState, { onOperate, compareVer: true });
     }
   } else {
     // TODO  
+    // 如支持非 Proxy 环境，还有以下两点要做，但很可能这些代码会删掉，考虑让用户去使用 @helux/mini
     // 1 待 toShallowCopy 抽象完毕后，统一调用 toShallowCopy
     // 2 非 Proxy环境，对于数组 push pop 等操作，提供 markChanged 接口让 helux 感知到变化
     insCtx.proxyState = createOb(rawState, {

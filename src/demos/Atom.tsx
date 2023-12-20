@@ -42,7 +42,7 @@ function changeNumByDraftOutOfComp() {
   ctx.setState(val => val + 2)
 }
 
-const hiAction = action(numAtom)<[number, string]>(({ draftRoot, payload }) => {
+const hiAction = action(numAtom)<[number, string]>()(({ draftRoot, payload }) => {
   draftRoot.val += 100;
 }, 'hi action');
 
@@ -51,10 +51,10 @@ const hiAction = action(numAtom)<[number, string]>(({ draftRoot, payload }) => {
 // }, 'hi action');
 // console.log('aciton ', aciton);
 
-const someAction = ctx.action<number>(({ draftRoot, payload, draft }) => {
+const someAction = ctx.action<number>()(({ draftRoot, payload, draft }) => {
   draftRoot.val = (payload && Number.isInteger(payload)) ? payload : random();
 }, 'someAction');
-const someActionTop = action(numAtom)<number>(({ draftRoot, payload }) => {
+const someActionTop = action(numAtom)<number>()(({ draftRoot, payload }) => {
   draftRoot.val = (payload && Number.isInteger(payload)) ? payload : random();
 }, 'someActionTop');
 
