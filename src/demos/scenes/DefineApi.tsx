@@ -173,6 +173,10 @@ function C1() {
   </MarkUpdate>;
 }
 
+console.log(actions.foo);
+// @ts-ignore
+console.log(actions.foo.__fnName);
+
 const Demo = () => (
   <Entry fns={[actions.foo, changeC1, changeC]}>
     <Price />

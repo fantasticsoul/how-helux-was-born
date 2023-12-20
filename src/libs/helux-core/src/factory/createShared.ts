@@ -36,23 +36,27 @@ function defineActions(
   const eActions: Dict = {};
   Object.keys(actionDict).forEach((key) => {
     const actionOrFnDef = actionDict[key];
-    actionOrFnDef.__fnName = key;
     // defineTpActions 传入的是已经创建好的 action 函数
     // 此时 actionOrFnDef 是 action 函数，这里提取 task 重新创建
     // defineActions 传入的是 actionFnDef 定义函数即 actionTask
     const actionTask = forTp ? actionOrFnDef.__task : actionOrFnDef;
     // actions 和 eActions 都不把 return 结果当做部分状态合并到 draft 上，仅作为普通结果返回
-    const actionFn = actionCreator(false)(actionTask, key, throwErr);
-    // actions 对应函数需直接返回结果
-    actions[key] = (...args: any[]) => {
-      const ret = actionFn(...args);
+    const eActionFn = actionCreator(false)(actionTask, key, throwErr);
+
+    // eActions 对应函数返回原始的 { result, snap, err } 结构，故此处指向 actionFn 即可
+    eActionFn.__fnName = key;
+    eActions[key] = eActionFn;
+
+    // actions 对应函数需直接返回结果，故内部做拆解处理
+    const actionFn = (...args: any[]) => {
+      const ret = eActionFn(...args);
       if (isTaskProm(actionTask)) {
         return Promise.resolve(ret).then(data => data.result);
       }
       return ret.result;
     };
-    // eActions 对应函数返回原始的 { result, snap, err } 结构，故此处指向 actionFn 即可
-    eActions[key] = actionFn;
+    actionFn.__fnName = key;
+    actions[key] = actionFn;
   });
   return {
     actions,
