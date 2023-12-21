@@ -2,7 +2,7 @@ import { FROM, STATE_TYPE } from '../consts';
 import { runDerive, runDeriveTask } from '../helpers/fnRunner';
 import { useAtom, useAtomForceUpdate, useDerived, useLocalForceUpdate, useMutable, useReactive } from '../hooks';
 import type { CoreApiCtx } from '../types/api-ctx';
-import type { Dict, Fn, IAtomCtx, ICreateOptions, IRunMutateOptions, ISharedCtx, ActionFnDef, Action } from '../types/base';
+import type { Dict, Fn, IAtomCtx, ICreateOptions, IRunMutateOptions, ISharedCtx, ActionTask, Action } from '../types/base';
 import { action } from './createAction';
 import { derive } from './createDerived';
 import { mutate, mutateDict, runMutate, runMutateTask } from './createMutate';
@@ -125,7 +125,7 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     state, // 指向 root
     stateVal, // atom 的话 stateVal 是拆箱后的值，share 对象的话，stateVal 指向 root 自身
     setState,
-    defineActions: (throwErr?: boolean) => (actionDict: Dict<ActionFnDef>) => defineActions({ ...acCommon, actionDict }, throwErr),
+    defineActions: (throwErr?: boolean) => (actionDict: Dict<ActionTask>) => defineActions({ ...acCommon, actionDict }, throwErr),
     defineTpActions: (throwErr?: boolean) => (actionDict: Dict<Action>) => defineActions({ ...acCommon, actionDict, forTp: true }, throwErr),
     defineMutateDerive: (inital: Dict, mutateFnDict: Dict) => defineMutateDerive({ ...common, ldMutate, inital, mutateFnDict }),
     defineMutateSelf: (mutateFnDict: Dict) => defineMutate({ ldMutate, state, mutateFnDict }),

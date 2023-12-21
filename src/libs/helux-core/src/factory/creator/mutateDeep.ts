@@ -1,11 +1,11 @@
-import { isJsObj, isObj } from '@helux/utils';
-import { createDraft, finishDraft, IOperateParams, limuUtils } from 'limu';
+import { createDraft, finishDraft, IOperateParams } from 'limu';
 import { OP_KEYS } from '../../consts';
-import type { Dict, Ext, IInnerSetStateOptions, IMutateCtx, ISetFactoryOpts } from '../../types/base';
+import type { Dict, IInnerSetStateOptions, IMutateCtx, ISetFactoryOpts } from '../../types/base';
 import { genRenderSN } from '../common/key';
 import { runMiddlewares } from '../common/middleware';
 import { emitDataChanged } from '../common/plugin';
 import { newMutateCtx, isDict } from '../common/util';
+import { markIgnore } from '../../helpers/fnDep';
 import type { TInternal } from './buildInternal';
 import { handleCustomKey } from './buildShared';
 import { commitState } from './commitState';
@@ -45,6 +45,10 @@ function handleDict(draftNode: any, dict: Dict) {
 
 export function handlePartial(opts: IHandlePartialOpts) {
   const { partial, forAtom, isPrimitive, draftRoot, draftNode } = opts;
+  if (!partial) {
+    return;
+  }
+
   const isPartialDict = isDict(partial);
   // 非 atom setState 返回值，只对字典做浅合并
   if (!forAtom) {
@@ -89,7 +93,7 @@ export function execFinish(
   const { writeKeys, writeKeyPathInfo, handleCbReturn } = mutateCtx;
   const { forAtom, isPrimitive } = internal;
 
-  // TODO: discussion 是否添加 ignoreCbReturn 参数，允许用户强制忽略 cb 返回值
+  // TODO: add setDraft，默认忽略 cb 返回值，此时调用 setDraft(draft=>draft.a=1) 就是类型安全和运行安全的了
   if (handleCbReturn) {
     handlePartial({ partial, forAtom, isPrimitive, draftRoot, draftNode });
   }
@@ -136,7 +140,10 @@ export function prepareDeepMutate(opts: IPrepareDeepMutateOpts) {
   let draftNode = draftRoot;
   // atom draft 自动拆箱
   if (forAtom) {
+    // .val 会产生一次影响运行逻辑的依赖收集，这里标记一下 ignore
+    markIgnore(true);
     draftNode = draftRoot.val;
+    markIgnore(false);
     // 自动拆箱后，有一个隐含的 .val 读依赖被收集到 readKeys，此处刻意清空 readKeys
     // 不清空的话，如下例子因为有隐含的 .val 读取，和 .val 再赋值操作，会误判为有死循环存在
     // 清空了则 .val 读取被抹掉了，死循环探测逻辑就没有误判了

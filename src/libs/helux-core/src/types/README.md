@@ -125,3 +125,25 @@ export type ActionFnDefAsync<P = any, T = any> = (
   };
 
 ```
+
+
+```ts
+
+// defineActions 和 defineAsyncActions 需要细分  ActionFnDef 是同步还是异步，故此处再次分类出
+// ActionNormalFnDef  ActionFnDefAsync
+export type ActionNormalFnReturnType<T> = T extends PlainObject
+  ? void | Partial<T>
+  : void | T;
+
+export type ActionNormalFnDef<P = any, T = any> = (
+  param: ActionFnParam<P, T>,
+) => T extends Atom | ReadOnlyAtom ? ActionNormalFnReturnType<AtomValType<T>> : ActionNormalFnReturnType<T>;
+
+export type ActionAsyncFnReturnType<T> = T extends PlainObject
+  ? Promise<void | Partial<T>>
+  : Promise<void | T>;
+
+export type ActionAsyncFnDef<P = any, T = any> = (
+  param: ActionFnParam<P, T>,
+) => T extends Atom | ReadOnlyAtom ? ActionAsyncFnReturnType<AtomValType<T>> : ActionAsyncFnReturnType<T>;
+```

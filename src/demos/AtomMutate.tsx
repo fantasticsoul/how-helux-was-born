@@ -6,22 +6,25 @@ import { log, delay, random } from './logic/util';
 
 const [baseAtom, setAtom] = atom(3000, { moduleName: 'baseAtom' });
 
-const [doubleAtom] = atom(2, {
+const [doubleAtom, setDouble] = atom(2, {
   moduleName: 'doubleAtom',
   mutate: [
-    // {
-    //   // TODO 加入死循环示例
-    //   fn: () => baseAtom.val * 2,
-    //   desc: 'atom_m',
-    // },
     {
       // TODO 加入死循环示例
-      fn: (draft: any) => draft * 2,
+      fn: (draft: any, params: any) => {
+        // console.log('draftRoot ', draftRoot)
+        params.draftRoot.val = params.draftRoot.val + 200;
+        // return draft * 2;
+      },
       desc: 'atom_xxx',
     },
   ],
   alertDeadCycleErr: false,
 });
+const changeDoubleAtom = () => {
+  setDouble(prev => prev + 100);
+};
+
 const [minus10Atom] = atom(0, {
   mutate: () => doubleAtom.val - 10,
 });
@@ -41,7 +44,7 @@ x.mutate({
     // // draft.a = draft.b + 8;
     // draft.a = draftRoot.val.b + 8;
     console.log('a is', draft.a);
-    changeA();
+    // changeA();
   },
   desc: 'xx',
 });
@@ -101,7 +104,7 @@ function changeA() {
 }
 
 function Demo(props: any) {
-  const fns = [changeBase, changeB1, changeB2, changeB3, changeA];
+  const fns = [changeBase, changeB1, changeB2, changeB3, changeA, changeDoubleAtom];
   // const fns:any[] = [];
   return <Entry fns={fns}>
     <Price />

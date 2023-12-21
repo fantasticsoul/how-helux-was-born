@@ -10,7 +10,7 @@ import type { Draft, GenNewStateCb, ICreateDraftOptions } from 'limu';
 import type {
   Action,
   ActionAsync,
-  ActionFnDef,
+  ActionTask,
   Atom,
   AtomValType,
   BlockComponent,
@@ -570,7 +570,7 @@ export function addPlugin(plugin: IPlugin): void;
  * ```
  * 注意此处采用了柯里化调用方式是为了能自动推导出返回函数的返回值类型
  */
-export function action<T = any>(sharedState: T): <P = any>() => <F = ActionFnDef<P, T>>(
+export function action<T = any>(sharedState: T): <P = any>() => <F = ActionTask<P, T>>(
   fn: F, desc?: string,
 ) => ReturnType<F> extends Promise<any> ? ActionAsync<F, P, T> : Action<F, P, T>;
 

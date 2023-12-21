@@ -15,6 +15,7 @@ interface IPrepareDowngradeMutateOpts extends IInnerSetStateOptions {
 }
 
 /**
+ * 还处于测试阶段，此降级方案可能后续移除
  * 非deep模式下，只是用Proxy或defineProperty生成一个仅代理一层的超过对象
  * 此时如果修改2层路径以上的值会修改原对象
  */

@@ -65,7 +65,8 @@ const Demo = () => (
     <Comp />
     <Comp />
     <Comp />
-    <h3>ctxp.reactive.a: {$(ctx.state.f)}</h3>
+    <h3>ctxp.reactive.f: {$(ctx.reactive.f)}</h3>
+    <h3>ctxp.state.f: {$(ctx.state.f)}</h3>
   </Entry>
 );
 

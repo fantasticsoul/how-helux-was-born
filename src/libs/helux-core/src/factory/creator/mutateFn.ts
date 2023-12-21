@@ -145,6 +145,7 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
     return finish(cb, innerSetOptions);
   };
   const input = enureReturnArr(deps, targetState);
+
   // atom 自动拆箱
   let state = sharedState;
   if (forAtom) {

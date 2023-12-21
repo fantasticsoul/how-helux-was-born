@@ -16,9 +16,9 @@ const [numAtom, setAtom, ctx] = atom(1, { moduleName: 'Atom' });
 const [numAtom2, setAtom2, ctx2] = atom({ a: 2, b: 2 }, { moduleName: 'Atom2' });
 const [numAtom3, setAtom3, ctx3] = share({ a: 2, b: 2 }, { moduleName: 'Atom3' });
 
+const n3 = ctx2.setState(draft => { draft.a = 1 })
 const n1 = setAtom2(draft => { draft.a = 1 })
 const n2 = setAtom3(draft => { draft.a = 2 })
-const n3 = ctx2.setState(draft => { draft.a = 1 })
 const n4 = ctx3.setState(draft => { draft.a = 2 })
 
 const numPlusAtom = derive(() => {

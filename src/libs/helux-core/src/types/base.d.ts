@@ -211,12 +211,44 @@ export type LoadingState<T = Dict> = {
 /**
  * 注：这里的 draftRoot 是全局响应式对象
  */
-export type ActionFnParam<P = UnconfirmedArg, T = any> = {
+export type ActionTaskParam<P = UnconfirmedArg, T = any> = {
   draft: T extends Atom | ReadOnlyAtom ? T['val'] : T;
   draftRoot: T extends Atom | ReadOnlyAtom ? Atom<AtomValType<T>> : T;
   /** 第一层 key 多个值浅合并时，可使用 merge({x,y}) 替代多次 draft.x=, draft.y= 写法 */
   merge: (partial: T extends Atom ? (T['val'] extends Primitive ? T : Partial<T['val']>) : Partial<T>) => void;
-  dispatch: <D = ActionFnDef >(actionFnDef: D, paylaod: Parameters<D>[0]) => ReturnType<D>;
+  /**
+   * 支持直接调用 task 函数和 action 函数（注：此时action本身也是可直接调用的）
+   * 
+   * - 场景1，调用单个文件类其他 actionTask
+   * ```ts
+   * // 以下函数暴露出去作为参数传给 defineActions
+   * export function changeA({ draftRoot }) { ... }
+   * 
+   * export function changeB({ draftRoot }) { ... }
+   * 
+   * export function foo({ dispatch }){
+   *   const a = dispatch(changeA, [1, 1]);
+   *   const b = await dispatch(changeB, [1, 1]);
+   * }
+   * ```
+   * 
+   * - 场景二，调 actions 对象下某个函数（ 此时 dispatch 调用显得冗余，很推荐 actions.xx 自身发起调用 ）
+   * ```ts
+   * const { actions, useLoading } = ctx.defineActions<Payloads>()({
+   *   changeA({ draftRoot }) { ... },
+   *   async changeB({ draftRoot }) { ... },
+   *   async foo({ draftRoot, payload, dispatch }) {
+   *     const a = dispatch(actions.changeA, [1, 1]);
+   *     const b = await dispatch(actions.changeB, [1, 1]);
+   * 
+   *     // 推荐自身发起调用
+   *     const a = actions.changeA([1, 1]);
+   *     const b = await actions.changeB([1, 1]);
+   *   },
+   * });
+   * ```
+   */
+  dispatch: <D = ActionTask >(actionOrTask: D, paylaod: Parameters<D>[0]) => ReturnType<D>;
   /** 主动提交草稿变更（默认是进入下一次事件循环微任务时提交） */
   flush: (desc: string) => void;
   /**
@@ -237,34 +269,15 @@ export type Action<F = Fn, P = any, T = SharedDict>
 export type ActionAsync<F = Fn, P = any, T = SharedDict>
   = (payload: P, throwErr?: boolean) => ActionAsyncReturn<Awaited<ReturnType<F>>, T>;
 
-export type ActionFnReturnType<T> = T extends Primitive
+export type ActionTaskReturnType<T> = T extends Primitive
   ? Promise<void | T> | void | T
   : T extends PlainObject
   ? Promise<void | Partial<T>> | void | Partial<T>
   : Promise<void | T> | void | T;
 
-export type ActionFnDef<P = UnconfirmedArg, T = any> = (
-  param: ActionFnParam<P, T>,
-) => T extends Atom | ReadOnlyAtom ? ActionFnReturnType<AtomValType<T>> : ActionFnReturnType<T>;
-
-
-// defineActions 和 defineAsyncActions 需要细分  ActionFnDef 是同步还是异步，故此处再次分类出
-// ActionNormalFnDef  ActionFnDefAsync
-export type ActionNormalFnReturnType<T> = T extends PlainObject
-  ? void | Partial<T>
-  : void | T;
-
-export type ActionNormalFnDef<P = any, T = any> = (
-  param: ActionFnParam<P, T>,
-) => T extends Atom | ReadOnlyAtom ? ActionNormalFnReturnType<AtomValType<T>> : ActionNormalFnReturnType<T>;
-
-export type ActionAsyncFnReturnType<T> = T extends PlainObject
-  ? Promise<void | Partial<T>>
-  : Promise<void | T>;
-
-export type ActionAsyncFnDef<P = any, T = any> = (
-  param: ActionFnParam<P, T>,
-) => T extends Atom | ReadOnlyAtom ? ActionAsyncFnReturnType<AtomValType<T>> : ActionAsyncFnReturnType<T>;
+export type ActionTask<P = UnconfirmedArg, T = any> = (
+  param: ActionTaskParam<P, T>,
+) => T extends Atom | ReadOnlyAtom ? ActionTaskReturnType<AtomValType<T>> : ActionTaskReturnType<T>;
 
 export type ReadOnlyArr = readonly any[];
 
@@ -569,7 +582,7 @@ type FnResultValType<T extends PlainObject | DeriveFn> = T extends PlainObject
 
 type DefinActions<T = any> = <
   P = any,
-  D = P extends Dict ? { [K in keyof P]: ActionFnDef<P[K], T> } : { [K in keyof D]: ActionFnDef<any, T> },
+  D = P extends Dict ? { [K in keyof P]: ActionTask<P[K], T> } : { [K in keyof D]: ActionTask<any, T> },
 >(
   throwErr?: boolean,
 ) => (
@@ -588,7 +601,7 @@ type DefinActions<T = any> = <
 /**
  * defineActions 调用返回 actionCtx 上下文对象，包括 actions、eActions、getLoading、useLoading
  */
-type ActionCtx<T = any, P extends Dict | undefined = undefined, D = Dict<ActionFnDef<UnconfirmedArg, T>>> = {
+type ActionCtx<T = any, P extends Dict | undefined = undefined, D = Dict<ActionTask<UnconfirmedArg, T>>> = {
   /** 调用 actions.xxMethod，返回结果为函数内部执行完毕返回的结果，会抛出函数执行过程出现的错误 */
   actions: { [K in keyof D]: (
     /** 支持用户单独使用 ActionFnParam 标记类型并推导给 action 函数 */
@@ -775,7 +788,7 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
    * action: <P = any, F = ActionFnDef<P, T>>(fn: F, desc?: FnDesc) => Action<F, P, T>
    * ```
    */
-  action: <P = any>() => <F = ActionFnDef<P, T>>(
+  action: <P = any>() => <F = ActionTask<P, T>>(
     fn: F,
     desc?: string,
   ) => (ReturnType<F> extends Promise<any> ? ActionAsync<F, P, T> : Action<F, P, T>);
@@ -844,8 +857,8 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
     throwErr?: boolean,
   ) => <
     D = P extends Dict
-    ? ({ [K in keyof P]: ActionFnDef<P[K], T> } & { [K in string]: ActionFnDef<UnconfirmedArg, T> })
-    : { [K in string]: ActionFnDef<UnconfirmedArg, T> },
+    ? ({ [K in keyof P]: ActionTask<P[K], T> } & { [K in string]: ActionTask<UnconfirmedArg, T> })
+    : { [K in string]: ActionTask<UnconfirmedArg, T> },
   >(
     /** action 函数定义字典集合 */
     actionFnDefs: D,

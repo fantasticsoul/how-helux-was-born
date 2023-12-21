@@ -46,7 +46,7 @@
 
 // export { default as MutateSelf } from './special/MutateSelf';
 // export { default as AtomSyncer } from './AtomSyncer';
-export * from './scenes';
+// export * from './scenes';
 // export { default as Syncer } from './Syncer';
 // export { default as SyncerTop } from './SyncerTop';
 // export { default as MutateTask3_detectShareDc } from './MutateTask3_detectShareDc';
@@ -75,9 +75,10 @@ export * from './scenes';
 
 // export { default as useMutateLoading_test } from './core-tests/useMutateLoading_test';
 
-// export {
-//   WatchCb,
-// } from './dead-cycle/shoud-have';
+export {
+  // WatchCb,
+  AtomFn,
+} from './dead-cycle/shoud-have';
 
 // export {
 //   WatchCb,

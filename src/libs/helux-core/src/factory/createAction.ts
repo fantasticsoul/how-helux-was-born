@@ -26,6 +26,18 @@ function innerCreate<T = SharedState>(
     const throwErrVar = throwFnErr ?? throwErr;
     const fnItem = newFakeFnItem({ desc, task, depKeys: [] });
     const dispatch = (task: any, payload: any) => {
+      // 可能 task 自身就是 action，例如
+      // const { actions } = definedActions()({ 
+      //   foo(){},
+      //   bar({dispatch}){ 
+      //     // 以下两种调用方式等效
+      //     dispatch(actions.foo, 1); // 此时 actions.foo 就是 action 函数
+      //     actions.foo(1);
+      //   },
+      // })
+      if (!task.__action) {
+        return task(payload);
+      }
       return task.__action(payload);
     };
 
