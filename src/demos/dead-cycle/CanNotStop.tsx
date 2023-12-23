@@ -8,6 +8,21 @@ const [baseAtom, setAtom] = atom(3000, { moduleName: 'baseAtom' });
 const x = atomx({ a: 1, b: 2 }, {
   moduleName: 'yy',
   alertDeadCycleErr: false,
+  mutate: [
+    {
+      // TODO  这个是拦不住的死循环示例
+      fn: (draft, { draftRoot }) => {
+        console.log('a is', draft.a);
+        // draftRoot.
+        // changeA();
+        // x.reactive.a += 100;
+      },
+      desc: 'xx',
+    }
+  ],
+  before: (params)=>{
+    // params.draftRoot.val.
+  },
 });
 
 // x.mutate(() => ({ a: 3, b: 4 }));

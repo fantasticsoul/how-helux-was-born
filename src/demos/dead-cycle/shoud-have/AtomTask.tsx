@@ -1,35 +1,35 @@
 import React from 'react';
 import { atom } from 'helux';
 import { Entry } from '../../comps';
+import { dictFactory } from '../../logic/util';
+
 import { createDcDemo } from '../util';
 
+// copy code to cb body
 const Demo = createDcDemo(() => {
-  const [, setDouble] = atom(2, {
+  const [state, setAtom] = atom(dictFactory, {
     moduleName: 'doubleAtom',
     mutate: [
       {
-        fn: (draft: any, params: any) => {
-          return draft * 2;
+        deps: (state) => [state.f],
+        task: async ({ draft, input }) => {
+          // draft.g = input[0] + 100;
+          draft.f = input[0] + 100;
         },
-        desc: 'atom_xxx',
       },
     ],
     alertDeadCycleErr: false,
   });
-  const changeDoubleAtom = () => {
-    setDouble(prev => prev + 100);
+  const changeF = () => {
+    setAtom(draft => { draft.f = Date.now() });
   };
 
-
   return function Demo(props: any) {
-    const fns = [changeDoubleAtom];
+    const fns = [changeF];
     // const fns:any[] = [];
     return <Entry fns={fns}>
     </Entry>
   }
-
 });
-
-
 
 export default Demo;

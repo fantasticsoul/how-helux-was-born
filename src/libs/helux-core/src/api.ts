@@ -20,7 +20,7 @@ import {
   storeSrv,
   useActionLoading,
   useAtom,
-  useAtomForceUpdate,
+  useGlobalForceUpdate,
   useDerived,
   useGlobalId,
   useLocalForceUpdate,
@@ -53,7 +53,7 @@ export {
   watch,
   // hooks api
   useAtom,
-  useAtomForceUpdate,
+  useGlobalForceUpdate,
   useReactive,
   useDerived,
   useWatch,

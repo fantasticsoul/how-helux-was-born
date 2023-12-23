@@ -16,8 +16,9 @@ export function getLocaleTime(date?: Date) {
   return `${str1} ${str2}`;
 }
 
-export function getAtionFns(actions: any) {
-  return Object.keys(actions).map(key => actions[key]);
+export function getAtionFns(actions: any, otherActions?: any[]) {
+  const fns = Object.keys(actions).map(key => actions[key]);
+  return fns.concat(otherActions || []);
 }
 
 export function noop(...args: any[]) { }
@@ -84,5 +85,6 @@ export function dictFactory() {
       newName: '',
     },
     f: 1,
+    g: 1,
   };
 }

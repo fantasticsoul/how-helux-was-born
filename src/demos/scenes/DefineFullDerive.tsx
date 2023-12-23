@@ -16,7 +16,7 @@ type DR = {
   c: { deps: [number, string], result: number };
 };
 
-const fd = ctxp.defineFullDerive<DR>({
+const fd = ctxp.defineFullDerive<DR>()({
   a: () => priceState.a.b.c + 10000,
   b: () => priceState.a.b.c + 20000,
   c: {
@@ -32,8 +32,8 @@ const fd = ctxp.defineFullDerive<DR>({
 
 function Price() {
   const [price, , info] = useAtom(priceState);
-  const [a, status] = fd.helper.a.useDerived();
-  const [c, status2] = fd.helper.c.useDerived();
+  const [a, status] = fd.helper.a.useDerivedInfo();
+  const [c, status2] = fd.helper.c.useDerivedInfo();
 
   return <MarkUpdate name="Price" info={info}>
     {price.a.b.c}

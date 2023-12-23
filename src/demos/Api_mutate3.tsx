@@ -1,5 +1,5 @@
 import React from 'react';
-import { mutate, share, useAtom, useAtomForceUpdate, $ } from 'helux';
+import { mutate, share, useAtom, useGlobalForceUpdate, $ } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay, noop } from './logic/util';
 
@@ -126,7 +126,7 @@ function forceRunMutateTask() {
 
 function Price() {
   const [price, , info] = useAtom(priceState);
-  const [ld] = useLoading();
+  const ld = useLoading();
 
   return <MarkUpdate name="Price" info={info}>
     {price.a}
@@ -156,7 +156,7 @@ function FinalPrice() {
 function CCC() {
   const [r, , info] = ctx1.useReactive();
   const [loading] = ctx2.useMutateLoading();
-  const atomForceUpdate = useAtomForceUpdate(r);
+  const atomForceUpdate = useGlobalForceUpdate(r);
   const onlyUpdateB = ctx1.useForceUpdate(state => [state.b]);
 
   return <MarkUpdate name="FinalPrice" info={info}>

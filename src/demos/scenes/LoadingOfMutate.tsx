@@ -11,7 +11,7 @@ const witness = mutate(sharedState)({
   task: async ({ setState, input: [a] }) => {
     await delay(2000);
     if (a < 80) {
-      throw new Error(`a ${a} < 80`);
+      throw new Error(`a ${a} < 80 at ${Date.now()}`);
     }
     setState(draft => { draft.a += (a + random()) });
   },

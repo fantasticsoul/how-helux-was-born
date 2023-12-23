@@ -1,6 +1,6 @@
 import { FROM, SINGLE_MUTATE } from '../consts';
 import { getInternal } from '../helpers/state';
-import type { Dict, IRunMutateOptions, MutateFn, MutateFnDict, MutateFnLooseItem, MutateWitness, SharedState, ActionReturn } from '../types/base';
+import type { Dict, IRunMutateOptions, MutateFn, MutateFnDict, IMutateFnLooseItem, IMutateWitness, SharedState, ActionReturn } from '../types/base';
 import { checkShared, checkSharedStrict } from './common/check';
 import type { TInternal } from './creator/buildInternal';
 import { callAsyncMutateFnLogic, callMutateFnLogic, watchAndCallMutateDict } from './creator/mutateFn';
@@ -61,7 +61,7 @@ interface IConfigureMutateFnOptBase {
 }
 
 interface IConfigureMutateFnOpt extends IConfigureMutateFnOptBase {
-  fnItem: MutateFnLooseItem | MutateFn;
+  fnItem: IMutateFnLooseItem | MutateFn;
 }
 
 interface IConfigureMutateDictOpt extends IConfigureMutateFnOptBase {
@@ -84,7 +84,7 @@ function configureMutateFn(options: IConfigureMutateFnOpt) {
   return makeWitness(target, stdFnItem.desc, stdFnItem.oriDesc, internal);
 }
 
-/**
+/**IMutateWitness
  * 配置 mutate 字典，暂返回 any，具体约束见 types-api multiDict
  */
 function configureMutateDict(options: IConfigureMutateDictOpt): any {
@@ -92,7 +92,7 @@ function configureMutateDict(options: IConfigureMutateDictOpt): any {
   const internal = checkSharedStrict(target, { label });
   const dict = parseMutate(fnDict, internal.mutateFnDict); // trust dict here
   watchAndCallMutateDict({ target, dict });
-  const witnessDict: Dict<MutateWitness> = {}; // 具体类型定义见 types-api multiDict
+  const witnessDict: Dict<IMutateWitness> = {}; // 具体类型定义见 types-api multiDict
   Object.keys(dict).forEach((desc) => {
     witnessDict[desc] = makeWitness(target, desc, desc, internal);
   });
@@ -146,7 +146,7 @@ export function runMutateTask<T extends SharedState>(target: T, descOrOptions?: 
  * 更详细的泛型定义见 types-api.d.ts
  */
 export function mutate(target: SharedState) {
-  return (fnItem: MutateFnLooseItem<any, any> | MutateFn<any, any>) => configureMutateFn({ target, fnItem, label: 'mutate' });
+  return (fnItem: IMutateFnLooseItem<any, any> | MutateFn<any, any>) => configureMutateFn({ target, fnItem, label: 'mutate' });
 }
 
 /**

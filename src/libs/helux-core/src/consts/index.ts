@@ -29,8 +29,7 @@ export const IS_ATOM = createSymbol('HeluxIsAtom');
 /** see if the target is returned by deriveAtom api */
 export const IS_DERIVED_ATOM = createSymbol('HeluxIsDerivedAtom');
 
-export const OP_KEYS = [SHARED_KEY, IS_ATOM, IS_DERIVED_ATOM];
-// export const OP_KEYS = [IS_ATOM, SHARED_KEY];
+export const OP_KEYS = [SHARED_KEY, IS_ATOM, IS_DERIVED_ATOM, IS_BLOCK];
 
 /**
  * mark fn a single change fn

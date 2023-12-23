@@ -1,5 +1,5 @@
 export { useAtom } from './useAtom';
-export { useAtomForceUpdate } from './useAtomForceUpdate';
+export { useGlobalForceUpdate } from './useGlobalForceUpdate';
 export { useDerived } from './useDerived';
 export { useGlobalId } from './useGlobalId';
 export { getActionLoading, getMutateLoading, useActionLoading, useMutateLoading } from './useLoading';

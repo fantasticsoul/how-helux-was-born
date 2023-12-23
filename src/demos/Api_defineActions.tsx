@@ -25,7 +25,7 @@ const { actions, useLoading } = ctx.defineActions<Payloads>()({
   async foo({ draftRoot, payload, dispatch }) {
     if (typeof payload !== 'number') return;
     const a = dispatch(actions.changeA, [1, 1]);
-    const b = await dispatch(actions.changeB, [1, 1]); 
+    const b = await dispatch(actions.changeB, [1, 1]);
 
     await delay(1000);
     draftRoot.a.b.c += payload;
@@ -36,7 +36,7 @@ const { actions, useLoading } = ctx.defineActions<Payloads>()({
 
 function Comp() {
   const [state, , info] = ctx.useState();
-  const [loadingState] = useLoading();
+  const loadingState = useLoading();
   const { foo } = loadingState;
   const srv = useService({
     foo() {

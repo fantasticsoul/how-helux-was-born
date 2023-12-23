@@ -1,10 +1,11 @@
 import { createDraft, finishDraft, IOperateParams } from 'limu';
 import { OP_KEYS } from '../../consts';
-import type { Dict, IInnerSetStateOptions, IMutateCtx, ISetFactoryOpts } from '../../types/base';
+import type { Dict, SharedState, IInnerSetStateOptions, IMutateCtx, ISetFactoryOpts } from '../../types/base';
 import { genRenderSN } from '../common/key';
 import { runMiddlewares } from '../common/middleware';
 import { emitDataChanged } from '../common/plugin';
-import { newMutateCtx, isDict } from '../common/util';
+import { isDict, isPrim } from '../common/util';
+import { newMutateCtx } from '../common/ctor';
 import { markIgnore } from '../../helpers/fnDep';
 import type { TInternal } from './buildInternal';
 import { handleCustomKey } from './buildShared';
@@ -29,7 +30,6 @@ interface ISnCommitOpts extends ICommitOpts {
 
 interface IHandlePartialOpts {
   forAtom: boolean;
-  isPrimitive: boolean;
   partial: any;
   draftRoot: any;
   draftNode: any;
@@ -43,26 +43,45 @@ function handleDict(draftNode: any, dict: Dict) {
   });
 };
 
+/**
+ * 如果是 atom 则返回拆箱后的值
+ */
+export function getStateNode(sharedState: SharedState, forAtom: boolean) {
+  if (!forAtom) {
+    return sharedState;
+  }
+  // atom 自动拆箱时，sharedState.val 会产生一次影响运行逻辑的依赖收集，这里标记一下 ignore
+  markIgnore(true); // stop dep collect
+  const state = sharedState.val;
+  markIgnore(false); // recover dep collect
+  return state;
+}
+
 export function handlePartial(opts: IHandlePartialOpts) {
-  const { partial, forAtom, isPrimitive, draftRoot, draftNode } = opts;
+  const { partial, forAtom, draftRoot, draftNode } = opts;
   if (!partial) {
     return;
   }
 
-  const isPartialDict = isDict(partial);
   // 非 atom setState 返回值，只对字典做浅合并
   if (!forAtom) {
-    isPartialDict && handleDict(draftNode, partial);
+    isDict(partial) && handleDict(draftNode, partial);
     return;
   }
 
   const val = partial.val;
-  if (isPrimitive || !isPartialDict) {
-    draftRoot.val = val;
+  if (isDict(draftNode)) {
+    if (isDict(val)) {
+      handleDict(draftNode, val);
+    } else {
+      console.warn('dict atom deny to handle a non-dict returned value!');
+    }
     return;
   }
 
-  handleDict(draftNode, val);
+  // !!! 用户需为数据类型变异担责，
+  // 例如 定义的是数组 []，返回的是 pritimive，会导致其他错误产生
+  draftRoot.val = val;
 }
 
 /**
@@ -76,7 +95,7 @@ export function beforeCommit(opts: ICommitOpts, innerSetOptions: IInnerSetStateO
   opts.sn = opts.sn || genRenderSN();
   opts.from = opts.from || 'SetState';
   const { from, sn, desc, internal } = opts;
-  const draft = internal.forAtom ? draftRoot.val : draftRoot;
+  const draft = getStateNode(draftRoot, internal.forAtom);
   internal.before({ from, draftRoot, draft, desc, sn });
   runMiddlewares(internal, draftRoot, draft, sn);
   return opts as ISnCommitOpts; // 已确保打上 sn 标记
@@ -90,13 +109,12 @@ export function execFinish(
   innerSetOptions: IInnerSetStateOptions = {},
 ) {
   const { mutateCtx, internal } = commitOpts;
-  const { writeKeys, writeKeyPathInfo, handleCbReturn } = mutateCtx;
-  const { forAtom, isPrimitive } = internal;
+  const { writeKeys, writeKeyPathInfo } = mutateCtx;
+  const { forAtom } = internal;
 
-  // TODO: add setDraft，默认忽略 cb 返回值，此时调用 setDraft(draft=>draft.a=1) 就是类型安全和运行安全的了
-  if (handleCbReturn) {
-    handlePartial({ partial, forAtom, isPrimitive, draftRoot, draftNode });
-  }
+  // TODO: 新增 setDraft 对接 handleCbReturn 参数，默认忽略 cb 返回值
+  // setDraft 对应类型文件也会做相应优化
+  handlePartial({ partial, forAtom, draftRoot, draftNode });
   const opts = beforeCommit(commitOpts, innerSetOptions, draftRoot);
   mutateCtx.depKeys = Object.keys(writeKeys);
   DRAFT_ROOT.del();
@@ -124,6 +142,7 @@ export function prepareDeepMutate(opts: IPrepareDeepMutateOpts) {
   const { forAtom, rawState } = internal;
   const mutateCtx = newMutateCtx(opts);
   const commitOpts = { state: {}, mutateCtx, ...opts, desc };
+
   const draftRoot = createDraft(rawState, {
     customKeys: OP_KEYS,
     onOperate: (opParams: IOperateParams) => {
@@ -137,13 +156,9 @@ export function prepareDeepMutate(opts: IPrepareDeepMutateOpts) {
   // 记录正在执行中的 draftRoot mutateCtx
   DRAFT_ROOT.set(draftRoot);
   MUTATE_CTX.set(mutateCtx);
-  let draftNode = draftRoot;
+  const draftNode = getStateNode(draftRoot, forAtom);
   // atom draft 自动拆箱
   if (forAtom) {
-    // .val 会产生一次影响运行逻辑的依赖收集，这里标记一下 ignore
-    markIgnore(true);
-    draftNode = draftRoot.val;
-    markIgnore(false);
     // 自动拆箱后，有一个隐含的 .val 读依赖被收集到 readKeys，此处刻意清空 readKeys
     // 不清空的话，如下例子因为有隐含的 .val 读取，和 .val 再赋值操作，会误判为有死循环存在
     // 清空了则 .val 读取被抹掉了，死循环探测逻辑就没有误判了

@@ -2,7 +2,7 @@ import { FROM } from '../consts';
 import { getStatusKey, setLoadStatus } from '../factory/creator/loading';
 import type { Fn, SharedState, Ext } from '../types/base';
 import { checkSharedStrict } from './common/check';
-import { newFakeFnItem } from './creator/fake';
+import { newMutateFnItem } from './common/ctor';
 import { callAsyncMutateFnLogic } from './creator/mutateFn';
 import { handlePartial } from './creator/mutateDeep';
 
@@ -17,14 +17,14 @@ function innerCreate<T = SharedState>(
 ) {
   const { label, throwErr, desc = '', task, mergeReturn = true } = options;
   const internal = checkSharedStrict(state, { label });
-  const { forAtom, isPrimitive } = internal;
+  const { forAtom } = internal;
 
   // 把 action 定义函数统一当异步函数去处理，callAsyncMutateFnLogic 内部会自动判断是否需要走异步调用逻辑
   // now fn can have a name 'action' at dev mode
   const action = (payload: any, throwFnErr?: boolean) => {
     // 用户调用 action 独立定义的 throwErr 优先级高于 创建 action 函数时预设的 throwErr
     const throwErrVar = throwFnErr ?? throwErr;
-    const fnItem = newFakeFnItem({ desc, task, depKeys: [] });
+    const fnItem = newMutateFnItem({ desc, task, depKeys: [] });
     const dispatch = (task: any, payload: any) => {
       // 可能 task 自身就是 action，例如
       // const { actions } = definedActions()({ 
@@ -45,10 +45,10 @@ function innerCreate<T = SharedState>(
       fnItem,
       from: ACTION,
       mergeReturn,
-      throwErr: throwErrVar,
+      throwErr: throwErrVar, // action task 默认不抛错误
       getArgs: ({ draft, draftRoot, setState, desc, flush }) => {
         const merge = (partial: any) => {
-          handlePartial({ partial, forAtom, isPrimitive, draftRoot, draftNode: draft });
+          handlePartial({ partial, forAtom, draftRoot, draftNode: draft });
         };
         return [{ draft, draftRoot, setState, desc, payload, flush, merge, dispatch }];
       }
@@ -58,6 +58,7 @@ function innerCreate<T = SharedState>(
   setLoadStatus(internal, getStatusKey(ACTION, desc), { loading: false, ok: true, err: null });
   action.__sharedKey = internal.sharedKey;
   action.__fnName = desc;
+
   // 记录task句柄，提供给 defineTpActions 克隆之用
   action.__task = task;
   // 记录 action 句柄，提供给 dispatch 使用

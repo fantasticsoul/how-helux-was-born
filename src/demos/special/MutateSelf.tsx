@@ -27,31 +27,31 @@ const witnessDict = mutateDict(sharedState)({
   //   fn: (draft) => { draft.c = draft.a + 1 + random() },
   // },
 
-  // key1: {
-  //   deps: (state) => [state.a],
-  //   fn: (draft, { input: [a] }) => {
-  //     draft.b = a + 1 + random();
-  //   },
-  //   // fn: (draft) => { draft.b = sharedState.a + 1 + random() },
-  // },
-  // key2: {
-  //   deps: (state) => [state.b],
-  //   fn: (draft, { input: [b] }) => {
-  //     console.log('trigger key2');
-  //     draft.c = b + 1 + random()
-  //   },
-  // },
-  // key3: {
-  //   deps: (state) => [state.c],
-  //   fn: (draft, { input: [c] }) => {
-  //     console.log('trigger key3');
-  //     draft.d = c + 1 + random();
-  //   },
-  // },
+  key1: {
+    deps: (state) => [state.a],
+    fn: (draft, { input: [a] }) => {
+      draft.b = a + 1 + random();
+    },
+    // fn: (draft) => { draft.b = sharedState.a + 1 + random() },
+  },
+  key2: {
+    deps: (state) => [state.b],
+    fn: (draft, { input: [b] }) => {
+      console.log('trigger key2');
+      draft.c = b + 1 + random()
+    },
+  },
+  key3: {
+    deps: (state) => [state.c],
+    fn: (draft, { input: [c] }) => {
+      console.log('trigger key3');
+      draft.d = c + 1 + random();
+    },
+  },
 
   // key4: {
   //   deps: (state) => [state.d],
-  //   fn: (draft, [d]) => { draft.a = d + 1 + random() },
+  //   fn: (draft, { input: [d] }) => { draft.a = d + 1 + random() },
   // },
 
 

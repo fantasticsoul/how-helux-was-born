@@ -1,5 +1,5 @@
 import React from 'react';
-import { mutate, share, useAtom, $, action, ActionFnParam } from 'helux';
+import { mutate, share, useAtom, $, action, IActionTaskParams } from 'helux';
 import { MarkUpdate, Entry } from '../comps';
 import { dictFactory, delay } from '../logic/util';
 
@@ -39,7 +39,7 @@ const { actions, eActions, useLoading, getLoading } = ctxp.defineActions<Payload
     // return 1;
     return { f2: 1 }
   },
-  dd({ draft, payload }: ActionFnParam<number, S>) {
+  dd({ draft, payload }: IActionTaskParams<S, number>) {
     // return 1;
     return { f2: 1 }
   },
@@ -94,7 +94,7 @@ type DR = {
   c: { deps: [number, string], result: number };
 };
 
-const fd = ctxp.defineFullDerive<DR>({
+const fd = ctxp.defineFullDerive<DR>()({
   a() {
     return priceState.a.b.c + 10000;
   },
@@ -153,9 +153,9 @@ function changeC1() {
 
 function Price() {
   const [price, , info] = useAtom(priceState);
-  const [ld] = useLoading();
-  const [a, status] = fd.helper.a.useDerived();
-  const [c, status2] = fd.helper.c.useDerived();
+  const ld = useLoading();
+  const [a, status] = fd.helper.a.useDerivedInfo();
+  const [c, status2] = fd.helper.c.useDerivedInfo();
 
   return <MarkUpdate name="Price" info={info}>
     {price.a.b.c}

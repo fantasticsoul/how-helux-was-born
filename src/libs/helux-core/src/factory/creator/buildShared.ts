@@ -8,7 +8,8 @@ import { createOb, createDpOb } from '../../helpers/obj';
 import { mapSharedState } from '../../helpers/state';
 import type { Dict } from '../../types/base';
 import { recordLastest } from '../common/blockScope';
-import { callOnRead, getDepKeyByPath, isDict, newOpParams } from '../common/util';
+import { callOnRead, getDepKeyByPath, isDict } from '../common/util';
+import { newOpParams } from '../common/ctor';
 import type { ParsedOptions } from './parse';
 
 function cannotSet() {

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { IRenderInfo } from "helux";
+import { IRenderInfo, IFnRenderInfo } from "helux";
 import { nodupPush, getLocaleTime } from "../logic/util";
+
+type Info = IFnRenderInfo | IRenderInfo;
 
 interface IProps {
   info?: IRenderInfo | Array<IRenderInfo>;
@@ -28,8 +30,8 @@ function getColor(sn: number, forceColor = false) {
 
 const fakeInfo = { time: 0, sn: 0, insKey: 0, getDeps: () => [] };
 
-function ensureInfos(info: IRenderInfo | Array<IRenderInfo>) {
-  let infos: IRenderInfo[] = [];
+function ensureInfos(info: Info | Array<Info>) {
+  let infos: Info[] = [];
   if (!Array.isArray(info)) {
     infos = [info];
   } else {
@@ -39,7 +41,7 @@ function ensureInfos(info: IRenderInfo | Array<IRenderInfo>) {
 }
 
 function getInfoData(
-  info: IRenderInfo | Array<IRenderInfo>,
+  info: Info | Array<Info>,
 ) {
   const infos = ensureInfos(info);
   let sn = 0;

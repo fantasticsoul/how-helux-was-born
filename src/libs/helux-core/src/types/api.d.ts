@@ -1,6 +1,6 @@
 /*
 |------------------------------------------------------------------------------------------------
-| helux-core@3.5.15
+| helux-core@3.5.16
 | A state library core that integrates atom, signal, collection dep, derive and watch,
 | it supports all react like frameworks ( including react 18 ).
 |------------------------------------------------------------------------------------------------
@@ -41,8 +41,8 @@ import type {
   Middleware,
   MutateFn,
   MutateFnDict,
-  MutateFnLooseItem,
-  MutateWitness,
+  IMutateFnLooseItem,
+  IMutateWitness,
   NoRecord,
   NumStrSymbol,
   Off,
@@ -60,7 +60,7 @@ import type {
   WatchOptionsType,
 } from './base';
 
-export declare const VER: '3.5.15';
+export declare const VER: '3.5.16';
 
 export declare const LIMU_VER: string;
 
@@ -83,7 +83,7 @@ export declare const RECORD_LOADING: {
  *  // state 可透传给 useSharedObject
  *  // setState 可以直接修改状态
  *  // 推荐使用 ctx.defineActions 或  ctx.defineTpActions 创建修改函数
- *  
+ *
  *  // 指定模块名后，可接入devtool工具查看数据变更
  *  share({ a: 100, b: 2 }, { moduleName: 'demo' });
  *
@@ -108,7 +108,7 @@ export function share<T extends PlainObject, O extends ICreateOptions<T> = ICrea
 /**
  * 支持共享所有类型值的接口，会自动装箱为 {val:T} 结构的数据
  */
-export function atom<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(
+export function atom<T = any, O extends ICreateOptions<Atom<T>> = ICreateOptions<Atom<T>>>(
   rawState: T | (() => T),
   createOptions?: O,
 ): readonly [ReadOnlyAtom<T>, SetState<T>, IAtomCtx<T>];
@@ -124,7 +124,10 @@ export function sharex<T = PlainObject, O extends ICreateOptions<T> = ICreateOpt
 /**
  * 效果完全等同 atom，唯一的区别是 share 返回元组 [state,setState,call] atom 返回 ctx 自身
  */
-export function atomx<T = any, O extends ICreateOptions<T> = ICreateOptions<T>>(rawState: T | (() => T), createOptions?: O): IAtomCtx<T>;
+export function atomx<T = any, O extends ICreateOptions<Atom<T>> = ICreateOptions<Atom<T>>>(
+  rawState: T | (() => T),
+  createOptions?: O,
+): IAtomCtx<T>;
 
 /**
  * 定义全量派生结果，支持同步和异步，支持返回 pritimive 类型，如果确定返回 dict 数据，可优先考虑使用 deriveDict 接口，
@@ -226,12 +229,12 @@ export function useReactive<T = any>(
  * 更新当前共享状态的所有实例组件，谨慎使用此功能，会触发大面积的更新，
  * 推荐设定 presetDeps、overWriteDeps 函数减少更新范围
  * ```ts
- * const updateAllAtomIns = useAtomForceUpdate(someShared);
+ * const updateAllAtomIns = useGlobalForceUpdate(someShared);
  * // 和从 ctx 上获取的 useForceUpdate 效果一样，useForceUpdate 自动绑定了对应的共享状态
  * const updateAllAtomIns = ctx.useForceUpdate();
  *
  * // 支持预设更新范围，以下两种写法等效
- * const updateSomeAtomIns = useAtomForceUpdate(someShared, state=>[state.a, state.b]);
+ * const updateSomeAtomIns = useGlobalForceUpdate(someShared, state=>[state.a, state.b]);
  * const updateSomeAtomIns = ctx.useForceUpdate(state=>[state.a, state.b]);
  *
  * // 支持调用时重写更新范围
@@ -251,7 +254,7 @@ export function useReactive<T = any>(
  * <button onClick={updateSomeAtomIns}>updateSomeAtomIns</button>
  * ```
  */
-export function useAtomForceUpdate<T = any>(
+export function useGlobalForceUpdate<T = any>(
   sharedState: T,
   presetDeps?: (sharedState: T) => any[],
 ): (overWriteDeps?: ((sharedState: T) => any[]) | Dict | null) => void;
@@ -447,11 +450,11 @@ export function runMutateTask<T extends SharedState>(target: T, descOrOptions?: 
  */
 export function mutate<T extends SharedState>(
   target: T,
-): <A extends ReadOnlyArr = ReadOnlyArr>(fnItem: MutateFnLooseItem<T, A> | MutateFn<T, A>) => MutateWitness<T>;
+): <A extends ReadOnlyArr = ReadOnlyArr>(fnItem: IMutateFnLooseItem<T, A> | MutateFn<T, A>) => IMutateWitness<T>;
 
 export function mutateDict<T extends SharedState>(
   target: T,
-): <D extends MutateFnDict<T> = MutateFnDict<T>>(fnDict: D) => { [K in keyof D]: MutateWitness<T> };
+): <D extends MutateFnDict<T> = MutateFnDict<T>>(fnDict: D) => { [K in keyof D]: IMutateWitness<T> };
 
 export function runDerive<T = SharedState>(result: T, throwErr?: boolean): [T, Error | null];
 
@@ -570,7 +573,7 @@ export function addPlugin(plugin: IPlugin): void;
  * ```
  * 注意此处采用了柯里化调用方式是为了能自动推导出返回函数的返回值类型
  */
-export function action<T = any>(sharedState: T): <P = any>() => <F = ActionTask<P, T>>(
+export function action<T = any>(sharedState: T): <P = any>() => <F extends Fn = ActionTask<T, P>>(
   fn: F, desc?: string,
 ) => ReturnType<F> extends Promise<any> ? ActionAsync<F, P, T> : Action<F, P, T>;
 

@@ -137,7 +137,7 @@ function forceRunMutateTask() {
 
 function Price() {
   const [price, , info] = useAtom(priceState);
-  const [ld] = useLoading();
+  const ld = useLoading();
 
   return <MarkUpdate name="Price" info={info}>
     {price.a}

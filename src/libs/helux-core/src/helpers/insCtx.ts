@@ -4,11 +4,12 @@ import { DICT, EXPIRE_MS, IS_DERIVED_ATOM, NOT_MOUNT, OTHER, RENDER_END, RENDER_
 import { hasRunningFn } from '../factory/common/fnScope';
 import { genInsKey } from '../factory/common/key';
 import { cutDepKeyByStop, recordArrKey } from '../factory/common/stopDep';
-import { callOnRead, getDepKeyByPath, isArrLike, isArrLikeVal, isDict, newOpParams } from '../factory/common/util';
+import { callOnRead, getDepKeyByPath, isArrLike, isArrLikeVal, isDict } from '../factory/common/util';
+import { newOpParams } from '../factory/common/ctor';
 import type { InsCtxDef } from '../factory/creator/buildInternal';
 import { handleCustomKey, handleHeluxKey } from '../factory/creator/buildShared';
 import { mapGlobalId } from '../factory/creator/globalId';
-import { buildReactive, nextTickFlush } from '../factory/creator/reactive';
+import { buildReactive } from '../factory/creator/reactive';
 import type { Dict, Ext, IFnCtx, IInnerUseSharedOptions, OnOperate } from '../types/base';
 import type { DepKeyInfo } from '../types/inner';
 import * as fnDep from './fnDep';
@@ -63,7 +64,7 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
       if (isSymbol(key)) {
         return handleCustomKey(opParams, forAtom, sharedKey);
       }
-      
+
       const { fullKeyPath, keyPath, parentType } = opParams;
       const rawVal = callOnRead(opParams, onRead);
       const depKey = getDepKeyByPath(fullKeyPath, sharedKey);

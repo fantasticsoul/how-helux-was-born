@@ -96,7 +96,7 @@ declare module 'helux' {
     runDerive,
     useAtom,
     useReactive,
-    useAtomForceUpdate,
+    useGlobalForceUpdate,
     // use derived state
     useDerived,
     useWatch,

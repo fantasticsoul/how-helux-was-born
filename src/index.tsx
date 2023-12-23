@@ -1,7 +1,23 @@
 import './styles.css';
 
 async function main() {
+  window.expect = (input: any) => {
+    const log = (actual: any) => {
+      console.log('input', input);
+      console.log('actual', actual);
+    };
+    return {
+      toBe(actual: any) {
+        console.log(`expect(${input}).toBe(${actual})`, input === actual);
+      },
+      toBeTruthy() {
+        console.log('toBeTruthy()', !!input);
+      },
+      toMatchObject: log,
+    };
+  }
   console.log('start main');
+  // await import('./pure-tests');
   await import('./loadApp18');
 }
 

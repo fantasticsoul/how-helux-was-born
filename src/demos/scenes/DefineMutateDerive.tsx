@@ -7,7 +7,7 @@ const [priceState, , ctxp] = share(dictFactory, { moduleName: 'DefineApi2' });
 
 const md = ctxp.defineMutateDerive({
   a: 1, b: '2', c: 3
-}, {
+})({
   changeA: (draft) => draft.a = priceState.a.b.c + 100,
   changeB: {
     deps: () => [priceState.info.name],

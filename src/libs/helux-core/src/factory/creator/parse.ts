@@ -16,9 +16,9 @@ import type {
   KeyBoolDict,
   KeyIdsDict,
   MutateFn,
-  MutateFnLooseItem,
+  IMutateFnLooseItem,
   MutateFnStdDict,
-  MutateFnStdItem,
+  IMutateFnStdItem,
   NumStrSymbol,
   WatchDepFn,
   WatchOptionsType,
@@ -76,7 +76,7 @@ export function parseDesc(fnKey: any, itemDesc?: any) {
 }
 
 export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: Dict) {
-  let validItem: MutateFnStdItem | null = null;
+  let validItem: IMutateFnStdItem | null = null;
   let desc = inputDesc || '';
   if (isFn(fnItem) && fnItem !== noop) {
     // now fnItem is a fn variable
@@ -88,6 +88,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
       onlyDeps: false,
       desc,
       depKeys: [],
+      writeKeys: [],
       checkDeadCycle: undefined,
       watchKey: '',
     };
@@ -110,6 +111,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
         onlyDeps,
         immediate,
         depKeys: [],
+        writeKeys: [],
       };
     }
   }
@@ -133,7 +135,7 @@ export function parseMutate(mutate?: IInnerCreateOptions['mutate'] | null, cache
   const checkDupDict: MutateFnStdDict = cachedDict || {};
   if (!mutate) return mutateFnDict;
 
-  const handleItem = (item: MutateFnLooseItem | MutateFn, inputDesc?: string) => {
+  const handleItem = (item: IMutateFnLooseItem | MutateFn, inputDesc?: string) => {
     const stdFn = parseMutateFn(item, inputDesc, checkDupDict);
     if (stdFn) {
       mutateFnDict[stdFn.desc] = stdFn;

@@ -5,7 +5,7 @@ import { dictFactory, delay } from '../logic/util';
 
 const [priceState, , ctxp] = share(dictFactory, { moduleName: 'DefineApi3', alertDeadCycleErr: false });
 
-const ms = ctxp.defineMutateSelf({
+const ms = ctxp.defineMutateSelf()({
   toBeDrive: (draft, params) => {
     console.error('trigger toBeDrive');
     draft.extra.toBeDrive = params.state.a.b.c + 1000;
@@ -31,7 +31,7 @@ function changeC() {
 
 function Price() {
   const [state] = ctxp.useState();
-  const [ld] = ms.useLoading();
+  const ld = ms.useLoading();
 
   return <MarkUpdate name="Price">
     <h3>extra.prefixedMark: {state.extra.prefixedMark}</h3>

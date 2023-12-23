@@ -1,6 +1,6 @@
 import { FROM, STATE_TYPE } from '../consts';
 import { runDerive, runDeriveTask } from '../helpers/fnRunner';
-import { useAtom, useAtomForceUpdate, useDerived, useLocalForceUpdate, useMutable, useReactive } from '../hooks';
+import { useAtom, useGlobalForceUpdate, useDerived, useLocalForceUpdate, useMutable, useReactive } from '../hooks';
 import type { CoreApiCtx } from '../types/api-ctx';
 import type { Dict, Fn, IAtomCtx, ICreateOptions, IRunMutateOptions, ISharedCtx, ActionTask, Action } from '../types/base';
 import { action } from './createAction';
@@ -62,7 +62,8 @@ function defineActions(
     actions,
     eActions,
     getLoading: () => ldAction.getLoading(actions),
-    useLoading: () => ldAction.useLoading(actions),
+    useLoading: () => ldAction.useLoading(actions)[0],
+    useLoadingInfo: () => ldAction.useLoading(actions),
   };
 }
 
@@ -72,7 +73,8 @@ function defineMutate(options: { state: any; ldMutate: Dict; mutateFnDict: Dict 
   return {
     witnessDict,
     getLoading: () => ldMutate.getLoading(witnessDict),
-    useLoading: () => ldMutate.useLoading(witnessDict),
+    useLoading: () => ldMutate.useLoading(witnessDict)[0],
+    useLoadingInfo: () => ldMutate.useLoading(witnessDict),
   };
 }
 
@@ -97,7 +99,8 @@ function defineFullDerive(options: { apiCtx: CoreApiCtx; deriveFnDict: Dict; thr
     helper[key] = {
       runDerive: (te?: boolean) => runDerive(result, te ?? throwErr),
       runDeriveTask: (te?: boolean) => runDeriveTask(result, te ?? throwErr),
-      useDerived: (options: any) => useDerived(apiCtx, result, options),
+      useDerived: (options: any) => useDerived(apiCtx, result, options)[0],
+      useDerivedInfo: (options: any) => useDerived(apiCtx, result, options),
     };
   });
   return {
@@ -127,16 +130,16 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     setState,
     defineActions: (throwErr?: boolean) => (actionDict: Dict<ActionTask>) => defineActions({ ...acCommon, actionDict }, throwErr),
     defineTpActions: (throwErr?: boolean) => (actionDict: Dict<Action>) => defineActions({ ...acCommon, actionDict, forTp: true }, throwErr),
-    defineMutateDerive: (inital: Dict, mutateFnDict: Dict) => defineMutateDerive({ ...common, ldMutate, inital, mutateFnDict }),
-    defineMutateSelf: (mutateFnDict: Dict) => defineMutate({ ldMutate, state, mutateFnDict }),
-    defineFullDerive: (deriveFnDict: Dict, throwErr?: boolean) => defineFullDerive({ apiCtx, deriveFnDict, throwErr }),
+    defineMutateDerive: (inital: Dict) => (mutateFnDict: Dict) => defineMutateDerive({ ...common, ldMutate, inital, mutateFnDict }),
+    defineMutateSelf: () => (mutateFnDict: Dict) => defineMutate({ ldMutate, state, mutateFnDict }),
+    defineFullDerive: (throwErr?: boolean) => (deriveFnDict: Dict) => defineFullDerive({ apiCtx, deriveFnDict, throwErr }),
     mutate: mutate(state),
     runMutate: (descOrOptions: string | IRunMutateOptions) => runMutate(state, descOrOptions),
     runMutateTask: (descOrOptions: string | IRunMutateOptions) => runMutateTask(state, descOrOptions),
     action: actionCreator,
     call: (fn: Fn, payload: any, desc: string, throwErr: boolean) => actionTaskCreator(fn, desc, throwErr)(payload),
     useState: (options?: any) => useAtom(apiCtx, state, options),
-    useForceUpdate: (presetDeps?: (sharedState: any) => any[]) => useAtomForceUpdate(apiCtx, state, presetDeps),
+    useForceUpdate: (presetDeps?: (sharedState: any) => any[]) => useGlobalForceUpdate(apiCtx, state, presetDeps),
     useLocalState: (initialState: any) => useMutable(apiCtx, initialState),
     useLocalForceUpdate: () => useLocalForceUpdate(apiCtx),
     getMutateLoading: ldMutate.getLoading,
