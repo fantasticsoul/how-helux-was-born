@@ -25,7 +25,7 @@ export function updateIns(insCtxMap: InsCtxMap, insKey: number, sn: number) {
  */
 export function execDepFns(opts: ICommitOpts) {
   const { mutateCtx, internal } = opts;
-  const { ids, globalIds, depKeys, triggerReasons, isFirstCall, from, sn, desc } = mutateCtx;
+  const { ids, globalIds, depKeys, triggerReasons, isFirstCall, from, sn, desc, fnKey: fromFnKey } = mutateCtx;
   const { key2InsKeys, id2InsKeys, insCtxMap, rootValKey } = internal;
 
   // these associate ins keys will be update
@@ -106,7 +106,7 @@ export function execDepFns(opts: ICommitOpts) {
   // start mark async derive fn computing
   dirtyAsyncFnKeys.forEach((fnKey) => markComputing(fnKey, runCountStats[fnKey]));
   // start execute derive/watch fns
-  dirtyFnKeys.forEach((fnKey) => runFn(fnKey, { depKeys, sn, from, triggerReasons, internal, desc, isFirstCall }));
+  dirtyFnKeys.forEach((fnKey) => runFn(fnKey, { depKeys, sn, from, triggerReasons, internal, desc, isFirstCall, fromFnKey }));
 
   // start trigger rerender
   dirtyInsKeys.forEach((insKey) => updateIns(insCtxMap, insKey, sn));

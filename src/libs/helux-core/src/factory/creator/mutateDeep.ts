@@ -124,7 +124,7 @@ export function execFinish(
 }
 
 export function fillMutateCtx(mutateCtx: IMutateCtx, innerSetOptions: IInnerSetStateOptions) {
-  const { ids, globalIds, from, desc } = innerSetOptions;
+  const { ids, globalIds, from, desc, fnKey } = innerSetOptions;
   // 用户 setState 可能设定了 ids globalIds
   if (ids) {
     ids.forEach(id => nodupPush(mutateCtx.ids, id));
@@ -133,13 +133,11 @@ export function fillMutateCtx(mutateCtx: IMutateCtx, innerSetOptions: IInnerSetS
     globalIds.forEach(id => nodupPush(mutateCtx.globalIds, id));
   }
   // 内部可能重写 from
-  if (from) {
-    mutateCtx.from = from;
-  }
+  from && (mutateCtx.from = from);
   // 内部可能重写 desc
-  if (desc) {
-    mutateCtx.desc = desc;
-  }
+  desc && (mutateCtx.desc = desc);
+  // 可能来自于 mutate 函数调用
+  fnKey && (mutateCtx.fnKey = fnKey);
 }
 
 /**

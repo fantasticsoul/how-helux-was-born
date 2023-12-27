@@ -440,6 +440,10 @@ export type PartialArgType<T> = T extends PlainObject ? Partial<T> | ((draft: T)
 export type PartialDraftArgType<T> = T extends PlainObject ? Partial<T> | ((draft: T) => void) : T | ((draft: T) => void);
 
 export interface IMutateCtx {
+  /**
+   * 触发变更的函数 key，由 innerSetOptions 透给 mutateCtx
+   */
+  fnKey: string;
   /** 当次变更的依赖 key 列表，在 finishMutate 阶段会将 writeKeys 字典keys 转入 depKeys 里 */
   depKeys: string[];
   /**
@@ -488,7 +492,8 @@ export interface IMutateCtx {
 export interface IInnerSetStateOptions extends ISetStateOptions {
   from?: From;
   isFirstCall?: boolean;
-  insKey?: number;
+  /** 触发 finish 的函数 key，用于辅助发现死循环 */
+  fnKey?: string;
   /**
    * default: true，
    * 是否忽略cb返回值，setDraft 接口会设置为 false

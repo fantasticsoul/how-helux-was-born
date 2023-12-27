@@ -1,29 +1,45 @@
 import { noop, noopArr } from '@helux/utils';
 import { IOperateParams } from 'limu';
 import { ASYNC_TYPE, FROM, NOT_MOUNT, RENDER_START } from '../../consts';
-import type { IFnCtx, ISetFactoryOpts, IMutateCtx, IMutateFnStdItem } from '../../types/base';
+import type { IFnCtx, ISetFactoryOpts, IMutateCtx, IMutateFnStdItem, OnOperate, From } from '../../types/base';
 import type { IReactiveMeta } from '../../types/inner';
 import { genRenderSN } from './key';
 
 const { MAY_TRANSFER } = ASYNC_TYPE;
-const { SET_STATE } = FROM;
+const { SET_STATE, REACTIVE } = FROM;
 const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any });
 const noopAny: (...args: any[]) => any = () => { };
 
 const fnItem = newMutateFnItem();
 
-export function newReactiveMeta(): IReactiveMeta {
+export interface IBuildReactiveOpts {
+  isTop?: boolean;
+  depKeys?: string[];
+  desc?: string;
+  onRead?: OnOperate;
+  from?: From;
+}
+
+export function newReactiveMeta(draft: any, buildOptions: IBuildReactiveOpts, finish: any = noop): IReactiveMeta {
+  const { desc = '', onRead = noop, from = REACTIVE, depKeys = [], isTop = false } = buildOptions;
   return {
-    isTop: true,
-    key: '',
-    fnKey: '',
+    draft,
+    finish,
+    modified: false,
+    expired: false,
     sharedKey: 0,
     moduleName: '',
-    depKeys: [],
+    hasFlushTask: false,
+    nextTickFlush: noop,
+    data: [],
+    isTop,
+    key: '',
+    fnKey: '',
+    depKeys,
     writeKeys: [],
-    desc: '',
-    onRead: undefined,
-    from: SET_STATE,
+    desc,
+    onRead,
+    from,
   };
 }
 
@@ -33,6 +49,7 @@ export function newMutateCtx(options: ISetFactoryOpts): IMutateCtx {
     handleCbReturn = true, sn = genRenderSN(), isFirstCall = false, desc = ''
   } = options;
   return {
+    fnKey: '',
     depKeys: [],
     forcedDepKeys: [],
     triggerReasons: [],

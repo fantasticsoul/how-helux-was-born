@@ -75,7 +75,7 @@ export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options:
   const { sharedKey } = internal;
   const customOptions: ISetFactoryOpts = { desc, sn, from };
   const statusKey = getStatusKey(from, desc);
-  const { draft, draftRoot, meta } = buildReactive(internal, { depKeys, desc, from });
+  const { draft, draftRoot } = buildReactive(internal, { depKeys, desc, from });
   const flush = (desc: string) => {
     innerFlush(sharedKey, desc);
   };
@@ -111,7 +111,6 @@ export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options:
 
   setStatus(true, null, false);
   const handleErr = (err: any): ActionReturn => {
-    REACTIVE_META.del(meta.key);
     FN_DEP_KEYS.del();
     setStatus(false, err, false);
     if (throwErr) {
@@ -128,8 +127,6 @@ export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options:
     // 这里需要主动 flush 一次，让返回的 snap 是最新值（ flush 内部会主动判断 reactive 是否已过期，不会有冗余的刷新动作产生 ）
     // const nextState = actions.xxxMethod(); //  nextState 为最新值
     flush(desc);
-    // del mutate or action reactive meta data
-    REACTIVE_META.del(meta.key);
 
     return { snap: internal.snap, err: null, result: partial };
   };
@@ -180,7 +177,7 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
     }
 
     const result = fn(...args);
-    finish(result);
+    finish(result, { fnKey: fnCtx.fnKey });
     afterFnRun(internal, fnItem, isFirstCall);
     return { snap: internal.snap, err: null, result: null };
   } catch (err: any) {
