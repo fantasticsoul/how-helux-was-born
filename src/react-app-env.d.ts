@@ -92,6 +92,8 @@ declare module 'helux' {
     derive,
     // derive for shared atom
     deriveDict,
+    defineDeriveTask,
+    defineDeriveFnItem,
     watch,
     runDerive,
     useAtom,
@@ -127,8 +129,6 @@ declare module 'helux' {
     emit,
     on,
     produce,
-    currentDraftRoot,
-    setAtomVal,
     shallowCompare,
     isDiff,
     getMutateLoading,

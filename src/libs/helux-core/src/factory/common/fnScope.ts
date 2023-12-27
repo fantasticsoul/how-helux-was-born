@@ -2,8 +2,8 @@ import { delListItem, isDebug, isFn, isObj, nodupPush, safeMapGet } from '@helux
 import { FN_KEY } from '../../consts';
 import { injectHeluxProto } from '../../helpers/obj';
 import type { Dict, IFnCtx, ScopeType } from '../../types/base';
-import { genFnKey } from '../common/key';
 import { fakeFnCtx } from '../common/fake';
+import { genFnKey } from '../common/key';
 import { getFnScope } from './speedup';
 
 export function getCtxMap(scopeKeyOrFnKey: string) {

@@ -1,16 +1,16 @@
 import { FROM, STATE_TYPE } from '../consts';
-import { runDerive, runDeriveTask } from '../helpers/fnRunner';
-import { useAtom, useGlobalForceUpdate, useDerived, useLocalForceUpdate, useMutable, useReactive } from '../hooks';
+import { innerRunDerive, innerRunDeriveTask } from '../helpers/fnRunner';
+import { useAtom, useDerived, useGlobalForceUpdate, useLocalForceUpdate, useMutable, useReactive } from '../hooks';
 import type { CoreApiCtx } from '../types/api-ctx';
-import type { Dict, Fn, IAtomCtx, ICreateOptions, IRunMutateOptions, ISharedCtx, ActionTask, Action } from '../types/base';
+import type { Action, ActionTask, Dict, Fn, IAtomCtx, ICreateOptions, IRunMutateOptions, ISharedCtx } from '../types/base';
 import { action } from './createAction';
 import { derive } from './createDerived';
 import { mutate, mutateDict, runMutate, runMutateTask } from './createMutate';
 import { buildSharedObject } from './creator';
 import type { TInternal } from './creator/buildInternal';
-import { isTaskProm } from './creator/mutateFn';
 import { getGlobalEmpty, initGlobalEmpty } from './creator/globalId';
 import { getLoadingInfo, initGlobalLoading, initLoadingCtx } from './creator/loading';
+import { isTaskProm } from './creator/mutateFn';
 import type { IInnerOptions } from './creator/parse';
 import { flush, reactiveDesc } from './creator/reactive';
 
@@ -26,7 +26,15 @@ export function ensureGlobal(apiCtx: CoreApiCtx, inputStateType?: string) {
 }
 
 function defineActions(
-  options: { internal: TInternal; apiCtx: CoreApiCtx; createFn: any; ldAction: Dict; actionCreator: any; actionDict: Dict, forTp?: boolean },
+  options: {
+    internal: TInternal;
+    apiCtx: CoreApiCtx;
+    createFn: any;
+    ldAction: Dict;
+    actionCreator: any;
+    actionDict: Dict;
+    forTp?: boolean;
+  },
   throwErr?: boolean,
 ) {
   const { createFn, ldAction, actionDict, actionCreator, internal, apiCtx, forTp = false } = options;
@@ -51,13 +59,14 @@ function defineActions(
     const actionFn = (...args: any[]) => {
       const ret = eActionFn(...args);
       if (isTaskProm(actionTask)) {
-        return Promise.resolve(ret).then(data => data.result);
+        return Promise.resolve(ret).then((data) => data.result);
       }
       return ret.result;
     };
     actionFn.__fnName = key;
     actions[key] = actionFn;
   });
+
   return {
     actions,
     eActions,
@@ -70,6 +79,7 @@ function defineActions(
 function defineMutate(options: { state: any; ldMutate: Dict; mutateFnDict: Dict }) {
   const { state, ldMutate, mutateFnDict } = options;
   const witnessDict = mutateDict(state)(mutateFnDict);
+
   return {
     witnessDict,
     getLoading: () => ldMutate.getLoading(witnessDict),
@@ -86,6 +96,7 @@ function defineMutateDerive(options: { apiCtx: CoreApiCtx; ldMutate: Dict; inita
     const [state, , info] = ctx.useState(options);
     return [state, info];
   };
+
   return { derivedState: state, useDerivedState, ...result };
 }
 
@@ -97,23 +108,25 @@ function defineFullDerive(options: { apiCtx: CoreApiCtx; deriveFnDict: Dict; thr
     const result = derive(deriveFnDict[key]);
     derivedResult[key] = result;
     helper[key] = {
-      runDerive: (te?: boolean) => runDerive(result, te ?? throwErr),
-      runDeriveTask: (te?: boolean) => runDeriveTask(result, te ?? throwErr),
+      runDerive: (te?: boolean) => innerRunDerive(result, te ?? throwErr),
+      runDeriveTask: (te?: boolean) => innerRunDeriveTask(result, te ?? throwErr),
       useDerived: (options: any) => useDerived(apiCtx, result, options)[0],
       useDerivedInfo: (options: any) => useDerived(apiCtx, result, options),
     };
   });
-  return {
-    derivedResult,
-    helper,
-  };
+  /** 对提供给用户使用的结果集做自动拆箱 */
+  const result = new Proxy(derivedResult, {
+    get: (t: any, k: any) => derivedResult[k].val,
+  });
+
+  return { result, helper };
 }
 
 export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: any): any {
   const { stateType, apiCtx } = innerOptions;
   ensureGlobal(apiCtx, stateType);
   const { sharedRoot: state, sharedState: stateVal, internal } = buildSharedObject(innerOptions, createOptions);
-  const { syncer, sync, forAtom, setState, sharedKey, sharedKeyStr, rootValKey, reactive, reactiveRoot } = internal;
+  const { syncer, sync, forAtom, setState, setDraft, sharedKey, sharedKeyStr, rootValKey, reactive, reactiveRoot } = internal;
   const actionCreator = action(state);
   const actionTaskCreator = actionCreator(); // 注意此处是柯里化调用后才是目标 actionCreator
   const opt = { internal, from: MUTATE, apiCtx };
@@ -128,8 +141,10 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     state, // 指向 root
     stateVal, // atom 的话 stateVal 是拆箱后的值，share 对象的话，stateVal 指向 root 自身
     setState,
+    setDraft,
     defineActions: (throwErr?: boolean) => (actionDict: Dict<ActionTask>) => defineActions({ ...acCommon, actionDict }, throwErr),
-    defineTpActions: (throwErr?: boolean) => (actionDict: Dict<Action>) => defineActions({ ...acCommon, actionDict, forTp: true }, throwErr),
+    defineTpActions: (throwErr?: boolean) => (actionDict: Dict<Action>) =>
+      defineActions({ ...acCommon, actionDict, forTp: true }, throwErr),
     defineMutateDerive: (inital: Dict) => (mutateFnDict: Dict) => defineMutateDerive({ ...common, ldMutate, inital, mutateFnDict }),
     defineMutateSelf: () => (mutateFnDict: Dict) => defineMutate({ ldMutate, state, mutateFnDict }),
     defineFullDerive: (throwErr?: boolean) => (deriveFnDict: Dict) => defineFullDerive({ apiCtx, deriveFnDict, throwErr }),

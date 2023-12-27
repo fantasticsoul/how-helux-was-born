@@ -13,8 +13,8 @@ const [ret, setState] = share(stateFn, {
   moduleName: 'dlist',
   exact: true,
   rules: [
-    { when: (state) => [state.list], ids: ['list'] },
-    { when: (state) => [state.nestedList], ids: ['list1', 'list2'] },
+    // { when: (state) => [state.list], ids: ['list'] },
+    // { when: (state) => [state.nestedList], ids: ['list1', 'list2'] },
   ],
 });
 

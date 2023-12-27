@@ -8,7 +8,6 @@ import { DEPS_CB } from '../factory/creator/current';
 import type { Dict, IFnCtx } from '../types/base';
 import { getInternalByKey } from './state';
 
-
 export function markIgnore(isIgnore = true) {
   const fnScope = getFnScope();
   fnScope.isIgnore = isIgnore;

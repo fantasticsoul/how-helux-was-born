@@ -1,10 +1,10 @@
 import { FROM } from '../consts';
 import { getStatusKey, setLoadStatus } from '../factory/creator/loading';
-import type { Fn, SharedState, Ext } from '../types/base';
+import type { Ext, Fn, SharedState } from '../types/base';
 import { checkSharedStrict } from './common/check';
 import { newMutateFnItem } from './common/ctor';
-import { callAsyncMutateFnLogic } from './creator/mutateFn';
 import { handlePartial } from './creator/mutateDeep';
+import { callAsyncMutateFnLogic } from './creator/mutateFn';
 
 const { ACTION } = FROM;
 
@@ -27,9 +27,9 @@ function innerCreate<T = SharedState>(
     const fnItem = newMutateFnItem({ desc, task, depKeys: [] });
     const dispatch = (task: any, payload: any) => {
       // 可能 task 自身就是 action，例如
-      // const { actions } = definedActions()({ 
+      // const { actions } = definedActions()({
       //   foo(){},
-      //   bar({dispatch}){ 
+      //   bar({dispatch}){
       //     // 以下两种调用方式等效
       //     dispatch(actions.foo, 1); // 此时 actions.foo 就是 action 函数
       //     actions.foo(1);
@@ -51,7 +51,7 @@ function innerCreate<T = SharedState>(
           handlePartial({ partial, forAtom, draftRoot, draftNode: draft });
         };
         return [{ draft, draftRoot, setState, desc, payload, flush, merge, dispatch }];
-      }
+      },
     });
   };
   // 提前记录一个值，方便用户使用 getLoading 时可收集到依赖

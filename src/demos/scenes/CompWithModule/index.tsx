@@ -17,6 +17,11 @@ function testF() {
   console.log(a);
 }
 
+function reactiveF() {
+  ctx.reactive.f = 100;
+  ctx.flush('reactiveF');
+}
+
 function Comp() {
   const [state] = ctx.useState();
   return (
@@ -45,7 +50,7 @@ function Comp3() {
 }
 
 const Demo = () => (
-  <Entry fns={getAtionFns(action.actions, [test, testF])}>
+  <Entry fns={getAtionFns(action.actions, [test, testF, reactiveF])}>
     <Comp />
     <Comp2 />
     <Comp3 />

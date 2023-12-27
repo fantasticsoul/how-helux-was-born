@@ -1,15 +1,15 @@
 import { warn } from '@helux/utils';
 import type { IOperateParams } from 'limu';
 import { immut } from 'limu';
-import { IS_ATOM, OP_KEYS, SHARED_KEY, HAS_PROXY } from '../../consts';
+import { HAS_PROXY, IS_ATOM, OP_KEYS, SHARED_KEY } from '../../consts';
 import { recordBlockDepKey } from '../../helpers/blockDep';
 import { recordFnDepKeys } from '../../helpers/fnDep';
-import { createOb, createDpOb } from '../../helpers/obj';
+import { createDpOb, createOb } from '../../helpers/obj';
 import { mapSharedState } from '../../helpers/state';
 import type { Dict } from '../../types/base';
 import { recordLastest } from '../common/blockScope';
-import { callOnRead, getDepKeyByPath, isDict } from '../common/util';
 import { newOpParams } from '../common/ctor';
+import { callOnRead, getDepKeyByPath, isDict } from '../common/util';
 import type { ParsedOptions } from './parse';
 
 function cannotSet() {
@@ -101,7 +101,7 @@ export function buildSharedState(options: ParsedOptions) {
         set: cannotSet,
         get: (t: any, k: any) => sharedRoot.val[k],
       });
-    };
+    }
   }
 
   mapSharedState(sharedKey, sharedRoot);

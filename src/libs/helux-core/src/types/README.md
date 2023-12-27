@@ -22,12 +22,13 @@ AtomSyncFnBuilder;
 AtomSyncer;
 ```
 
-## todo 
+## todo
+
 针对 action 加上 merge 实现
 
 ##
 
-```ts
+````ts
   defineTpActions: <
     D extends Dict<Action | ActionAsync> = any,
   >(actions: D, throwErr?: boolean) => {
@@ -102,7 +103,7 @@ export type ActionFnDefAsync<P = any, T = any> = (
    * 单独对每一个 action 函数设定 payload 类型时，使用 defineTpActions 替代 defineActions
    * ```ts
    * const ctx = sharex(dictFactory, { moduleName: 'DefineApi' });
-   * 
+   *
    * const { actions, useLoading, getLoading } = ctx.defineTpActions({
    *   // 注里这里的  ctx.action 调用方式是柯里化调用 ctx.action()(fnDef)
    *   changeA: ctx.action<number>()(({ draft, payload }) => { // 此处 payload 获得类型提示
@@ -112,7 +113,7 @@ export type ActionFnDefAsync<P = any, T = any> = (
    *     draft.a.b.c = 200;
    *   }),
    * });
-   * 
+   *
    * actions.changeB(true); // 此处入参 payload 获得类型校验
    * ```
    */
@@ -124,24 +125,18 @@ export type ActionFnDefAsync<P = any, T = any> = (
     useLoading: () => [Ext<LoadingState<D>>, SetState<LoadingState>, IInsRenderInfo];
   };
 
-```
-
+````
 
 ```ts
-
 // defineActions 和 defineAsyncActions 需要细分  ActionFnDef 是同步还是异步，故此处再次分类出
 // ActionNormalFnDef  ActionFnDefAsync
-export type ActionNormalFnReturnType<T> = T extends PlainObject
-  ? void | Partial<T>
-  : void | T;
+export type ActionNormalFnReturnType<T> = T extends PlainObject ? void | Partial<T> : void | T;
 
 export type ActionNormalFnDef<P = any, T = any> = (
   param: ActionFnParam<P, T>,
 ) => T extends Atom | ReadOnlyAtom ? ActionNormalFnReturnType<AtomValType<T>> : ActionNormalFnReturnType<T>;
 
-export type ActionAsyncFnReturnType<T> = T extends PlainObject
-  ? Promise<void | Partial<T>>
-  : Promise<void | T>;
+export type ActionAsyncFnReturnType<T> = T extends PlainObject ? Promise<void | Partial<T>> : Promise<void | T>;
 
 export type ActionAsyncFnDef<P = any, T = any> = (
   param: ActionFnParam<P, T>,

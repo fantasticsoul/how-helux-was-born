@@ -1,4 +1,4 @@
-import { DICT } from '../../consts';
+import { DICT, MOUNTED, UNMOUNT } from '../../consts';
 import { isAtom } from '../../factory/common/atom';
 import type { InsCtxDef } from '../../factory/creator/buildInternal';
 import { INS_CTX } from '../../factory/creator/current';
@@ -58,6 +58,7 @@ export function checkStateVer(insCtx: InsCtxDef) {
 
 // recover ins ctx (dep,updater etc...) for double mount behavior under react 18 strict mode
 export function recoverInsCtx(insCtx: InsCtxDef) {
+  insCtx.mountStatus = MOUNTED;
   const { id, globalId, insKey } = insCtx;
   insCtx.internal.recordId(id, insKey);
   mapGlobalId(globalId, insKey);
@@ -65,6 +66,7 @@ export function recoverInsCtx(insCtx: InsCtxDef) {
 }
 
 export function delInsCtx(insCtx: InsCtxDef) {
+  insCtx.mountStatus = UNMOUNT;
   const { id, globalId, insKey } = insCtx;
   insCtx.internal.delId(id, insKey);
   delGlobalId(globalId, insKey);

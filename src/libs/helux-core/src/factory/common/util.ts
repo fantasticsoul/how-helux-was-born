@@ -1,4 +1,4 @@
-import { getVal, isDebug, isFn, isMap, isObj, isProxyAvailable, prefixValKey, isJsObj } from '@helux/utils';
+import { getVal, isDebug, isFn, isJsObj, isMap, isObj, isProxyAvailable, prefixValKey } from '@helux/utils';
 import { immut, IOperateParams, limuUtils } from 'limu';
 import { ARR, KEY_SPLITER, MAP, STATE_TYPE } from '../../consts';
 import { createOb } from '../../helpers/obj';
@@ -19,11 +19,16 @@ export function tryGetLoc(moduleName: string, endCutIdx = 8) {
     try {
       throw new Error('loc');
     } catch (err: any) {
-      const arr = err.stack.split('\n');
-      const pureArr = arr.map((codeLoc: string) => {
-        return codeLoc.substring(0, codeLoc.indexOf('(')).trim();
-      });
-      loc = pureArr.slice(4, endCutIdx).join(' -> ');
+      const arr: string[] = err.stack.split('\n');
+      const item1 = arr[1] || '';
+      if (item1.includes('webpack-internal') || item1.includes('/node_modules/')) {
+        loc = arr.slice(0, 16).join(' -> ');
+      } else {
+        const pureArr = arr.map((codeLoc) => {
+          return codeLoc.substring(0, codeLoc.indexOf('(')).trim();
+        });
+        loc = pureArr.slice(4, endCutIdx).join(' -> ');
+      }
     }
   }
   return loc;

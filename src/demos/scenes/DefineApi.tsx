@@ -88,13 +88,14 @@ actions2.changeB(1)
 
 // actions.
 
+// TODO FIX TYPE
 type DR = {
   a: { result: number };
-  // b: { result: number };
+  b: { result: string };
   c: { deps: [number, string], result: number };
 };
 
-const fd = ctxp.defineFullDerive<DR>()({
+const fd = ctxp.defineFullDerive()({
   a() {
     return priceState.a.b.c + 10000;
   },
@@ -112,8 +113,9 @@ const fd = ctxp.defineFullDerive<DR>()({
   }
 });
 
-const a = fd.derivedResult.a;
-const c = fd.derivedResult.c;
+const a = fd.result.a;
+const b = fd.result.b;
+// const c = fd.result.c;
 // a.z__is_atom_result__
 // a.__helux_ts_type_helper_attr__
 
@@ -151,19 +153,19 @@ function changeC1() {
   // ctxp.reactive.a.b1.c1++;
 }
 
-function Price() {
-  const [price, , info] = useAtom(priceState);
-  const ld = useLoading();
-  const [a, status] = fd.helper.a.useDerivedInfo();
-  const [c, status2] = fd.helper.c.useDerivedInfo();
+// function Price() {
+//   const [price, , info] = useAtom(priceState);
+//   const ld = useLoading();
+//   const [a, status] = fd.helper.a.useDerivedInfo();
+//   const [c, status2] = fd.helper.c.useDerivedInfo();
 
-  return <MarkUpdate name="Price" info={info}>
-    {price.a.b.c}
-    <h3>{ld.foo.loading ? 'foo is running' : 'foo is done'}</h3>
-    <h3>derived a: {a} {status.loading ? 'loading...' : ''}</h3>
-    <h3>derived c ( dep a.b1.c1 ): {c} {status2.loading ? 'loading...' : ''}</h3>
-  </MarkUpdate>;
-}
+//   return <MarkUpdate name="Price" info={info}>
+//     {price.a.b.c}
+//     <h3>{ld.foo.loading ? 'foo is running' : 'foo is done'}</h3>
+//     <h3>derived a: {a} {status.loading ? 'loading...' : ''}</h3>
+//     <h3>derived c ( dep a.b1.c1 ): {c} {status2.loading ? 'loading...' : ''}</h3>
+//   </MarkUpdate>;
+// }
 
 function C1() {
   const [state, , info] = ctxp.useState();
@@ -179,8 +181,8 @@ console.log(actions.foo.__fnName);
 
 const Demo = () => (
   <Entry fns={[actions.foo, changeC1, changeC]}>
-    <Price />
-    <Price />
+    {/* <Price />
+    <Price /> */}
     <C1 />
     {/* <h3>ctxp.reactive.a.b.c: {$(ctxp.reactive.a.b.c)}</h3>
     <h3>ctxp.reactive.a.b1.c1: {$(ctxp.reactive.a.b1.c1)}</h3>

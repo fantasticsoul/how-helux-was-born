@@ -1,11 +1,11 @@
-import { delListItem, enureReturnArr, isFn, isSymbol, nodupPush, prefixValKey, warn } from '@helux/utils';
+import { delListItem, enureReturnArr, isFn, isSymbol, nodupPush, prefixValKey, warn, noop } from '@helux/utils';
 import { immut } from 'limu';
 import { DICT, EXPIRE_MS, IS_DERIVED_ATOM, NOT_MOUNT, OTHER, RENDER_END, RENDER_START } from '../consts';
+import { newOpParams } from '../factory/common/ctor';
 import { hasRunningFn } from '../factory/common/fnScope';
 import { genInsKey } from '../factory/common/key';
 import { cutDepKeyByStop, recordArrKey } from '../factory/common/stopDep';
 import { callOnRead, getDepKeyByPath, isArrLike, isArrLikeVal, isDict } from '../factory/common/util';
-import { newOpParams } from '../factory/common/ctor';
 import type { InsCtxDef } from '../factory/creator/buildInternal';
 import { handleCustomKey, handleHeluxKey } from '../factory/creator/buildShared';
 import { mapGlobalId } from '../factory/creator/globalId';
@@ -45,9 +45,15 @@ function getInsDeps(insCtx: InsCtxDef, isCurrent: boolean) {
 export function runInsUpdater(insCtx: InsCtxDef | undefined) {
   if (!insCtx) return;
   const { updater, mountStatus, createTime } = insCtx;
-  if (mountStatus === NOT_MOUNT && Date.now() - createTime > EXPIRE_MS) {
-    return clearDep(insCtx);
+  if (mountStatus === NOT_MOUNT) {
+    if(Date.now() - createTime > EXPIRE_MS){
+      clearDep(insCtx);
+    }else{
+      insCtx.needEFUpdate = true;
+    }
+    return;
   }
+
   updater();
 }
 
@@ -83,7 +89,7 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
       insCtx.proxyState = immut(rawState, { onOperate, compareVer: true });
     }
   } else {
-    // TODO  
+    // TODO
     // 如支持非 Proxy 环境，还有以下两点要做，但很可能这些代码会删掉，考虑让用户去使用 @helux/mini
     // 1 待 toShallowCopy 抽象完毕后，统一调用 toShallowCopy
     // 2 非 Proxy环境，对于数组 push pop 等操作，提供 markChanged 接口让 helux 感知到变化
@@ -153,6 +159,7 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
     updater,
     mountStatus: NOT_MOUNT,
     renderStatus: RENDER_START,
+    needEFUpdate: false,
     createTime: Date.now(),
     rootVal: null,
     ver,
@@ -170,6 +177,7 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
     extra: {},
     getDeps: () => getInsDeps(insCtx, true),
     renderInfo: {
+      setDraft: internal.setDraft,
       time: Date.now(),
       sn: 0,
       snap,

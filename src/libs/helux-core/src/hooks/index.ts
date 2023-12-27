@@ -1,6 +1,6 @@
-export { useAtom } from './useAtom';
-export { useGlobalForceUpdate } from './useGlobalForceUpdate';
+export { useAtom, useAtomX } from './useAtom';
 export { useDerived } from './useDerived';
+export { useGlobalForceUpdate } from './useGlobalForceUpdate';
 export { useGlobalId } from './useGlobalId';
 export { getActionLoading, getMutateLoading, useActionLoading, useMutateLoading } from './useLoading';
 export { useLocalForceUpdate } from './useLocalForceUpdate';

@@ -18,12 +18,15 @@ export const {
   // derive api
   derive,
   deriveDict,
+  defineDeriveTask,
+  defineDeriveFnItem,
   runDerive,
   runDeriveTask,
   // watch api
   watch,
   // hooks api
   useAtom,
+  useAtomX,
   useReactive,
   useDerived,
   useWatch,

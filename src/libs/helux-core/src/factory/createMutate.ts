@@ -1,6 +1,15 @@
 import { FROM, SINGLE_MUTATE } from '../consts';
 import { getInternal } from '../helpers/state';
-import type { Dict, IRunMutateOptions, MutateFn, MutateFnDict, IMutateFnLooseItem, IMutateWitness, SharedState, ActionReturn } from '../types/base';
+import type {
+  ActionReturn,
+  Dict,
+  IMutateFnLooseItem,
+  IMutateWitness,
+  IRunMutateOptions,
+  MutateFn,
+  MutateFnDict,
+  SharedState,
+} from '../types/base';
 import { checkShared, checkSharedStrict } from './common/check';
 import type { TInternal } from './creator/buildInternal';
 import { callAsyncMutateFnLogic, callMutateFnLogic, watchAndCallMutateDict } from './creator/mutateFn';
@@ -37,14 +46,13 @@ function runMutateFnItem<T = SharedState>(options: { target: T; desc?: string; f
 
 function makeWitness(target: SharedState, desc: string, oriDesc: string, internal: TInternal) {
   return {
-    run: () => { // 呼叫同步函数的句柄
+    run: () => {
+      // 呼叫同步函数的句柄
       const ret = runMutateFnItem({ target, desc }) as ActionReturn;
       return toMutateRet(ret);
     },
     // 呼叫异步函数的句柄
-    runTask: () => Promise
-      .resolve(runMutateFnItem({ target, desc, forTask: true }))
-      .then(toMutateRet),
+    runTask: () => Promise.resolve(runMutateFnItem({ target, desc, forTask: true })).then(toMutateRet),
     desc,
     oriDesc,
     getSnap: () => internal.snap,

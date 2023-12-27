@@ -1,8 +1,9 @@
 import { noop, noopArr } from '@helux/utils';
 import { IOperateParams } from 'limu';
-import { NOT_MOUNT, RENDER_START, ASYNC_TYPE, FROM } from '../../consts';
-import type { IMutateFnStdItem, IFnCtx, IInnerSetStateOptions, IMutateCtx } from '../../types/base';
+import { ASYNC_TYPE, FROM, NOT_MOUNT, RENDER_START } from '../../consts';
+import type { IFnCtx, ISetFactoryOpts, IMutateCtx, IMutateFnStdItem } from '../../types/base';
 import type { IReactiveMeta } from '../../types/inner';
+import { genRenderSN } from './key';
 
 const { MAY_TRANSFER } = ASYNC_TYPE;
 const { SET_STATE } = FROM;
@@ -26,8 +27,11 @@ export function newReactiveMeta(): IReactiveMeta {
   };
 }
 
-export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
-  const { ids = [], globalIds = [], isReactive = false, from = SET_STATE, enableDep = false } = options; // 用户 setState 可能设定了 ids globalIds
+export function newMutateCtx(options: ISetFactoryOpts): IMutateCtx {
+  const {
+    ids = [], globalIds = [], isReactive = false, from = SET_STATE, enableDep = false,
+    handleCbReturn = true, sn = genRenderSN(), isFirstCall = false, desc = ''
+  } = options;
   return {
     depKeys: [],
     forcedDepKeys: [],
@@ -38,11 +42,14 @@ export function newMutateCtx(options: IInnerSetStateOptions): IMutateCtx {
     writeKeys: {},
     arrKeyDict: {}, // 记录读取过程中遇到的数组 key
     writeKeyPathInfo: {},
-    handleCbReturn: true,
+    handleCbReturn,
     draftVal: null,
     from,
     isReactive,
     enableDep,
+    sn,
+    isFirstCall,
+    desc,
   };
 }
 
@@ -71,23 +78,8 @@ export function newOpParams(
   };
 }
 
-// export function newMutateFnItem(): MutateFnStdItem {
-//   return {
-//     fn: noop,
-//     onlyDeps: false,
-//     depKeys: [],
-//     writeKeys: [],
-//     oriDesc: '',
-//     desc: '',
-//     watchKey: '',
-//   };
-// }
-
 export function newMutateFnItem(partial?: Partial<IMutateFnStdItem>): IMutateFnStdItem {
-  const {
-    desc = '', fn = noop, task = noopAny, depKeys = [], writeKeys = [],
-    deps = noopArr, onlyDeps = false, ...rest
-  } = partial || {};
+  const { desc = '', fn = noop, task = noopAny, depKeys = [], writeKeys = [], deps = noopArr, onlyDeps = false, ...rest } = partial || {};
   const base: IMutateFnStdItem = {
     fn,
     task,

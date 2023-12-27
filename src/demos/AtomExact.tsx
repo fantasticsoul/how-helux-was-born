@@ -2,10 +2,11 @@ import React from 'react';
 import { atom, useAtom } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 
-const [numAtom, setAtom] = atom({ a: 1, b: 2 }, { moduleName: 'AtomExact' });
+const [numAtom, setAtom, ctx] = atom({ a: 1, b: 2 }, { moduleName: 'AtomExact' });
 
 function changeA() {
   setAtom(draft => { draft.a += 100 });
+  ctx.setDraft(draft => draft.a += 100);
 }
 
 function changeB() {

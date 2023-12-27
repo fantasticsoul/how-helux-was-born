@@ -8,6 +8,7 @@ import type {
   KeyInsKeysDict,
   NumStrSymbol,
   SetState,
+  SetDraft,
   SetStateFactory,
   SharedState,
 } from '../../types/base';
@@ -21,6 +22,7 @@ export function buildInternal(
   parsedOptions: ParsedOptions,
   innerOptions: {
     setState: SetState;
+    setDraft: SetDraft;
     setStateFactory: SetStateFactory;
     innerSetState: InnerSetState;
     sharedState: Ext<SharedState>;

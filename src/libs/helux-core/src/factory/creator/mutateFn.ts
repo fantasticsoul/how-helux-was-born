@@ -1,16 +1,25 @@
-import { enureReturnArr, isPromise, noop, tryAlert } from '@helux/utils';
-import { EVENT_NAME, FROM, SCOPE_TYPE } from '../../consts';
+import { enureReturnArr, isPromise, noop } from '@helux/utils';
+import { FROM, SCOPE_TYPE } from '../../consts';
 import { getRunningFn, getSafeFnCtx } from '../../factory/common/fnScope';
-import { emitPluginEvent } from '../../factory/common/plugin';
+import { emitErr } from '../../factory/common/plugin';
 import type { TInternal } from '../../factory/creator/buildInternal';
-import { getStateNode } from '../../factory/creator/mutateDeep';
 import { FN_DEP_KEYS, REACTIVE_META, TRIGGERED_WATCH } from '../../factory/creator/current';
 import { alertDepKeyDeadCycleErr, analyzeErrLog, dcErr, inDeadCycle, probeDepKeyDeadCycle } from '../../factory/creator/deadCycle';
 import { getStatusKey, setLoadStatus } from '../../factory/creator/loading';
+import { getStateNode } from '../../factory/creator/mutateDeep';
 import { markFnEnd } from '../../helpers/fnCtx';
 import { markIgnore } from '../../helpers/fnDep';
 import { getInternal } from '../../helpers/state';
-import type { Fn, From, IInnerSetStateOptions, IWatchAndCallMutateDictOptions, IMutateFnStdItem, SharedState, ActionReturn, ActionAsyncReturn } from '../../types/base';
+import type {
+  ActionAsyncReturn,
+  ActionReturn,
+  Fn,
+  From,
+  ISetFactoryOpts,
+  IMutateFnStdItem,
+  IWatchAndCallMutateDictOptions,
+  SharedState,
+} from '../../types/base';
 import { createWatchLogic } from '../createWatch';
 import { buildReactive, flushActive, innerFlush } from './reactive';
 
@@ -59,15 +68,12 @@ export function isTaskProm(task: any) {
 }
 
 /** 呼叫异步函数的逻辑封装，mutate task 执行或 action 定义的函数（同步或异步）执行都会走到此逻辑 */
-export function callAsyncMutateFnLogic<T = SharedState>(
-  targetState: T,
-  options: ICallAsyncMutateFnOpt,
-): ActionReturn | ActionAsyncReturn {
+export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options: ICallAsyncMutateFnOpt): ActionReturn | ActionAsyncReturn {
   const { sn, getArgs = noop, from, throwErr, isFirstCall, fnItem, mergeReturn } = options;
   const { desc = '', depKeys, task = noopAny } = fnItem;
   const internal = getInternal(targetState);
   const { sharedKey } = internal;
-  const customOptions: IInnerSetStateOptions = { desc, sn, from };
+  const customOptions: ISetFactoryOpts = { desc, sn, from };
   const statusKey = getStatusKey(from, desc);
   const { draft, draftRoot, meta } = buildReactive(internal, { depKeys, desc, from });
   const flush = (desc: string) => {
@@ -152,17 +158,17 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
 
   const internal = getInternal(targetState);
   const { setStateFactory, forAtom, sharedState } = internal;
-  const innerSetOptions: IInnerSetStateOptions = { desc, sn, from, isFirstCall };
+  const setFactoryOpts: ISetFactoryOpts = { desc, sn, from, isFirstCall };
   // 不定制同步函数入参的话，默认就是 (draft, input)，
   // 调用函数形如：(draft)=>draft.xxx+=1; 或 (draft, input)=>draft.xxx+=input[0]
   const setState: any = (cb: any) => {
-    const { finish } = setStateFactory(); // 继续透传 sn from 等信息
-    return finish(cb, innerSetOptions);
+    const { finish } = setStateFactory(setFactoryOpts); // 继续透传 sn from 等信息
+    return finish(cb);
   };
 
   const state = getStateNode(sharedState, forAtom);
   const input = isMutate ? getInput(internal, fnItem) : [];
-  const { draftNode: draft, draftRoot, finish } = setStateFactory({ from, enableDep: true });
+  const { draftNode: draft, draftRoot, finish } = setStateFactory({ desc, sn, from, isFirstCall, enableDep: true });
   const args = getArgs({ isFirstCall, draft, draftRoot, setState, desc, input }) || [draft, { input, state, draftRoot, isFirstCall }];
 
   try {
@@ -174,7 +180,7 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
     }
 
     const result = fn(...args);
-    finish(result, innerSetOptions);
+    finish(result);
     afterFnRun(internal, fnItem, isFirstCall);
     return { snap: internal.snap, err: null, result: null };
   } catch (err: any) {
@@ -243,7 +249,7 @@ export function watchAndCallMutateDict(options: IWatchAndCallMutateDictOptions) 
   if (!keys.length) return;
   const internal = getInternal(target);
   const { mutateFnDict, usefulName, forAtom, sharedState } = internal;
-  const emitErrToPlugin = (err: Error) => emitPluginEvent(internal, EVENT_NAME.ON_ERROR_OCCURED, { err });
+  const emitErrToPlugin = (err: Error) => emitErr(internal, err);
 
   keys.forEach((descKey) => {
     const item = mutateFnDict[descKey];
@@ -283,8 +289,6 @@ export function watchAndCallMutateDict(options: IWatchAndCallMutateDictOptions) 
         } catch (err: any) {
           if (err.cause === 'DeadCycle') {
             analyzeErrLog(usefulName, err, internal.alertDeadCycleErr);
-          } else {
-            tryAlert(err);
           }
           emitErrToPlugin(err);
         }

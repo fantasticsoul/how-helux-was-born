@@ -5,7 +5,7 @@ import { addMiddleware } from './factory/common/middleware';
 import { addPlugin } from './factory/common/plugin';
 import { emit, on } from './factory/common/userBus';
 import { action } from './factory/createAction';
-import { derive, deriveDict } from './factory/createDerived';
+import { defineDeriveFnItem, defineDeriveTask, derive, deriveDict } from './factory/createDerived';
 import { mutate, mutateDict, runMutate, runMutateTask } from './factory/createMutate';
 import { atom, atomx, share, sharex } from './factory/createShared';
 import { sync, syncer } from './factory/createSync';
@@ -20,8 +20,9 @@ import {
   storeSrv,
   useActionLoading,
   useAtom,
-  useGlobalForceUpdate,
+  useAtomX,
   useDerived,
+  useGlobalForceUpdate,
   useGlobalId,
   useLocalForceUpdate,
   useMutable,
@@ -47,12 +48,15 @@ export {
   // derive api
   derive,
   deriveDict,
+  defineDeriveTask,
+  defineDeriveFnItem,
   runDerive,
   runDeriveTask,
   // watch api
   watch,
   // hooks api
   useAtom,
+  useAtomX,
   useGlobalForceUpdate,
   useReactive,
   useDerived,

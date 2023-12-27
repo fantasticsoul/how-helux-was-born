@@ -4,6 +4,11 @@ import type { IActionTaskParams, DraftType, UnconfirmedArg, IMutateTaskParam, IM
 export function getInitial() {
   return {
     loading: false,
+    list: [
+      { id: 1, name: 'helux1', age: 11 },
+      { id: 2, name: 'helux2', age: 12 },
+      { id: 3, name: 'helux3', age: 13 },
+    ],
     a: {
       b: { c: 1 },
       b1: { c1: 1 },

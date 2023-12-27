@@ -13,7 +13,7 @@ function changeC1() {
 
 type DR = {
   a: { result: number };
-  c: { deps: [number, string], result: number };
+  // c: { deps: [number, string], result: number };
 };
 
 const fd = ctxp.defineFullDerive<DR>()({
@@ -38,7 +38,7 @@ function Price() {
   return <MarkUpdate name="Price" info={info}>
     {price.a.b.c}
     <h3>derived a: {a} {status.loading ? 'loading...' : ''}</h3>
-    <h3>derived c ( dep a.b1.c1 ): {c} {status2.loading ? 'loading...' : ''}</h3>
+    {/* <h3>derived c ( dep a.b1.c1 ): {c} {status2.loading ? 'loading...' : ''}</h3> */}
   </MarkUpdate>;
 }
 

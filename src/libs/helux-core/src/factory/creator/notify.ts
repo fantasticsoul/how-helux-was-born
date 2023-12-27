@@ -8,7 +8,7 @@ import type { Dict, InsCtxMap } from '../../types/base';
 import { clearDiff, diffVal, hasChangedNode } from '../common/sharedScope';
 import { FN_DEP_KEYS } from '../creator/current';
 import type { InsCtxDef } from './buildInternal';
-import type { ICommitStateOptions } from './commitState';
+import type { ICommitOpts } from './mutateDeep';
 import { getGlobalEmptyInternal, getGlobalIdInsKeys } from './globalId';
 
 export function updateIns(insCtxMap: InsCtxMap, insKey: number, sn: number) {
@@ -23,9 +23,9 @@ export function updateIns(insCtxMap: InsCtxMap, insKey: number, sn: number) {
 /**
  * 相关依赖函数执行（render渲染函数，derive派生函数，watch观察函数）
  */
-export function execDepFns(opts: ICommitStateOptions) {
-  const { mutateCtx, internal, desc, isFirstCall, from, sn } = opts;
-  const { ids, globalIds, depKeys, triggerReasons } = mutateCtx;
+export function execDepFns(opts: ICommitOpts) {
+  const { mutateCtx, internal } = opts;
+  const { ids, globalIds, depKeys, triggerReasons, isFirstCall, from, sn, desc } = mutateCtx;
   const { key2InsKeys, id2InsKeys, insCtxMap, rootValKey } = internal;
 
   // these associate ins keys will be update

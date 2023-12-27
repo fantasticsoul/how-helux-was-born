@@ -1,4 +1,4 @@
-import { share, derive, useAtom, watch, shallowCompare, $, useWatch, currentDraftRoot } from 'helux';
+import { share, derive, useAtom, watch, shallowCompare, $, useWatch } from 'helux';
 import { getVal } from '@helux/utils';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';

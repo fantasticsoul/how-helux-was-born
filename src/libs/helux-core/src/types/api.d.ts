@@ -1,6 +1,6 @@
 /*
 |------------------------------------------------------------------------------------------------
-| helux-core@3.5.16
+| helux-core@3.5.20
 | A state library core that integrates atom, signal, collection dep, derive and watch,
 | it supports all react like frameworks ( including react 18 ).
 |------------------------------------------------------------------------------------------------
@@ -20,15 +20,19 @@ import type {
   DerivedDict,
   DerivedResultType,
   DeriveFn,
-  DeriveFnItem,
   Dict,
   EffectCb,
   EnableStatus,
   Fn,
   IAtomCtx,
+  ICompAtomCtx,
   IBlockOptions,
   ICreateOptions,
+  IDeriveFnItem,
+  IDeriveTaskOptions,
   IInsRenderInfo,
+  IMutateFnLooseItem,
+  IMutateWitness,
   IPlugin,
   IRenderInfo,
   IRunMutateOptions,
@@ -41,8 +45,6 @@ import type {
   Middleware,
   MutateFn,
   MutateFnDict,
-  IMutateFnLooseItem,
-  IMutateWitness,
   NoRecord,
   NumStrSymbol,
   Off,
@@ -60,7 +62,7 @@ import type {
   WatchOptionsType,
 } from './base';
 
-export declare const VER: '3.5.16';
+export declare const VER: '3.5.20';
 
 export declare const LIMU_VER: string;
 
@@ -167,7 +169,7 @@ export function atomx<T = any, O extends ICreateOptions<Atom<T>> = ICreateOption
  *  });
  * ```
  */
-export function derive<T = any, I = readonly any[]>(deriveFnOrFnItem: DeriveFn<T> | DeriveFnItem<T, I>): DerivedAtom<T>;
+export function derive<T = any, I extends ReadOnlyArr = ReadOnlyArr>(deriveFnOrFnItem: DeriveFn<T> | IDeriveFnItem<T, I>): DerivedAtom<T>;
 
 /**
  * 创建一个派生atom新结果的任务，支持返回 pritimive 类型
@@ -176,7 +178,26 @@ export function derive<T = any, I = readonly any[]>(deriveFnOrFnItem: DeriveFn<T
  * const doubleResult = deriveAtom(()=>numAtom.val*2);
  * ```
  */
-export function deriveDict<T = PlainObject, I = readonly any[]>(deriveFnOrFnItem: DeriveFn<T> | DeriveFnItem<T, I>): DerivedDict<T>;
+export function deriveDict<T = PlainObject, I extends ReadOnlyArr = ReadOnlyArr>(
+  deriveFnOrFnItem: DeriveFn<T> | IDeriveFnItem<T, I>,
+): DerivedDict<T>;
+
+export function defineDeriveTask<I extends ReadOnlyArr = any>(
+  deps?: () => I,
+): <T = any>(fnItem: IDeriveTaskOptions<T, I>) => IDeriveFnItem<T, I>;
+
+/**
+ * 辅助给直接透传给 defineFullDerive 的某个 fnItem 标记类型
+ * ```
+ * defineFullDerive()({
+ *   someKey: defineDeriveFnItem<IDeriveFnItem<number, [number]>>({ ... }),
+ * });
+ *
+ * // 等效于直接使用 IDeriveFnItem 标记类型
+ * const someItem: IDeriveFnItem<number, [number]> = { ... };
+ * ```
+ */
+export function defineDeriveFnItem<F extends IDeriveFnItem>(fnItem: F): F;
 
 /**
  * 观察共享状态变化，默认 watchFn 立即执行
@@ -217,7 +238,15 @@ export function watch(
 export function useAtom<T = any>(
   sharedState: T,
   options?: IUseSharedStateOptions<T>,
-): [T extends ReadOnlyAtom ? AtomValType<T> : T, SetState<T>, IInsRenderInfo];
+): [T extends ReadOnlyAtom ? AtomValType<T> : T, SetState<T>, IInsRenderInfo<T>];
+
+/**
+ * 区别于 useAtom，useAtomX 返回对象
+ */
+export function useAtomX<T = any>(
+  sharedState: T,
+  options?: IUseSharedStateOptions<T>,
+): T extends ReadOnlyAtom ? ICompAtomCtx<AtomValType<T>> : ICompAtomCtx<T>;
 
 export function useReactive<T = any>(
   sharedState: T,
@@ -573,8 +602,11 @@ export function addPlugin(plugin: IPlugin): void;
  * ```
  * 注意此处采用了柯里化调用方式是为了能自动推导出返回函数的返回值类型
  */
-export function action<T = any>(sharedState: T): <P = any>() => <F extends Fn = ActionTask<T, P>>(
-  fn: F, desc?: string,
+export function action<T = any>(
+  sharedState: T,
+): <P = any>() => <F extends Fn = ActionTask<T, P>>(
+  fn: F,
+  desc?: string,
 ) => ReturnType<F> extends Promise<any> ? ActionAsync<F, P, T> : Action<F, P, T>;
 
 /**

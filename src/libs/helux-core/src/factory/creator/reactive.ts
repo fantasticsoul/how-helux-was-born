@@ -7,6 +7,8 @@ import { getReactiveKey } from '../common/key';
 import type { TInternal } from './buildInternal';
 import { REACTIVE_DESC, REACTIVE_META, TRIGGERED_WATCH } from './current';
 
+const { REACTIVE } = FROM;
+
 /** key: sharedKey, value: reactive object */
 const reactives: Map<number, IReactive> = new Map();
 
@@ -24,7 +26,7 @@ function flushModified(reactive: IReactive) {
   // 来自于 flush 记录的 desc 值，使用过一次就清除
   const desc = REACTIVE_DESC.current(sharedKey);
   REACTIVE_DESC.del(sharedKey);
-  return reactive.finish(null, { from: FROM.REACTIVE, desc });
+  return reactive.finish(null, { desc });
 }
 
 /**
@@ -94,12 +96,12 @@ export function nextTickFlush(sharedKey: number, desc?: string) {
 /**
  * 全局独立使用或实例使用都共享同一个响应对象
  */
-function getReactiveVal(internal: TInternal, forAtom: boolean) {
+function getReactiveVal(internal: TInternal, forAtom: boolean, from: From) {
   const { sharedKey } = internal;
   let reactive = reactives.get(sharedKey);
   // 无响应对象、或响应对象已过期
   if (!reactive || reactive.expired) {
-    const { finish, draftRoot } = internal.setStateFactory({ isReactive: true, from: FROM.REACTIVE });
+    const { finish, draftRoot } = internal.setStateFactory({ isReactive: true, from, handleCbReturn: false });
     const latestReactive: IReactive = {
       finish,
       draft: draftRoot,
@@ -150,7 +152,7 @@ export function buildReactive(
   let draftRoot: any = {};
   let draft: any = {};
   const { rawState, deep, forAtom, isPrimitive, sharedKey, moduleName } = internal;
-  const { desc, onRead, from = FROM.REACTIVE, depKeys = [], isTop = false } = options || {};
+  const { desc, onRead, from = REACTIVE, depKeys = [], isTop = false } = options || {};
 
   const rKey = getReactiveKey();
   const meta: IReactiveMeta = {
@@ -173,7 +175,7 @@ export function buildReactive(
     };
     const set = (forAtom: boolean, key: any, value: any) => {
       markUsing(rKey);
-      const draftVal = getReactiveVal(internal, forAtom);
+      const draftVal = getReactiveVal(internal, forAtom, from);
       // handleOperate 里会自动触发 nextTickFlush
       draftVal[key] = value;
       return true;
@@ -185,7 +187,7 @@ export function buildReactive(
         return val;
       }
 
-      const draftVal = getReactiveVal(internal, forAtom);
+      const draftVal = getReactiveVal(internal, forAtom, from);
       return draftVal[key];
     };
 
