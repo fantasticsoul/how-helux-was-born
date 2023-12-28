@@ -375,7 +375,7 @@ export interface IMutateFnItem<T = SharedState, P = ReadOnlyArr> {
   immediate?: boolean;
   /**
    * default: undefined，是否检测死循环，设置为 false 表示不检查
-   * 未设定时，使用 atom、share 接口设定的checkDeadCycle值
+   * 未设定时，使用 atom、share 接口设定的 checkDeadCycle 值
    */
   checkDeadCycle?: boolean;
 }
@@ -392,6 +392,8 @@ export interface IMutateFnStdItem<T = any, P = ReadOnlyArr> extends IMutateFnIte
   writeKeys: string[];
   /** 当前 mutate 函数所属的 watch 函数 key */
   watchKey: string;
+  /** default: false，是否内部使用的假对象 */
+  isFake: boolean;
 }
 
 export interface IMutateFnLooseItem<T = SharedState, P = ReadOnlyArr> extends IMutateFnItem<T, P> {
@@ -1503,7 +1505,7 @@ export interface IInsCtx<T = Dict> {
   isDeep: boolean;
   /** 是否是第一次渲染 */
   isFirstRender: boolean;
-  /** 是否响应式 */
+  /** 是否响应式，使用 useReactive 生成 inCtx 时会标记为 true */
   isReactive: boolean;
   insKey: number;
   /** 记录一些需复用的中间生成的数据 */

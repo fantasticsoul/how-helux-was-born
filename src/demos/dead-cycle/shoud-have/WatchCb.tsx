@@ -14,14 +14,14 @@ const Demo = createDcDemo(() => {
   x.mutate({
     fn: (draft, { draftRoot }) => {
       console.log('a is', draft.a);
-      // changeA();
+      changeA();
     },
     desc: 'call_changeA_to_change',
   });
   x.mutate({
     fn: (draft, { draftRoot }) => {
       console.log('a is', draft.a);
-      // x.reactive.a += 100;
+      x.reactive.a += 100;
     },
     desc: 'use_reactive_to_change',
   });

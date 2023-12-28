@@ -98,7 +98,7 @@ export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options:
   const setStatus = (loading: boolean, err: any, ok: boolean) => {
     if (isUnconfirmedFn || isProm) {
       /**
-       * 异步函数调用发起前 已调用 markFnEnd 来结束依赖收集行为，
+       * 异步函数调用发起前已调用 markFnEnd 来结束依赖收集行为，
        * 之前未结束这里会造成死循环（ 注：禁止异步函数依赖收集本就是合理行为 ）
        * 死循环案例：
        * mutate({ async task(){ ..... } }) 是一个会立即执行的异步任务，setLoadStatus 内部读取 loading 的状态，
@@ -155,7 +155,9 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
 
   const internal = getInternal(targetState);
   const { setStateFactory, forAtom, sharedState } = internal;
-  const setFactoryOpts: ISetFactoryOpts = { desc, sn, from, isFirstCall };
+  // 第一次执行时开启依赖收集
+  const enableDep = isMutate && isFirstCall;
+  const setFactoryOpts: ISetFactoryOpts = { desc, sn, from, isFirstCall, enableDep };
   // 不定制同步函数入参的话，默认就是 (draft, input)，
   // 调用函数形如：(draft)=>draft.xxx+=1; 或 (draft, input)=>draft.xxx+=input[0]
   const setState: any = (cb: any) => {
@@ -165,7 +167,7 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
 
   const state = getStateNode(sharedState, forAtom);
   const input = isMutate ? getInput(internal, fnItem) : [];
-  const { draftNode: draft, draftRoot, finish } = setStateFactory({ desc, sn, from, isFirstCall, enableDep: true });
+  const { draftNode: draft, draftRoot, finish } = setStateFactory(setFactoryOpts);
   const args = getArgs({ isFirstCall, draft, draftRoot, setState, desc, input }) || [draft, { input, state, draftRoot, isFirstCall }];
 
   try {
@@ -181,7 +183,7 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
     afterFnRun(internal, fnItem, isFirstCall);
     return { snap: internal.snap, err: null, result: null };
   } catch (err: any) {
-    TRIGGERED_WATCH.del();
+    afterFnRun(internal, fnItem, isFirstCall);
     // TODO 同步函数错误发送给插件
     if (throwErr) {
       throw err;

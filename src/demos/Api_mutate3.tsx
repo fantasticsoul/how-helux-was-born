@@ -8,6 +8,7 @@ const [priceState, setPrice, ctx1] = share({ a: 1, b: 100, ccc: 1000, d: { d1: {
 });
 const [finalPriceState, setP2, ctx2] = share({ retA: 0, retB: 0, time: 0, time2: 0, f: { f1: 1 } }, {
   moduleName: 'Api_mutate_finalPriceState3',
+  alertDeadCycleErr: false,
 });
 
 // 约束各个函数入参类型

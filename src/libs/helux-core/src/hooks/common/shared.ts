@@ -13,7 +13,7 @@ import type { Dict, Fn, IInsRenderInfo } from '../../types/base';
  */
 export function prepareTuple(insCtx: InsCtxDef): [any, Fn, IInsRenderInfo] {
   const { proxyState, internal, renderInfo, canCollect, isReactive } = insCtx;
-  const { sharedKey, sharedKeyStr, setState, forAtom } = internal;
+  const { sharedKey, sharedKeyStr, insSetState, forAtom } = internal;
   renderInfo.snap = internal.snap;
   renderInfo.time = Date.now();
   // atom 自动拆箱，注意这里  proxyState.val 已触发记录根值依赖
@@ -34,7 +34,7 @@ export function prepareTuple(insCtx: InsCtxDef): [any, Fn, IInsRenderInfo] {
 
   // 提供给 useReactive 的拆箱行为在 useDrived 里单独处理
   const finalRoot = isReactive ? proxyState : rootVal;
-  return [finalRoot, setState, renderInfo];
+  return [finalRoot, insSetState, renderInfo];
 }
 
 export function checkAtom(mayAtom: any, forAtom?: boolean) {

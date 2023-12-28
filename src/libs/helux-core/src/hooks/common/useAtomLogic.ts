@@ -1,5 +1,5 @@
 import { Fn } from 'helux';
-import { MOUNTED, UNMOUNT, RENDER_END, RENDER_START } from '../../consts';
+import { RENDER_END, RENDER_START } from '../../consts';
 import type { InsCtxDef } from '../../factory/creator/buildInternal';
 import { INS_CTX } from '../../factory/creator/current';
 import { buildInsCtx } from '../../helpers/insCtx';

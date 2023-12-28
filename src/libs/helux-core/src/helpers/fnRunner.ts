@@ -94,7 +94,7 @@ function runWatch(fnCtx: IFnCtx, options: IRunFnOpt) {
 
   // 来自以下类似示例的死循环
   // 1 watch 对调用调用 watch(()=>{ r.a+=1 }, ()=>[s.a])
-  // 2 watch或mutate 中调用其他函数修改自身依赖 watch(()=>{ foo() }, ()=>[s.a]) function foo(){ reactiv.a+=1 }
+  // 2 watch或mutate 中调用其他函数修改自身依赖 watch(()=>{ foo() }, ()=>[s.a]) function foo(){ reactive.a+=1 }
   if (afterRunRmeta.isTop && afterRunRmeta.fnKey === fnCtx.fnKey && probeDepKeyDeadCycle(internal, fnCtx, afterRunRmeta.writeKeys)) {
     return;
   }

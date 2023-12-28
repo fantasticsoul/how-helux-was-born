@@ -43,24 +43,31 @@ export function mapSharedToInternal(sharedState: SharedState, options: ParsedOpt
   const innerSetState: InnerSetState = (partialState, options = {}) => {
     return setStateImpl().finish(partialState, options);
   };
-  const callSetState = (partialState: any, handleCbReturn: boolean, options?: ISetStateOptions) => {
+  const callSetState = (partialState: any, optArr: [boolean, boolean, ISetStateOptions | undefined]) => {
+    const [handleCbReturn, enableDep, setOptions] = optArr;
     // ATTENTION LABEL( flush )
     // 调用 setState 主动把响应式对象可能存在的变更先提交
     // reactive.a = 66;
     // setState(draft=>draft.a+100); // flush后回调里可拿到draft.a最新值为66
     flush(sharedState, REACTIVE_DESC.current(sharedKey));
-    const ret = setStateImpl({ handleCbReturn });
-    return ret.finish(partialState, pureSetOptions(options));
+    const ret = setStateImpl({ handleCbReturn, enableDep });
+    return ret.finish(partialState, pureSetOptions(setOptions));
   };
-  // 提供给 useAtom() atom share sharex atomx 返回的 setState 使用
-  const setState: SetState = (partialState, options) => callSetState(partialState, true, options);
-  // 提供给 sharex atomx useAtom().renderInfo 返回的 setDrart 使用
-  const setDraft: SetDraft = (partialState, options) => callSetState(partialState, false, options);
+  // 提供给 atom share sharex atomx 返回的 setState 使用
+  const setState: SetState = (partialState, options) => callSetState(partialState, [true, true, options]);
+  // 提供给 atom share sharex atomx 返回的 setDrart 使用
+  const setDraft: SetDraft = (partialState, options) => callSetState(partialState, [false, true, options]);
+  // 提供给 useAtom useAtomX 返回的 setState 使用
+  const insSetState: SetState = (partialState, options) => callSetState(partialState, [true, false, options]);
+  // 提供给 useAtom 返回的 renderInfo.setDrart 和 useAtomX 返回的 setDrart 使用
+  const insSetDraft: SetDraft = (partialState, options) => callSetState(partialState, [false, false, options]);
 
   const internal = buildInternal(options, {
     sharedState,
     setState,
     setDraft,
+    insSetState,
+    insSetDraft,
     setStateFactory,
     innerSetState,
     ruleConf,

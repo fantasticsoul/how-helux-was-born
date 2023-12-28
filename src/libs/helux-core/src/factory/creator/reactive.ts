@@ -1,10 +1,11 @@
 import { canUseDeep } from '@helux/utils';
 import { FROM, IS_ATOM, REACTIVE_META_KEY, SHARED_KEY } from '../../consts';
 import { getSharedKey } from '../../helpers/state';
-import type { Dict, From, OnOperate } from '../../types/base';
+import type { Dict } from '../../types/base';
 import type { IReactiveMeta } from '../../types/inner';
 import { getReactiveKey } from '../common/key';
 import { newReactiveMeta, IBuildReactiveOpts } from '../common/ctor';
+import { fakeReativeMeta } from '../common/fake';
 import type { TInternal } from './buildInternal';
 import { REACTIVE_DESC, REACTIVE_META, TRIGGERED_WATCH } from './current';
 
@@ -49,7 +50,7 @@ export function flush(sharedState: any, desc?: string) {
 }
 
 /**
- * 刷新可能在活跃中的 reaactive 对象，提交后就删除
+ * 刷新可能在活跃中的 reaactive 对象，提交后自动标记过期
  */
 export function flushActive() {
   const meta = REACTIVE_META.current();
@@ -76,10 +77,8 @@ export function innerFlush(sharedKey: any, desc?: string) {
  * 标记响应对象已过期，再次获取时会自动刷新
  */
 export function markExpired(sharedKey: number) {
-  const meta = metas.get(sharedKey);
-  if (meta) {
-    meta.expired = true;
-  }
+  const meta = metas.get(sharedKey) || fakeReativeMeta;
+  meta.expired = true;
 }
 
 /**
@@ -87,11 +86,9 @@ export function markExpired(sharedKey: number) {
  * 故调用此方法就会标记 reactive.modified = true
  */
 export function nextTickFlush(sharedKey: number, desc?: string) {
-  const meta = metas.get(sharedKey);
-  if (meta) {
-    meta.modified = true;
-    meta.nextTickFlush(desc);
-  }
+  const meta = metas.get(sharedKey) || fakeReativeMeta;
+  meta.modified = true;
+  meta.nextTickFlush(desc);
 }
 
 /**
@@ -103,7 +100,7 @@ function getReactiveInfo(internal: TInternal, options: IBuildReactiveOpts, forAt
   // 无响应对象、或响应对象已过期
   if (!meta || meta.expired) {
     const { from = REACTIVE } = options;
-    const { finish, draftRoot } = internal.setStateFactory({ isReactive: true, from, handleCbReturn: false });
+    const { finish, draftRoot } = internal.setStateFactory({ isReactive: true, from, handleCbReturn: false, enableDep: true });
     const latestMeta = newReactiveMeta(draftRoot, options, finish);
     latestMeta.key = getReactiveKey();
     latestMeta.nextTickFlush = (desc?: string) => {
@@ -121,17 +118,14 @@ function getReactiveInfo(internal: TInternal, options: IBuildReactiveOpts, forAt
       }
     };
     meta = latestMeta;
-    metas.set(sharedKey, latestMeta);
+    metas.set(sharedKey, meta);
+    // 动态生成的映射关系会在 flushModified 里被删除
+    REACTIVE_META.set(meta.key, meta);
   }
 
   // mark using
   REACTIVE_META.markUsing(meta.key);
-  // 动态生成的映射关系会在 flushModified 里被删除
-  REACTIVE_META.set(meta.key, meta);
-  const watchFnKey = TRIGGERED_WATCH.current();
-  if (watchFnKey) {
-    meta.fnKey = watchFnKey;
-  }
+  meta.fnKey = TRIGGERED_WATCH.current();
 
   const { draft } = meta;
   return { val: forAtom ? draft.val : draft, meta };
@@ -187,10 +181,10 @@ export function buildReactive(internal: TInternal, options: IBuildReactiveOpts) 
         });
     }
   } else {
-    // 非 Proxy 环境暂不支持 reactive
+    // TODO 非 Proxy 环境暂不支持 reactive
     draftRoot = rawState;
     draft = rawState.val;
   }
 
-  return { draftRoot, draft, meta: draftRoot[REACTIVE_META_KEY] };
+  return { draftRoot, draft };
 }

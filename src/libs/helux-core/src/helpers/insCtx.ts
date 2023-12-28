@@ -46,9 +46,9 @@ export function runInsUpdater(insCtx: InsCtxDef | undefined) {
   if (!insCtx) return;
   const { updater, mountStatus, createTime } = insCtx;
   if (mountStatus === NOT_MOUNT) {
-    if(Date.now() - createTime > EXPIRE_MS){
+    if (Date.now() - createTime > EXPIRE_MS) {
       clearDep(insCtx);
-    }else{
+    } else {
       insCtx.needEFUpdate = true;
     }
     return;
@@ -129,10 +129,6 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
     isReactive = false,
   } = options;
   const arrIndexDep = !arrDep ? true : options.arrIndexDep ?? true;
-  if (!getInternal(sharedState)) {
-    debugger;
-  }
-
   const internal = getInternal(sharedState);
   if (!internal) {
     throw new Error('ERR_OBJ_NOT_SHARED: input object is not a result returned by share api');
@@ -177,7 +173,7 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
     extra: {},
     getDeps: () => getInsDeps(insCtx, true),
     renderInfo: {
-      setDraft: internal.setDraft,
+      setDraft: internal.insSetDraft,
       time: Date.now(),
       sn: 0,
       snap,

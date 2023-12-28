@@ -10,7 +10,7 @@ const { SET_STATE, REACTIVE } = FROM;
 const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any });
 const noopAny: (...args: any[]) => any = () => { };
 
-const fnItem = newMutateFnItem();
+const fnItem = newMutateFnItem({ isFake: true });
 
 export interface IBuildReactiveOpts {
   isTop?: boolean;
@@ -18,15 +18,16 @@ export interface IBuildReactiveOpts {
   desc?: string;
   onRead?: OnOperate;
   from?: From;
+  expired?: boolean;
 }
 
 export function newReactiveMeta(draft: any, buildOptions: IBuildReactiveOpts, finish: any = noop): IReactiveMeta {
-  const { desc = '', onRead = noop, from = REACTIVE, depKeys = [], isTop = false } = buildOptions;
+  const { desc = '', onRead, from = REACTIVE, depKeys = [], isTop = false, expired = false } = buildOptions;
   return {
     draft,
     finish,
     modified: false,
-    expired: false,
+    expired,
     sharedKey: 0,
     moduleName: '',
     hasFlushTask: false,
@@ -96,7 +97,10 @@ export function newOpParams(
 }
 
 export function newMutateFnItem(partial?: Partial<IMutateFnStdItem>): IMutateFnStdItem {
-  const { desc = '', fn = noop, task = noopAny, depKeys = [], writeKeys = [], deps = noopArr, onlyDeps = false, ...rest } = partial || {};
+  const {
+    desc = '', fn = noop, task = noopAny, depKeys = [], writeKeys = [], deps = noopArr,
+    isFake = false, onlyDeps = false, ...rest
+  } = partial || {};
   const base: IMutateFnStdItem = {
     fn,
     task,
@@ -108,6 +112,7 @@ export function newMutateFnItem(partial?: Partial<IMutateFnStdItem>): IMutateFnS
     writeKeys,
     checkDeadCycle: undefined,
     watchKey: '',
+    isFake,
     ...rest,
   };
   return base;
