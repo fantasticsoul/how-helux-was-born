@@ -1,6 +1,15 @@
 import { canUseDeep } from '@helux/utils';
 import { setInternal } from '../../helpers/state';
-import type { IInnerSetStateOptions, InnerSetState, ISetStateOptions, SetState, SetDraft, SetStateFactory, ISetFactoryOpts, SharedState } from '../../types/base';
+import type {
+  IInnerSetStateOptions,
+  InnerSetState,
+  ISetFactoryOpts,
+  ISetStateOptions,
+  SetDraft,
+  SetState,
+  SetStateFactory,
+  SharedState,
+} from '../../types/base';
 import { runPartialCb } from '../common/util';
 import { buildInternal } from './buildInternal';
 import { REACTIVE_DESC } from './current';

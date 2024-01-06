@@ -9,7 +9,7 @@ const api = initHeluxContext({ heluxCtxKey: '__HELUX__', reactLib: React });
  */
 export const createShared = api.share;
 
-// 导出 core 所有方法，类型由 index.d.ts 提供（见 package.json的 types 配置）
+// 导出 core 所有方法，类型由 index.d.ts 提供（见 package.json 的 types 配置）
 export const {
   atom,
   atomx,
@@ -24,12 +24,15 @@ export const {
   runDeriveTask,
   // watch api
   watch,
+  watchEffect,
   // hooks api
   useAtom,
   useAtomX,
   useReactive,
+  useReactiveX,
   useDerived,
   useWatch,
+  useWatchEffect,
   useGlobalId,
   useService,
   useOnEvent,
@@ -63,6 +66,8 @@ export const {
   // emit api
   emit,
   on,
+  // init api
+  init,
   // util api
   reactiveDesc,
   flush,
@@ -70,6 +75,7 @@ export const {
   isDerivedAtom,
   storeSrv,
   shallowCompare,
+  markRaw,
   isDiff,
   produce,
   getMutateLoading,
@@ -80,8 +86,5 @@ export const {
   getAtom,
   addMiddleware,
   addPlugin,
-  EVENT_NAME,
-  RECORD_LOADING,
-  VER,
-  LIMU_VER,
+  cst,
 } = api;

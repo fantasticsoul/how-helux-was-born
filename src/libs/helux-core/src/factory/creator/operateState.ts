@@ -61,10 +61,17 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
       // 来自实例的定制读行为，目前主要是响应式对象会有此操作，
       // 因为多个实例共享了一个响应式对象，但需要有自己的读行为操作来为实例本身收集依赖
       // 注：全局响应式对象的读行为已将 currentOnRead 置空
+      if (mutateCtx.onRead) {
+        // 来自实例 reactive 透传的 onRead
+        mutateCtx.onRead(opParams);
+      }
       if (currReactive.onRead) {
+        // 来自顶层 reactive 透传的 onRead
         currReactive.onRead(opParams);
       } else {
-        getRunningFn().fnCtx && recordFnDepKeys([depKey], { sharedKey });
+        if (getRunningFn().fnCtx) {
+          recordFnDepKeys([depKey], { sharedKey });
+        }
         // 仅 top reactive 触发以下逻辑，为 block 收集依赖
         if (isReactive) {
           recordBlockDepKey([depKey]);

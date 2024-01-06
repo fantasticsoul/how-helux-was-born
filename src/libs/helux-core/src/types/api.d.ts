@@ -1,6 +1,6 @@
 /*
 |------------------------------------------------------------------------------------------------
-| helux-core@3.5.20
+| helux-core@4.0.3
 | A state library core that integrates atom, signal, collection dep, derive and watch,
 | it supports all react like frameworks ( including react 18 ).
 |------------------------------------------------------------------------------------------------
@@ -25,11 +25,13 @@ import type {
   EnableStatus,
   Fn,
   IAtomCtx,
-  ICompAtomCtx,
   IBlockOptions,
+  ICompAtomCtx,
+  ICompReactiveCtx,
   ICreateOptions,
   IDeriveFnItem,
   IDeriveTaskOptions,
+  IInitOptions,
   IInsRenderInfo,
   IMutateFnLooseItem,
   IMutateWitness,
@@ -60,21 +62,21 @@ import type {
   Syncer,
   SyncFnBuilder,
   WatchOptionsType,
+  WatchEffectOptionsType,
 } from './base';
 
-export declare const VER: '3.5.20';
-
-export declare const LIMU_VER: string;
-
-export declare const EVENT_NAME: {
-  ON_DATA_CHANGED: 'ON_DATA_CHANGED';
-  ON_SHARE_CREATED: 'ON_SHARE_CREATED';
-};
-
-export declare const RECORD_LOADING: {
-  NONE: NoRecord;
-  PRIVATE: 'private';
-  GLOBAL: 'global';
+export declare const cst: {
+  VER: '4.0.3';
+  LIMU_VER: string;
+  EVENT_NAME: {
+    ON_DATA_CHANGED: 'ON_DATA_CHANGED';
+    ON_SHARE_CREATED: 'ON_SHARE_CREATED';
+  };
+  RECORD_LOADING: {
+    NO: NoRecord;
+    PRIVATE: 'private';
+    GLOBAL: 'global';
+  };
 };
 
 /**
@@ -106,6 +108,7 @@ export function share<T extends PlainObject, O extends ICreateOptions<T> = ICrea
   rawState: T | (() => T),
   createOptions?: O,
 ): readonly [ReadOnlyDict<T>, SetState<T>, ISharedCtx<T>];
+// ): readonly [ReadOnlyDict<T>, SetDraft<T>, ISharedCtx<T>];
 
 /**
  * 支持共享所有类型值的接口，会自动装箱为 {val:T} 结构的数据
@@ -114,6 +117,7 @@ export function atom<T = any, O extends ICreateOptions<Atom<T>> = ICreateOptions
   rawState: T | (() => T),
   createOptions?: O,
 ): readonly [ReadOnlyAtom<T>, SetState<T>, IAtomCtx<T>];
+// ): readonly [ReadOnlyAtom<T>, AtomTupleSetState<Atom<T>>, IAtomCtx<T>];
 
 /**
  * 效果完全等同 share，唯一的区别是 share 返回元组 [state,setState,ctx] sharex 返回 ctx 自身
@@ -200,11 +204,12 @@ export function defineDeriveTask<I extends ReadOnlyArr = any>(
 export function defineDeriveFnItem<F extends IDeriveFnItem>(fnItem: F): F;
 
 /**
- * 观察共享状态变化，默认 watchFn 立即执行
+ * 观察共享状态变化，watch 回调默认不立即执行，需要设置 immediate=true 才立即执行，
+ * 因回调默认不立即执行，options 类型设计为必填，提示用户使用 watch 需要显式指定依赖
  * ```ts
- * // 函数内解构完成监听
+ * // 立即运行，自动对首次运行时函数内读取到的值完成变化监听
  * watch(()=>{ console.log(shared.val) }, { immediate: true });
- * // 第二个参数传递依赖收集回调，收集到监听key，不需要立即执行的话可设定 immediate 为 false
+ * // 第二个参数传递依赖收集回调，收集到监听key，不需要立即执行的话可设定 immediate 为 false 或不设置
  * watch(()=>{ console.log('shared.val changed')}, ()=>[shared.val]);
  * // 第二个参数传递依赖收集回调，收集到监听对象，表示shared发生变化就执行watch回调
  * watch(()=>{ console.log('shared changed')}, ()=>[shared]);
@@ -214,7 +219,17 @@ export function defineDeriveFnItem<F extends IDeriveFnItem>(fnItem: F): F;
  */
 export function watch(
   watchFn: (fnParams: IWatchFnParams) => void,
-  options?: WatchOptionsType,
+  options: WatchOptionsType,
+): { run: (throwErr?: boolean) => void; unwatch: Fn };
+
+/**
+ * watchEffect 和 watch 用法一样，
+ * 区别于 watch 的点是：watchEffect 会立即执行回调，自动对首次运行时函数内读取到的值完成变化监听，
+ * 因回调会立即执行，options 类型设计为选填
+ */
+export function watchEffect(
+  watchFn: (fnParams: IWatchFnParams) => void,
+  options?: WatchEffectOptionsType,
 ): { run: (throwErr?: boolean) => void; unwatch: Fn };
 
 /**
@@ -238,7 +253,12 @@ export function watch(
 export function useAtom<T = any>(
   sharedState: T,
   options?: IUseSharedStateOptions<T>,
-): [T extends ReadOnlyAtom ? AtomValType<T> : T, SetState<T>, IInsRenderInfo<T>];
+): [
+    T extends ReadOnlyAtom ? AtomValType<T> : T,
+    // AtomTupleSetState<T>,
+    SetState<T>,
+    IInsRenderInfo<T>,
+  ];
 
 /**
  * 区别于 useAtom，useAtomX 返回对象
@@ -251,8 +271,15 @@ export function useAtomX<T = any>(
 export function useReactive<T = any>(
   sharedState: T,
   options?: IUseSharedStateOptions<T>,
-  // 针对 atom，第一位 reactive 参数自动拆箱
-): [T extends Atom ? T['val'] : T, T, IInsRenderInfo];
+): [
+    // 针对 atom，第一位 reactive 参数自动拆箱
+    T extends Atom ? T['val'] : T,
+    // 代表 reactiveRoot
+    T,
+    IInsRenderInfo,
+  ];
+
+export function useReactiveX<T = any>(sharedState: T, options?: IUseSharedStateOptions<T>): ICompReactiveCtx<T>;
 
 /**
  * 更新当前共享状态的所有实例组件，谨慎使用此功能，会触发大面积的更新，
@@ -310,7 +337,16 @@ export function useObject<T = Dict>(
   initialState: T | (() => T),
 ): [T, (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void, IObjApi<T>];
 
+/**
+ * 功能同 watch，在组件中使用 useWatch 来完成状态变化监听，会在组件销毁时自动取消监听
+ */
 export function useWatch(watchFn: (fnParams: IWatchFnParams) => void, options: WatchOptionsType);
+
+/**
+ * 功能同 watchEffect，useWatchEffect 会立即执行回调，自动对首次运行时函数内读取到的值完成变化监听
+ * 在组件中使用 useWatchEffect 来完成状态变化监听，会在组件销毁时自动取消监听
+ */
+export function useWatchEffect(watchFn: (fnParams: IWatchFnParams) => void, options?: WatchEffectOptionsType);
 
 /**
  * 使用全局id，配合 rules[].globalIds 做定向通知更新
@@ -380,7 +416,9 @@ export interface IObjApi<T> {
  * ```ts
  * const [state, setState] = useMutable({ a: { a1: 1 }, b: 1 });
  * setState({ b: Date.now() }); // 浅层次修改，直接返回即可，内部自动合并
- * setState(draft => draft.a.a1 = Date.now()); // 使用回调方式修改draft
+ * setState(draft => {
+ *   draft.a.a1 = Date.now()
+ * }); // 使用回调方式修改draft
  * ```
  */
 export function useMutable<T extends PlainObject>(
@@ -485,6 +523,10 @@ export function mutateDict<T extends SharedState>(
   target: T,
 ): <D extends MutateFnDict<T> = MutateFnDict<T>>(fnDict: D) => { [K in keyof D]: IMutateWitness<T> };
 
+/**
+ * @param result - 传入派生结果，会自动触发结果对应的派生函数重计算
+ * @param throwErr - 默认 `false`，错误传地给元组第二位参数
+ */
 export function runDerive<T = SharedState>(result: T, throwErr?: boolean): [T, Error | null];
 
 export function runDeriveTask<T = SharedState>(result: T, throwErr?: boolean): Promise<[T, Error | null]>;
@@ -631,7 +673,9 @@ export function reactiveDesc(stateOrDraftRoot: any, desc: string): number;
  */
 export function flush(state: SharedState, desc?: string): void;
 
-// ----------- shallowCompare isDiff produce 二次重导出会报错，这里手动声明一下 --------------
+export declare function init(options: IInitOptions): boolean;
+
+// ----------- 以下 limu 接口二次重导出会报错，这里手动声明一下 --------------
 // err: 如果没有引用 "../../helux-core/node_modules/limu/lib"，则无法命名 "produce" 的推断类型。这很可能不可移植。需要类型注释
 
 /**
@@ -667,3 +711,9 @@ interface IProduce {
 export declare function isDiff(val1: any, val2: any): boolean;
 
 export declare const produce: IProduce;
+
+/**
+ * 标记对象为 raw，此对象始终不会被代理，需注意标被标记后此对象会失去结构共享特性
+ * see test: https://github.com/tnfe/limu/blob/main/test/api/markRaw.ts
+ */
+export declare function markRaw<T extends any = any>(rawVal: T): T;

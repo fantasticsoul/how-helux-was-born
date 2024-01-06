@@ -6,9 +6,9 @@ import { newMutateCtx, newOpParams } from '../common/ctor';
 import { getDataType, isDict } from '../common/util';
 import { handleHeluxKey } from './buildShared';
 import { DRAFT_ROOT, MUTATE_CTX } from './current';
+import type { IPrepareMutateOpts } from './mutateDeep';
 import { execFinish, fillMutateCtx } from './mutateDeep';
 import { handleOperate } from './operateState';
-import type { IPrepareMutateOpts } from './mutateDeep';
 
 /**
  * 还处于测试阶段，此降级方案可能后续移除
@@ -52,7 +52,7 @@ export function prepareDowngradeMutate(opts: IPrepareMutateOpts) {
     });
   const downgradeDraft = toShallowProxy(copied, 1, []);
   // 记录正在执行中的 draftRoot mutateCtx
-  DRAFT_ROOT.set(downgradeDraft);
+  DRAFT_ROOT.set(downgradeDraft, forAtom);
   MUTATE_CTX.set(mutateCtx);
   const draftNode = forAtom ? downgradeDraft.val : downgradeDraft;
 

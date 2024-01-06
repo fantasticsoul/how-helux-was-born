@@ -10,7 +10,10 @@ const [sharedState, setState, ctx] = share({
   d: 10,
   e: 1,
   f: { b1: { b2: 200 } },
-}, { moduleName: 'MutateSelf' });
+}, {
+  moduleName: 'MutateSelf',
+  enableMutate: false,
+});
 
 // const witness1 = ctx.mutate({
 //   deps: (state) => [state.a],
@@ -30,6 +33,7 @@ const witnessDict = mutateDict(sharedState)({
   key1: {
     deps: (state) => [state.a],
     fn: (draft, { input: [a] }) => {
+      console.log('trigger key1');
       draft.b = a + 1 + random();
     },
     // fn: (draft) => { draft.b = sharedState.a + 1 + random() },
@@ -74,6 +78,12 @@ const witnessDict = mutateDict(sharedState)({
 // });
 
 function changeA() {
+  setState((draft) => void (draft.a += 1));
+  // setState((draft) => draft.a += 1);
+}
+
+
+function changeF() {
   const n = setState((draft) => {
     draft.f.b1.b2 = random();
   });
@@ -93,6 +103,11 @@ function changeC() {
   //   draft.c += 1;
   // });
 }
+
+function toogleEnableMutate() {
+  ctx.setEnableMutate(!ctx.getOptions().enableMutate);
+}
+
 
 function Comp() {
   return (
@@ -119,11 +134,12 @@ function Comp3() {
 }
 
 const Demo = () => (
-  <Entry fns={[changeA, changeC]}>
+  <Entry fns={[changeA, changeF, changeC, toogleEnableMutate]}>
     <Comp />
     <Comp2 />
     <Comp3 />
     {$(ctx.reactive.f.b1.b2)}
+    {$(ctx.reactive.a)}
   </Entry>
 );
 

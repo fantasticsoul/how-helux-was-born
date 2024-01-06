@@ -1,7 +1,7 @@
 /**
  * 本模块用于辅助处理 mutate 函数可能遇到的死循环问题
  */
-import { includeOne, nodupPush, noop, safeMapGet, tryAlert } from '@helux/utils';
+import { includeOne, nodupPush, safeMapGet, tryAlert } from '@helux/utils';
 import { fmtDepKeys } from '../../helpers/debug';
 import type { Fn, IFnCtx } from '../../types/base';
 import { TInternal } from './buildInternal';
@@ -46,7 +46,7 @@ export function depKeyDcError(internal: TInternal, fnCtx: IFnCtx, depKeys: strin
     + ` is changing module(${internal.usefulName})'s some of these dep keys(${fmtDepKeys(depKeys, false, '.')}), `
     + 'it will cause a infinity loop call!';
 
-  const targetFn = isFake ? fnCtx.fn : (task || fn);
+  const targetFn = isFake ? fnCtx.fn : task || fn;
   return {
     err: new Error(`[only-dev-mode alert] ${dcInfo}`),
     tipFn: () => console.error(` ${dcInfo} open the stack to find the below fn: \n`, targetFn),

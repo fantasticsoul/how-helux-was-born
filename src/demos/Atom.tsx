@@ -4,6 +4,7 @@ import {
   share,
   atom,
   watch,
+  watchEffect,
   useDerived,
   useAtom,
   derive,
@@ -20,6 +21,16 @@ const n3 = ctx2.setState(draft => { draft.a = 1 })
 const n1 = setAtom2(draft => { draft.a = 1 })
 const n2 = setAtom3(draft => { draft.a = 2 })
 const n4 = ctx3.setState(draft => { draft.a = 2 })
+
+watch((params) => {
+  const { val } = numAtom;
+  console.log("val changed -->", val);
+}, () => [numAtom]);
+
+watchEffect((params) => {
+  const { val } = numAtom;
+  console.log("watchEffect: val changed -->", val);
+});
 
 const numPlusAtom = derive(() => {
   return numAtom.val + 100;
@@ -57,11 +68,6 @@ const someAction = ctx.action<number>()(({ draftRoot, payload, draft }) => {
 const someActionTop = action(numAtom)<number>()(({ draftRoot, payload }) => {
   draftRoot.val = (payload && Number.isInteger(payload)) ? payload : random();
 }, 'someActionTop');
-
-watch((params) => {
-  const { val } = numAtom;
-  console.log("val changed -->", val);
-});
 
 function NumAtom() {
   const [num, setNum, info] = useAtom(numAtom, { collectType: 'first' });

@@ -3,15 +3,15 @@ import { FROM, IS_ATOM, REACTIVE_META_KEY, SHARED_KEY } from '../../consts';
 import { getSharedKey } from '../../helpers/state';
 import type { Dict } from '../../types/base';
 import type { IReactiveMeta } from '../../types/inner';
-import { getReactiveKey } from '../common/key';
-import { newReactiveMeta, IBuildReactiveOpts } from '../common/ctor';
+import { IBuildReactiveOpts, newReactiveMeta } from '../common/ctor';
 import { fakeReativeMeta } from '../common/fake';
+import { getReactiveKey } from '../common/key';
 import type { TInternal } from './buildInternal';
 import { REACTIVE_DESC, REACTIVE_META, TRIGGERED_WATCH } from './current';
 
 const { REACTIVE } = FROM;
 
-/** key: sharedKey, value: reactive meta object */
+/** key: sharedKey, value: top reactive meta */
 const metas: Map<number, IReactiveMeta> = new Map();
 
 function canFlush(meta?: IReactiveMeta): meta is IReactiveMeta {
@@ -91,42 +91,49 @@ export function nextTickFlush(sharedKey: number, desc?: string) {
   meta.nextTickFlush(desc);
 }
 
+function buildMeta(internal: TInternal, options: IBuildReactiveOpts) {
+  const { from = REACTIVE, onRead } = options;
+  const { finish, draftRoot } = internal.setStateFactory({ isReactive: true, from, handleCbReturn: false, enableDep: true, onRead });
+  const latestMeta = newReactiveMeta(draftRoot, options, finish);
+  latestMeta.key = getReactiveKey();
+  latestMeta.sharedKey = internal.sharedKey;
+  latestMeta.nextTickFlush = (desc?: string) => {
+    const { expired, hasFlushTask } = latestMeta;
+    if (!expired) {
+      latestMeta.data = [desc];
+    }
+    if (!hasFlushTask) {
+      latestMeta.hasFlushTask = true;
+      // push flush cb to micro task
+      Promise.resolve().then(() => {
+        const [desc] = latestMeta.data;
+        innerFlush(internal.sharedKey, desc);
+      });
+    }
+  };
+  return latestMeta;
+}
+
 /**
  * 全局独立使用或实例使用都共享同一个响应对象
  */
 function getReactiveInfo(internal: TInternal, options: IBuildReactiveOpts, forAtom: boolean) {
   const { sharedKey } = internal;
-  let meta = metas.get(sharedKey);
-  // 无响应对象、或响应对象已过期
-  if (!meta || meta.expired) {
-    const { from = REACTIVE } = options;
-    const { finish, draftRoot } = internal.setStateFactory({ isReactive: true, from, handleCbReturn: false, enableDep: true });
-    const latestMeta = newReactiveMeta(draftRoot, options, finish);
-    latestMeta.key = getReactiveKey();
-    latestMeta.nextTickFlush = (desc?: string) => {
-      const { expired, hasFlushTask } = latestMeta;
-      if (!expired) {
-        latestMeta.data = [desc];
-      }
-      if (!hasFlushTask) {
-        latestMeta.hasFlushTask = true;
-        // push flush cb to micro task
-        Promise.resolve().then(() => {
-          const [desc] = latestMeta.data;
-          innerFlush(sharedKey, desc);
-        });
-      }
-    };
-    meta = latestMeta;
+  const { insKey = 0, from } = options;
+  let meta = metas.get(sharedKey) || fakeReativeMeta;
+
+  // 无顶层响应对象、或顶层响应对象已过期，则重建顶层 top reactive
+  if (meta.expired) {
+    meta = buildMeta(internal, { isTop: true, from });
     metas.set(sharedKey, meta);
-    // 动态生成的映射关系会在 flushModified 里被删除
     REACTIVE_META.set(meta.key, meta);
+    // mark using
+    REACTIVE_META.markUsing(meta.key);
+    meta.fnKey = TRIGGERED_WATCH.current();
   }
 
-  // mark using
-  REACTIVE_META.markUsing(meta.key);
-  meta.fnKey = TRIGGERED_WATCH.current();
-
+  // 当前 reactive 操作来自于实例则替换为实例的 onRead，反之则置空 onRead
+  meta.onRead = insKey ? options.onRead : undefined;
   const { draft } = meta;
   return { val: forAtom ? draft.val : draft, meta };
 }
@@ -176,9 +183,9 @@ export function buildReactive(internal: TInternal, options: IBuildReactiveOpts) 
       draft = isPrimitive
         ? rawState.val
         : new Proxy(rawState.val, {
-          set: (t: any, key: any, value: any) => set(true, key, value),
-          get: (t: any, key: any) => get(true, key, subInnerData),
-        });
+            set: (t: any, key: any, value: any) => set(true, key, value),
+            get: (t: any, key: any) => get(true, key, subInnerData),
+          });
     }
   } else {
     // TODO 非 Proxy 环境暂不支持 reactive

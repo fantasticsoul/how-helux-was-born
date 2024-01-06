@@ -1,8 +1,20 @@
 import { FROM, STATE_TYPE } from '../consts';
 import { innerRunDerive, innerRunDeriveTask } from '../helpers/fnRunner';
-import { useAtom, useDerived, useGlobalForceUpdate, useLocalForceUpdate, useMutable, useReactive } from '../hooks';
+import { getSnap } from '../helpers/state';
+import { useAtom, useAtomX, useDerived, useGlobalForceUpdate, useLocalForceUpdate, useMutable, useReactive, useReactiveX } from '../hooks';
 import type { CoreApiCtx } from '../types/api-ctx';
-import type { Action, ActionTask, Dict, Fn, IAtomCtx, ICreateOptions, IRunMutateOptions, ISharedCtx } from '../types/base';
+import type {
+  Action,
+  ActionTask,
+  CtxCreateOptions,
+  Dict,
+  Fn,
+  IAtomCtx,
+  ICreateOptions,
+  IRunMutateOptions,
+  ISharedCtx,
+  MutateFnStdDict,
+} from '../types/base';
 import { action } from './createAction';
 import { derive } from './createDerived';
 import { mutate, mutateDict, runMutate, runMutateTask } from './createMutate';
@@ -122,56 +134,85 @@ function defineFullDerive(options: { apiCtx: CoreApiCtx; deriveFnDict: Dict; thr
   return { result, helper };
 }
 
+function setEnableMutate(enabled: boolean, internal: TInternal) {
+  internal.enableMutate = enabled;
+  if (enabled) {
+    const { mutateFnDict } = internal;
+    const teBeRunFns: MutateFnStdDict = {};
+    Object.keys(mutateFnDict).forEach((key) => {
+      const fnItem = mutateFnDict[key];
+      if (!fnItem.enabled) {
+        // 标记已启用，下次不会被查出来
+        fnItem.enabled = true;
+        teBeRunFns[key] = fnItem;
+      }
+    });
+    mutateDict(internal.sharedState)(teBeRunFns);
+  }
+}
+
+function getOptions(internal: TInternal): CtxCreateOptions {
+  const { moduleName, deep, recordLoading, stopDepth, stopArrDep, alertDeadCycleErr, checkDeadCycle, enableMutate } = internal;
+  return { moduleName, deep, recordLoading, stopDepth, stopArrDep, alertDeadCycleErr, checkDeadCycle, enableMutate };
+}
+
 export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: any): any {
   const { stateType, apiCtx } = innerOptions;
   ensureGlobal(apiCtx, stateType);
-  const { sharedRoot: state, sharedState: stateVal, internal } = buildSharedObject(innerOptions, createOptions);
+  const { sharedRoot: stateRoot, sharedState: state, internal } = buildSharedObject(innerOptions, createOptions);
   const { syncer, sync, forAtom, setState, setDraft, sharedKey, sharedKeyStr, rootValKey, reactive, reactiveRoot } = internal;
-  const actionCreator = action(state);
+  const actionCreator = action(stateRoot);
   const actionTaskCreator = actionCreator(); // 注意此处是柯里化调用后才是目标 actionCreator
   const opt = { internal, from: MUTATE, apiCtx };
   const createFn = createSharedLogic;
   const ldAction = initLoadingCtx(createFn, { ...opt, from: ACTION });
   const ldMutate = initLoadingCtx(createFn, opt);
-  const setOnReadHook = (onRead: Fn) => (internal.onRead = onRead);
   const common = { createFn, internal, apiCtx };
   const acCommon = { ...common, ldAction, actionCreator };
 
   return {
-    state, // 指向 root
-    stateVal, // atom 的话 stateVal 是拆箱后的值，share 对象的话，stateVal 指向 root 自身
+    // state 指向 stateRoot，保留 state 命名是为了用户从 atom 切换 atomx 时，
+    // 保留 state 语义不变，[ state ] -> { state }
+    state: stateRoot,
+    stateRoot, // 指向 root
+    stateVal: state, // atom 的话 stateVal 是拆箱后的值，share 对象的话，state 指向 root 自身
     setState,
     setDraft,
+    setEnableMutate: (enabled: boolean) => setEnableMutate(enabled, internal),
+    getOptions: () => getOptions(internal),
+    setOnReadHook: (onRead: Fn) => (internal.onRead = onRead),
     defineActions: (throwErr?: boolean) => (actionDict: Dict<ActionTask>) => defineActions({ ...acCommon, actionDict }, throwErr),
     defineTpActions: (throwErr?: boolean) => (actionDict: Dict<Action>) =>
       defineActions({ ...acCommon, actionDict, forTp: true }, throwErr),
     defineMutateDerive: (inital: Dict) => (mutateFnDict: Dict) => defineMutateDerive({ ...common, ldMutate, inital, mutateFnDict }),
-    defineMutateSelf: () => (mutateFnDict: Dict) => defineMutate({ ldMutate, state, mutateFnDict }),
+    defineMutateSelf: () => (mutateFnDict: Dict) => defineMutate({ ldMutate, state: stateRoot, mutateFnDict }),
     defineFullDerive: (throwErr?: boolean) => (deriveFnDict: Dict) => defineFullDerive({ apiCtx, deriveFnDict, throwErr }),
-    mutate: mutate(state),
-    runMutate: (descOrOptions: string | IRunMutateOptions) => runMutate(state, descOrOptions),
-    runMutateTask: (descOrOptions: string | IRunMutateOptions) => runMutateTask(state, descOrOptions),
+    mutate: mutate(stateRoot),
+    runMutate: (descOrOptions: string | IRunMutateOptions) => runMutate(stateRoot, descOrOptions),
+    runMutateTask: (descOrOptions: string | IRunMutateOptions) => runMutateTask(stateRoot, descOrOptions),
     action: actionCreator,
     call: (fn: Fn, payload: any, desc: string, throwErr: boolean) => actionTaskCreator(fn, desc, throwErr)(payload),
-    useState: (options?: any) => useAtom(apiCtx, state, options),
-    useForceUpdate: (presetDeps?: (sharedState: any) => any[]) => useGlobalForceUpdate(apiCtx, state, presetDeps),
+    useState: (options?: any) => useAtom(apiCtx, stateRoot, options),
+    useStateX: (options?: any) => useAtomX(apiCtx, stateRoot, options),
+    useForceUpdate: (presetDeps?: (sharedState: any) => any[]) => useGlobalForceUpdate(apiCtx, stateRoot, presetDeps),
     useLocalState: (initialState: any) => useMutable(apiCtx, initialState),
     useLocalForceUpdate: () => useLocalForceUpdate(apiCtx),
     getMutateLoading: ldMutate.getLoading,
     useMutateLoading: ldMutate.useLoading,
     getActionLoading: ldAction.getLoading,
     useActionLoading: ldAction.useLoading,
+    getSnap: (isPrev?: boolean) => getSnap(stateRoot, isPrev),
     sync,
     syncer,
-    setOnReadHook,
     sharedKey,
     sharedKeyStr,
     rootValKey,
     reactive,
     reactiveRoot,
-    reactiveDesc: (desc: string) => reactiveDesc(state, desc),
-    useReactive: (options?: any) => useReactive(apiCtx, state, options),
-    flush: (desc?: string) => flush(state, desc),
+    reactiveDesc: (desc: string) => reactiveDesc(stateRoot, desc),
+    useReactive: (options?: any) => useReactive(apiCtx, stateRoot, options),
+    useReactiveX: (options?: any) => useReactiveX(apiCtx, stateRoot, options),
+    flush: (desc?: string) => flush(stateRoot, desc),
     isAtom: forAtom,
   };
 }

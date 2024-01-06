@@ -8,8 +8,8 @@ import type { Dict, InsCtxMap } from '../../types/base';
 import { clearDiff, diffVal, hasChangedNode } from '../common/sharedScope';
 import { FN_DEP_KEYS } from '../creator/current';
 import type { InsCtxDef } from './buildInternal';
-import type { ICommitOpts } from './mutateDeep';
 import { getGlobalEmptyInternal, getGlobalIdInsKeys } from './globalId';
+import type { ICommitOpts } from './mutateDeep';
 
 export function updateIns(insCtxMap: InsCtxMap, insKey: number, sn: number) {
   const insCtx = insCtxMap.get(insKey) as InsCtxDef;

@@ -5,9 +5,6 @@ export function changeA(params: ActionTaskParams<number>) {
 }
 
 export function changeF(params: ActionTaskParams<number>) {
-  // TODO fix me
-  console.log('call changeF');
-  // params.draftRoot.val.f += 100;
   params.draft.f += 100;
 }
 

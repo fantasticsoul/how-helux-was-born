@@ -20,7 +20,7 @@ import type {
   MutateFn,
   MutateFnStdDict,
   NumStrSymbol,
-  WatchDepFn,
+  WatchFnDeps,
   WatchOptionsType,
 } from '../../types/base';
 import { genFnKey } from '../common/key';
@@ -92,6 +92,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
       checkDeadCycle: undefined,
       watchKey: '',
       isFake: false,
+      enabled: true,
     };
   } else if (isObj(fnItem)) {
     const { fn, desc, deps, task, immediate, checkDeadCycle, onlyDeps = false } = fnItem;
@@ -114,6 +115,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
         depKeys: [],
         writeKeys: [],
         isFake: false,
+        enabled: true,
       };
     }
   }
@@ -132,7 +134,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
 /**
  * 解析伴随创建share对象时配置的 mutate 对象，如果传入已存在字典则写入
  */
-export function parseMutate(mutate?: IInnerCreateOptions['mutate'] | null, cachedDict?: MutateFnStdDict) {
+export function parseMutate(mutate?: IInnerCreateOptions['mutate'] | null, cachedDict?: MutateFnStdDict, enabled = true) {
   const mutateFnDict: MutateFnStdDict = {};
   const checkDupDict: MutateFnStdDict = cachedDict || {};
   if (!mutate) return mutateFnDict;
@@ -140,6 +142,7 @@ export function parseMutate(mutate?: IInnerCreateOptions['mutate'] | null, cache
   const handleItem = (item: IMutateFnLooseItem | MutateFn, inputDesc?: string) => {
     const stdFn = parseMutateFn(item, inputDesc, checkDupDict);
     if (stdFn) {
+      stdFn.enabled = enabled;
       mutateFnDict[stdFn.desc] = stdFn;
       checkDupDict[stdFn.desc] = stdFn; // 如传递了 cachedDict，则存到透传的 cachedDict 里
     }
@@ -172,6 +175,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const alertDeadCycleErr = options.alertDeadCycleErr ?? isDebug();
   const deep = options.deep ?? true;
   const checkDeadCycle = options.checkDeadCycle ?? true;
+  const enableMutate = options.enableMutate ?? true;
   const recordLoading = options.recordLoading || RECORD_LOADING.PRIVATE;
   const rules = options.rules || [];
   const before = options.before || noop;
@@ -183,7 +187,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const rootValKey = forAtom ? `${sharedKey}/val` : sharedKeyStr;
   const usefulName = moduleName || sharedKeyStr;
   const loc = tryGetLoc(moduleName);
-  const mutateFnDict = parseMutate(mutate);
+  const mutateFnDict = parseMutate(mutate, {}, enableMutate);
 
   return {
     /** TODO 未来可能支持 atom 对象销毁 */
@@ -205,6 +209,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
     mutate,
     mutateFnDict,
     onRead: null as any, // 等待 setOnReadHook 写入
+    enableMutate,
     stateType,
     recordLoading,
     stopArrDep,
@@ -305,15 +310,15 @@ export function parseRules(options: ParsedOptions): IRuleConf {
 
 export function parseCreateMutateOpt(descOrOptions?: string | IRunMutateOptions) {
   // 不设定 desc 的话，默认指向可能存在的单函数
-  const { out = true, desc = SINGLE_MUTATE, strict = false } = {};
+  const { desc = SINGLE_MUTATE, strict = false, throwErr = false } = {} as IRunMutateOptions;
   if (typeof descOrOptions === 'string') {
-    return { out, desc: descOrOptions, strict };
+    return { desc: descOrOptions, strict, throwErr };
   }
-  return { out, desc, strict, ...descOrOptions };
+  return { desc, strict, ...descOrOptions, throwErr };
 }
 
-export function parseWatchOptions(options?: WatchOptionsType) {
-  let deps: WatchDepFn = noop;
+export function parseWatchOptions(forEffect: boolean, options?: WatchOptionsType) {
+  let deps: WatchFnDeps = noop;
   let immediate: boolean = false;
 
   if (isFn(options)) {
@@ -322,6 +327,9 @@ export function parseWatchOptions(options?: WatchOptionsType) {
     deps = options.deps || noop;
     immediate = options.immediate ?? false;
   }
+  // 如果是为 watchEffect 准备参数，则 immediate 一定为 true
+  immediate = forEffect ? true : immediate
+
   return { immediate, deps };
 }
 

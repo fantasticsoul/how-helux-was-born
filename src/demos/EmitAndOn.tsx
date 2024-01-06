@@ -17,12 +17,16 @@ function emitEvent() {
 }
 
 function Comp() {
+  const [num, setNum] = React.useState(1);
+  const change = () => setNum(prev => prev + 1);
   useOnEvent('test_event', (...args) => {
     console.log('receive args ', ...args);
+    console.log('num is ', num);
   });
   return (
     <MarkUpdate>
       shared.xxx {$(sharedState.a)}
+      <button onClick={change}>change {num}</button>
     </MarkUpdate>
   );
 }

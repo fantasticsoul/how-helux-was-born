@@ -91,12 +91,7 @@ export function beforeCommit(opts: ICommitOpts, draftRoot: any) {
   runMiddlewares(internal, draftRoot, draft, sn);
 }
 
-export function execFinish(
-  commitOpts: ICommitOpts,
-  draftRoot: any,
-  draftNode: any,
-  partial?: Dict,
-) {
+export function execFinish(commitOpts: ICommitOpts, draftRoot: any, draftNode: any, partial?: Dict) {
   const { mutateCtx, internal } = commitOpts;
   const { writeKeys, writeKeyPathInfo, handleCbReturn } = mutateCtx;
   const { forAtom } = internal;
@@ -127,10 +122,10 @@ export function fillMutateCtx(mutateCtx: IMutateCtx, innerSetOptions: IInnerSetS
   const { ids, globalIds, from, desc, fnKey } = innerSetOptions;
   // 用户 setState 可能设定了 ids globalIds
   if (ids) {
-    ids.forEach(id => nodupPush(mutateCtx.ids, id));
+    ids.forEach((id) => nodupPush(mutateCtx.ids, id));
   }
   if (globalIds) {
-    globalIds.forEach(id => nodupPush(mutateCtx.globalIds, id));
+    globalIds.forEach((id) => nodupPush(mutateCtx.globalIds, id));
   }
   // 内部可能重写 from
   from && (mutateCtx.from = from);
@@ -158,7 +153,7 @@ export function prepareDeepMutate(opts: IPrepareMutateOpts) {
   });
 
   // 记录正在执行中的 draftRoot mutateCtx
-  DRAFT_ROOT.set(draftRoot);
+  DRAFT_ROOT.set(draftRoot, forAtom);
   MUTATE_CTX.set(mutateCtx);
   const draftNode = getStateNode(draftRoot, forAtom);
   // atom draft 自动拆箱

@@ -7,8 +7,8 @@ import type {
   IRuleConf,
   KeyInsKeysDict,
   NumStrSymbol,
-  SetState,
   SetDraft,
+  SetState,
   SetStateFactory,
   SharedState,
 } from '../../types/base';

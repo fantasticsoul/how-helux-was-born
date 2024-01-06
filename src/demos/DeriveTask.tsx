@@ -1,12 +1,13 @@
-import { $, share, deriveDict, useDerived, block } from 'helux';
+import { $, share, atom, deriveDict, useDerived, block, derive } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { delay } from "./logic/util";
 
+const [numAtom, setAtom] = atom(1);
 const [sharedState, setState] = share({ a: 1, b: { b1: { b2: 200 } } });
 
 const result = deriveDict({
-  deps: () => [sharedState.a, sharedState.b.b1.b2] as const, // 定义依赖项
+  deps: () => [sharedState.a, sharedState.b.b1.b2, numAtom] as const, // 定义依赖项
   fn: ({ input: [a, b2] }) => ({ val: a + b2 }),// 定义初始值
   task: async ({ input: [a, b2] }) => {
     await delay(1000);
@@ -14,7 +15,6 @@ const result = deriveDict({
   },
   immediate: true,
 });
-
 
 function changeA() {
   setState((draft) => {

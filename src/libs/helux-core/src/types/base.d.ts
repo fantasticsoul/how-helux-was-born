@@ -297,6 +297,11 @@ export interface IRunMutateOptions {
    * false，非严格检查，如果检查失败，则原样返回传入对象
    */
   strict?: boolean;
+  /**
+   * default: false，
+   * 是否抛出错误
+   */
+  throwErr?: boolean;
 }
 
 export interface IMutateTaskParam<T = SharedState, P = any[]> {
@@ -316,10 +321,17 @@ export interface IMutateTaskParam<T = SharedState, P = any[]> {
   input: P;
 }
 
-/** 呼叫 mutate 的句柄，由顶层api mutate 和 atomMutate 返回，可直接无理由重运行 mutate 函数 */
-export type MutateCall<T = any> = () => [T, Error | null];
+/**
+ * 呼叫 mutate fn 的句柄，由顶层 api mutate 和共享上下文 mutate 返回，可直接无理由重运行 mutate fn 函数
+ * @param throwErr - default: false
+ */
+export type MutateCall<T = any> = (throwErr?: boolean) => [T, Error | null];
 
-export type MutateTaskCall<T = any> = () => Promise<[T, Error | null]>;
+/**
+ * 呼叫 mutate task 的句柄，由顶层 api mutate 和共享上下文 mutate 返回，可直接无理由重运行 mutate task 函数
+ * @param throwErr - default: false
+ */
+export type MutateTaskCall<T = any> = (throwErr?: boolean) => Promise<[T, Error | null]>;
 
 export interface IMutateWitness<T = any> {
   /** 人工调用 mutate 配置里的同步函数 */
@@ -361,11 +373,11 @@ export type MutateFn<T = SharedState, P = ReadOnlyArr> = (
 ) => void;
 
 export interface IMutateFnItem<T = SharedState, P = ReadOnlyArr> {
-  /** 异步 mutate 的依赖项列表 */
+  /** 依赖项列表，有 task 无 fn 时，可作为 task 的依赖收集函数 */
   deps?: (state: StateType<T>) => P;
   /**
    * defalt: false
-   * 依赖全部由 deps 函数提供，fn 执行过程中不收集任何依赖
+   * 为 true 时表示依赖全部由 deps 函数提供，fn 执行过程中不收集任何依赖
    */
   onlyDeps?: boolean;
   /** fn 和 deps 均可以收集依赖，对应存在 task 的场景，deps 或 fn 两者保证至少有一个 */
@@ -394,6 +406,8 @@ export interface IMutateFnStdItem<T = any, P = ReadOnlyArr> extends IMutateFnIte
   watchKey: string;
   /** default: false，是否内部使用的假对象 */
   isFake: boolean;
+  /** default: true，是否启用中 */
+  enabled: boolean;
 }
 
 export interface IMutateFnLooseItem<T = SharedState, P = ReadOnlyArr> extends IMutateFnItem<T, P> {
@@ -485,10 +499,14 @@ export interface IMutateCtx {
    * 是否第一次调用，服务于 mutate 函数
    */
   isFirstCall: boolean;
-  /** 
+  /**
    * 修改描述
    */
   desc: string;
+  /**
+   * useReactive 透传的 onRead，方便为每个实例单独收集依赖
+   */
+  onRead?: OnOperate;
 }
 
 export interface IInnerSetStateOptions extends ISetStateOptions {
@@ -517,8 +535,24 @@ export interface ISetFactoryOpts extends IInnerSetStateOptions {
    * 同时也减少不必要的运行时分析性能损耗
    */
   enableDep?: boolean;
+  onRead?: OnOperate;
 }
 
+/**
+ * 注意箭头函数里draft赋值的隐含返回值问题
+ * ```ts
+ * const ctx = atomx({a:1, b:2});
+ * ctx.setState(draft => draft.a = 1) // ❌ ts 校验失败
+ *
+ * // ✅ 以下3种方式 ts 校验通过
+ * // 1 使用void包裹，消除隐式返回值
+ * ctx.setState(draft => void(draft.a = 1))
+ * // 2 使用 {} 包裹箭头函数体
+ * ctx.setState(draft => {draft.a = 1})
+ * // 或使用 setDraft
+ * ctx.setDraft(draft => draft.a = 1)
+ * ```
+ */
 export type SetState<T = any> = (
   partialStateOrRecipeCb: T extends Atom | ReadOnlyAtom ? PartialArgType<AtomValType<T>> : PartialArgType<T>,
   options?: ISetStateOptions,
@@ -536,12 +570,6 @@ export type SetDraft<T = any> = (
   partialStateOrRecipeCb: T extends Atom | ReadOnlyAtom ? PartialDraftArgType<AtomValType<T>> : PartialDraftArgType<T>,
   options?: ISetStateOptions,
 ) => NextSharedDict<T>;
-
-/**
- * 区别于 setState, setDraft 不处理返回值
- * TODO 待实现
- */
-// export type SetDraft<T = any> = ...
 
 export type InnerSetState<T = any> = (
   partialStateOrRecipeCb: T extends Atom | ReadOnlyAtom ? PartialArgType<AtomValType<T>> : PartialArgType<T>,
@@ -693,6 +721,19 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
    * 配置 onRead 钩子函数
    */
   setOnReadHook: (onRead: OnRead) => void;
+  /**
+   * 是否禁止 mutate 再次执行（ 首次一定执行，此函数只能禁止是否再次执行 ）
+   * ```ts
+   *  setEnableMutate(false); // 禁止
+   *  setEnableMutate(true); // 恢复
+   * ```
+   */
+  setEnableMutate: (enabled: boolean) => void;
+  getOptions: () => CtxCreateOptions;
+  /**
+   * isPrevSnap 默认值为 true，表示返回前一刻的快照，设为 false 表示返回最新快照
+   */
+  getSnap: (isPrevSnap?: boolean) => T;
   /** 共享状态唯一 key */
   sharedKey: number;
   sharedKeyStr: string;
@@ -728,6 +769,10 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
     T,
     IInsRenderInfo,
   ];
+  /**
+   * 和 useReactive 使用方式一样，区别在于 useReactiveX 返回字典， useReactive 返回元组
+   */
+  useReactiveX: (options?: IUseSharedStateOptions<T>) => ICompReactiveCtx<T>;
   /**
    * 更新当前共享状态的所有实例组件，谨慎使用此功能，会触发大面积的更新，
    * 推荐设定 presetDeps、overWriteDeps 函数减少更新范围
@@ -1003,8 +1048,7 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
     D extends /**
      * 如果透传了 DR 约束返回结果类型和 deps 返回类型，则使用 DR 来约束
      * 加上 & Dict 是为了支持用户配置 DR 之外的其他结果，不严格要求所有结果 key 都需要在 DR 里定义类型
-     */
-    DR extends DepsResultDict ? MultiDeriveFn<DR> & Dict<DeriveFn | IDeriveFnItem> : Dict<DeriveFn | IDeriveFnItem>,
+     */ DR extends DepsResultDict ? MultiDeriveFn<DR> & Dict<DeriveFn | IDeriveFnItem> : Dict<DeriveFn | IDeriveFnItem>,
   >(
     deriveFnDict: D,
   ) => {
@@ -1040,12 +1084,31 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
 
 export interface ISharedCtx<T = SharedDict> extends ISharedStateCtxBase<T> {
   state: ReadOnlyDict<T>;
+  stateRoot: ReadOnlyDict<T>;
+  stateVal: ReadOnlyDict<T>;
   useState: (options?: IUseSharedStateOptions<T>) => [T, SetState<T>, IInsRenderInfo];
+  /** 区别于 useState 返回元组，useStateX 返回对象 */
+  useStateX: (options?: IUseSharedStateOptions<T>) => ICompAtomCtx<T>;
 }
 
 export interface IAtomCtx<T = any> extends ISharedStateCtxBase<Atom<T>> {
+  /**
+   * state 指向 stateRoot ，保留 state 命名是为了用户从 atom 切换 atomx 时，
+   * 保留 state 语义不变，即以下两种写法均 ok
+   * ```
+   * const [ state ] = atom(1) -> const { state } = atomx(1)
+   * const [ stateRoot ] = atom(1) -> const { stateRoot } = atomx(1)
+   * ```
+   */
   state: ReadOnlyAtom<T>;
+  stateRoot: ReadOnlyAtom<T>;
+  /**
+   * 指向拆箱后的值引用
+   */
+  stateVal: ReadOnlyAtomVal<Atom<T>>;
   useState: (options?: IUseSharedStateOptions<T>) => [T, SetState<T>, IInsRenderInfo];
+  /** 区别于 useState 返回元组，useStateX 返回对象 */
+  useStateX: (options?: IUseSharedStateOptions<T>) => ICompAtomCtx<T>;
 }
 
 export interface BeforeFnParams<T = SharedState> {
@@ -1079,7 +1142,7 @@ export interface IDataRule<T = any> {
 
 export interface ICreateOptionsFull<T = SharedState> {
   /**
-   * 模块名称，方便用户可以查看到语义化的状态树，不传递的话内部会以生成的自增序号 作为 key
+   * 模块名称，方便用户可以查看到语义化的状态树，不传递的话内部会以生成的自增序号作为 key
    * 传递的话如果重复了，目前的策略仅仅是做个警告，helux 内部始终以生成的自增序号作为模块命名空间控制其他逻辑
    */
   moduleName: string;
@@ -1092,7 +1155,7 @@ export interface ICreateOptionsFull<T = SharedState> {
    */
   deep: boolean;
   /**
-   * default: 'private' ，表示loading 对象记录的位置，具体含义见 recordLoading，
+   * default: 'private' ，表示 loading 对象记录的位置，具体含义见 recordLoading，
    * 注：loading 对象用于辅助查询 mutate 或者 action 异步函数的执行状态
    */
   recordLoading: RecordLoading;
@@ -1112,15 +1175,15 @@ export interface ICreateOptionsFull<T = SharedState> {
    */
   rules: IDataRule<StateType<T>>[];
   /**
-   * 定义当前状态对其他状态有依赖的 mutate 函数集合或函数，它们将被自动执行，并收集到每个函数各自对应的上游数据依赖
+   * 定义当前状态对自身状态或其他状态某些数据节点有依赖的 `mutate` 函数集合或函数，它们将在依赖项变化时被自动执行，
+   * 首次执行时会收集到每个函数各自对应的外部数据依赖并记录下来
    * 推荐走 defineMutateSelf 或 mutateDict 在外部定义 mutate 函数，以便获得更好的类型推导
    */
   mutate: MutateFn<T> | MutateFnDict<T> | MutateFnList<T>;
   /**
-   * action、mutate、setState、sync提交状态之前的函数，建议优先对 draft 操作，
-   * 如需要返回则返回的部分对象是全新值才是安全的草稿，该函数执行时机是在中间件之前
+   * action、mutate、setState、sync 提交状态之前会触发执行的函数，可在此函数里再次修改 draft，该函数执行时机是在中间件之前
    */
-  before: (params: BeforeFnParams<T>) => void | Partial<T>;
+  before: (params: BeforeFnParams<T>) => void;
   /**
    * deafult: undefined
    * 不配置此项时，开发环境弹死循环提示，生产环境不弹
@@ -1129,8 +1192,17 @@ export interface ICreateOptionsFull<T = SharedState> {
   /**
    * default: true，是否检测死循环，设置为 false 表示不检查
    */
-  checkDeadCycle?: boolean;
+  checkDeadCycle: boolean;
+  /**
+   * default: true，是否允许 mutate 执行，可以创建 atom 时设置，也可以中途通过 setEnableMutate 反复设置
+   */
+  enableMutate: boolean;
 }
+
+/**
+ * 目前api层面只暴露部分配置参数供用户查看
+ */
+export type CtxCreateOptions = Omit<ICreateOptionsFull, 'rules' | 'mutate' | 'before'>;
 
 export interface IInnerCreateOptions<T = SharedState> extends ICreateOptionsFull<SharedState> {
   forAtom: boolean;
@@ -1142,9 +1214,9 @@ export interface IInnerCreateOptions<T = SharedState> extends ICreateOptionsFull
 
 export interface IUseSharedStateOptions<T = any> {
   /**
-   * default: every ，设置为 first 或 no 可以进一步提高组件渲染性能，但需要注意
-   * first 时如果组件的依赖是变化的，会造成依赖丢失的情况产生，触发组件不会重渲染的bug，
-   * no 时不会从ui渲染力收集到依赖，需 deps 函数补充依赖
+   * default: every ，设置为 first 或 no 可以进一步提高组件渲染性能，
+   * 但需要注意设为 first 时如果组件的依赖是变化的，会造成依赖丢失的情况产生，触发组件不会重渲染的 bug ，
+   * 设为 no 时不会从ui渲染里收集到依赖，需 deps 函数补充依赖
    * ```txt
    * no ，此时依赖仅靠 deps 提供
    * first ，仅首轮渲染收集依赖，后续渲染流程不收集
@@ -1233,13 +1305,13 @@ export interface IUseSharedStateOptions<T = any> {
    *
    * ```ts
    * arrDep=true arrIndexDep = true
-   * deps: list list[0] list[...]
+   * // deps: list list[0] list[...]
    *
    * arrDep=true arrIndexDep = false
-   * deps: list
+   * // deps: list
    *
    * arrDep=false
-   * deps: list[0] list[...]
+   * // deps: list[0] list[...]
    * ```
    */
   arrIndexDep?: boolean;
@@ -1285,17 +1357,13 @@ export interface IWatchFnParams {
   sn?: number;
 }
 
-export type WatchDepFn = () => any[] | undefined;
+export type WatchFnDeps = () => any[] | undefined;
 
-export interface IWatchOptions {
-  deps?: WatchDepFn;
+export interface IWatchEffectOptions {
   /**
-   * default: false，
-   * 如没有定义 deps 依赖，需设置 immediate，这样可以让 watch 首次执行后收集到相关依赖，
-   * 当然也可以定义了 deps 依赖的情况下设置 immediate 为 true，这样整个 watch 函数的依赖是
-   * deps 定义的和 watch 首次执行后收集到的两者合并的结果
+   * 如果是立即执行的 watch 回调，会自动将 deps 返回的依赖于回调里收集到的依赖合并
    */
-  immediate?: boolean;
+  deps?: WatchFnDeps;
   /**
    * default: false
    * 是否抛出错误，默认不抛出（重执行函数可独立设定抛出），错误会发送给插件
@@ -1303,9 +1371,21 @@ export interface IWatchOptions {
   throwErr?: boolean;
 }
 
-export type WatchOptionsType = WatchDepFn | IWatchOptions;
+export interface IWatchOptions extends IWatchEffectOptions {
+  /**
+   * default: false，
+   * 如没有定义 deps 依赖，需设置 immediate，这样可以让 watch 首次执行后收集到相关依赖，
+   * 当然也可以定义了 deps 依赖的情况下设置 immediate 为 true，这样整个 watch 函数的依赖是
+   * deps 定义的和 watch 首次执行后收集到的两者合并的结果
+   */
+  immediate?: boolean;
+}
 
-export interface IDeriveFnParamsBase<T = any, I = readonly any[]> {
+export type WatchOptionsType = WatchFnDeps | IWatchOptions;
+
+export type WatchEffectOptionsType = WatchFnDeps | IWatchEffectOptions;
+
+export interface IDeriveFnParamsBase<I = readonly any[]> {
   /** 函数的运行编号，每次自增1 */
   sn: number;
   isFirstCall: boolean;
@@ -1313,11 +1393,11 @@ export interface IDeriveFnParamsBase<T = any, I = readonly any[]> {
   input: I;
 }
 
-export interface IDeriveFnParams<T = any, I extends ReadOnlyArr = any> extends IDeriveFnParamsBase<T, I> {
+export interface IDeriveFnParams<T = any, I extends ReadOnlyArr = any> extends IDeriveFnParamsBase<I> {
   prevResult: T | null;
 }
 
-export interface IDeriveFnTaskParams<T = any, I extends ReadOnlyArr = any> extends IDeriveFnParamsBase<T, I> {
+export interface IDeriveFnTaskParams<T = any, I extends ReadOnlyArr = any> extends IDeriveFnParamsBase<I> {
   /** 区别于 IDeriveFnParams，执行 task 时，prevResult 一定有值 */
   prevResult: T;
 }
@@ -1465,6 +1545,11 @@ export interface IRenderInfo<T = any> extends IFnRenderInfo {
   getPrevDeps: () => string[];
 }
 
+export interface ICompReactiveCtx<T = any> extends IRenderInfo {
+  state: StateType<T>;
+  stateRoot: StateRootType<T>;
+}
+
 export interface ICompAtomCtx<T = any> extends IRenderInfo<T> {
   state: T;
   setState: SetState<T>;
@@ -1515,6 +1600,7 @@ export interface IInsCtx<T = Dict> {
   sharedState: Dict;
   proxyState: Dict;
   proxyStateVal: Dict;
+  sharedKey: number;
   rootVal: any;
   updater: Fn;
   /** 未挂载 已挂载 已卸载 */
@@ -1547,7 +1633,7 @@ export interface IInsCtx<T = Dict> {
    * 未标记为 mounted 的组件需要触发更新时，将更新时机推入到 useEffect 里触发，避免以下问题
    *  https://github.com/facebook/react/issues/18178
    */
-  needEFUpdate: boolean,
+  needEFUpdate: boolean;
 }
 
 export type InsCtxMap = Map<number, IInsCtx>;
@@ -1643,4 +1729,16 @@ export interface IPlugin {
   install: PluginInstall;
   name?: string;
   desc?: FnDesc;
+}
+
+export interface IInitOptions {
+  /**
+   * defaut: true，
+   * 如果使用 react 18，默认相信用户采用的是 createRoot(dom).render(comp) 方式渲染根组件，
+   * 内部的 useSync 会走到真实的 useSyncExternalStore 调用逻辑（ 非 18 提供的是假的 useSyncExternalStore 实现 ），
+   * 而如果用户实际上并未在 18 使用 createRoot 方式渲染时，真实的 useSyncExternalStore 内部会抛出一个错误：
+   * dispatcher.useSyncExternalStore is not a function
+   * 此时用户可以调用 init({ isRootRender: false }) 消除此错误提示。
+   */
+  isRootRender?: boolean;
 }

@@ -1,14 +1,14 @@
 import { noop, noopArr } from '@helux/utils';
 import { IOperateParams } from 'limu';
 import { ASYNC_TYPE, FROM, NOT_MOUNT, RENDER_START } from '../../consts';
-import type { IFnCtx, ISetFactoryOpts, IMutateCtx, IMutateFnStdItem, OnOperate, From } from '../../types/base';
+import type { From, IFnCtx, IMutateCtx, IMutateFnStdItem, ISetFactoryOpts, OnOperate } from '../../types/base';
 import type { IReactiveMeta } from '../../types/inner';
 import { genRenderSN } from './key';
 
 const { MAY_TRANSFER } = ASYNC_TYPE;
 const { SET_STATE, REACTIVE } = FROM;
 const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any });
-const noopAny: (...args: any[]) => any = () => { };
+const noopAny: (...args: any[]) => any = () => {};
 
 const fnItem = newMutateFnItem({ isFake: true });
 
@@ -19,10 +19,11 @@ export interface IBuildReactiveOpts {
   onRead?: OnOperate;
   from?: From;
   expired?: boolean;
+  insKey?: number;
 }
 
 export function newReactiveMeta(draft: any, buildOptions: IBuildReactiveOpts, finish: any = noop): IReactiveMeta {
-  const { desc = '', onRead, from = REACTIVE, depKeys = [], isTop = false, expired = false } = buildOptions;
+  const { desc = '', onRead, from = REACTIVE, depKeys = [], isTop = false, expired = false, insKey = 0 } = buildOptions;
   return {
     draft,
     finish,
@@ -41,13 +42,22 @@ export function newReactiveMeta(draft: any, buildOptions: IBuildReactiveOpts, fi
     desc,
     onRead,
     from,
+    insKey,
   };
 }
 
 export function newMutateCtx(options: ISetFactoryOpts): IMutateCtx {
   const {
-    ids = [], globalIds = [], isReactive = false, from = SET_STATE, enableDep = false,
-    handleCbReturn = true, sn = genRenderSN(), isFirstCall = false, desc = ''
+    ids = [],
+    globalIds = [],
+    isReactive = false,
+    from = SET_STATE,
+    enableDep = false,
+    handleCbReturn = true,
+    sn = genRenderSN(),
+    isFirstCall = false,
+    desc = '',
+    onRead,
   } = options;
   return {
     fnKey: '',
@@ -68,6 +78,7 @@ export function newMutateCtx(options: ISetFactoryOpts): IMutateCtx {
     sn,
     isFirstCall,
     desc,
+    onRead,
   };
 }
 
@@ -98,8 +109,15 @@ export function newOpParams(
 
 export function newMutateFnItem(partial?: Partial<IMutateFnStdItem>): IMutateFnStdItem {
   const {
-    desc = '', fn = noop, task = noopAny, depKeys = [], writeKeys = [], deps = noopArr,
-    isFake = false, onlyDeps = false, ...rest
+    desc = '',
+    fn = noop,
+    task = noopAny,
+    depKeys = [],
+    writeKeys = [],
+    deps = noopArr,
+    isFake = false,
+    onlyDeps = false,
+    ...rest
   } = partial || {};
   const base: IMutateFnStdItem = {
     fn,
@@ -113,6 +131,7 @@ export function newMutateFnItem(partial?: Partial<IMutateFnStdItem>): IMutateFnS
     checkDeadCycle: undefined,
     watchKey: '',
     isFake,
+    enabled: true,
     ...rest,
   };
   return base;

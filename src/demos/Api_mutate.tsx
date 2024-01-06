@@ -46,6 +46,12 @@ const { actions, useLoading } = ctx1.defineActions<Payloads>()({
 //   fn: (draft) => draft.time2 = draft.time + 1,
 // });
 
+const witness4 = mutate(finalPriceState)((draft) => {
+  console.log('trigger witness4');
+  draft.time2 = draft.time + Date.now();
+});
+window.rrr = witness4;
+
 // 外部定义 mutate 函数
 const witness = mutate(finalPriceState)({
   // 初始值函数，只会执行一次

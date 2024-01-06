@@ -13,7 +13,7 @@ function changeC1() {
 
 type DR = {
   a: { result: number };
-  // c: { deps: [number, string], result: number };
+  c: { deps: [number, string], result: number };
 };
 
 const fd = ctxp.defineFullDerive<DR>()({

@@ -13,7 +13,7 @@ export function test() {
 }
 
 /**
- * 通过 IDeriveFnItem 主动约束结果返回类型和deps 返回类型，同时 deps 返回类型自动透传给 params.input
+ * 通过 IDeriveFnItem 主动约束结果返回类型和 deps 返回类型，同时 deps 返回类型自动透传给 params.input
  */
 export const fTask: IDeriveFnItem<number, [number]> = {
   deps: () => [state.val.f],

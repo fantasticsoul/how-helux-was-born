@@ -46,7 +46,7 @@ function runWatch(fnCtx: IFnCtx, options: IRunFnOpt) {
   }
 
   // 自己触发调用自己，已经触发了死循环
-  if(fnCtx.fnKey === fromFnKey){
+  if (fnCtx.fnKey === fromFnKey) {
     probeDepKeyDeadCycle(internal, fnCtx, fnCtx.depKeys);
     return;
   }

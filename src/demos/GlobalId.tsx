@@ -25,7 +25,7 @@ const numPlusAtom = derive(() => {
 watch((params) => {
   const { val } = numAtom;
   console.log('val changed -->', val);
-});
+}, () => [numAtom]);
 
 function NumAtom() {
   const [num, setNum, info] = useAtom(numAtom);

@@ -1,46 +1,41 @@
 
-## TODO
-
-思考数组下标依赖如何记录
-1 限制记录数量
-2 默认不记录
-
-配置`arrIndexDep=false`，关闭数组下标记录
 ```ts
-useAtom(xxx, {indexDep:false})
-```
+export function merge(dict: Dict) {
+  const root = currentDraftRoot();
+  if (!root.isFake && root.draftRoot) {
+    Object.assign(root.draftRoot, dict);
+  }
+}
 
-配置`arrLoop=false`，关闭数组下标记录
-
-```ts
-change: list[0]
-notify: list list[0]
-> default: arrLoop=true arrIndexDep = true
-
-comp:
-read: list[0]
-deps: list list[0]
-
-arrDep=true arrIndexDep = true ---> deps: list list[0] list[...]
-arrDep=true arrIndexDep = false ---> deps: list
-arrDep=false ---> deps: list[0] list[...]
+export function replace(newState: any) {
+  const root = currentDraftRoot();
+  if (!root.isFake && root.isAtom) {
+    root.draftRoot.val = newState;
+  }
+}
 ```
 
 
-## 常见错误示例
-
-### useAtom,useShared deps 函数里传入其他共享状态依赖
-
 ```ts
-useAtom(xxAtom, { deps: state=>[state.a, otherAtom.b] });
-```
+  // 见 AtomTupleSetState 解释，解决箭头函数里对 draft 做单值修改时会出现 ts 报错的问题
+  const setState = isPrimitive ? insSetState : insSetDraft;
 
-## 常见技巧
+  /**
+ * 元组第二位参数的修改状态句柄，针对原始值 atom 指向 SetState，接受返回值，
+ * 针对非原始值 atom 指向 SetDraft，不接受返回值，此时箭头函数里对draft做单值修改时，
+ * 函数体没有 {} 包裹也不会因为箭头函数的隐式返回值而报 ts 错误
+ * ```ts
+ * const [baseAtom, setAtom] = atom(3000, { moduleName: 'baseAtom' });
+ * setAtom(a => a + 1); // ✅ 这里 cb 返回的是 number，ts 校验通过
+ * setAtom(a => 's'); // ❌ 这里 cb 返回的是 string, ts 校验失败
+ * 
+ * const [baseAtom2, setAtom2, ctx] = atom({ a: 1, b: 2 }, { moduleName: 'baseAtom2' });
+ * // 发现是非 primitive atom ，setAtom2 指向 ctx.setDraft, setDraft 是默认忽略返回值的
+ * setAtom2(draft => draft.a = 1) // ✅ 这里 cb 返回的是 number，但此时 setAtom2 不处理返回值，类型也不校验，故这里也能通过
+ * ctx.setDraft(draft => draft.a = 1) // ✅ ts 校验通过
+ * ctx.setState(draft => draft.a = 1) // ❌ ts 校验失败
+ * ```
+ */
+export type AtomTupleSetState<T = any> = T extends ReadOnlyAtom ? T['val'] extends Primitive ? SetState<T> : SetDraft<T> : SetDraft<T>;
 
-useWatch 配合 useAtom,useShared 一起使用时，deps 函数里的依赖会记录为固定依赖项
-
-```ts
-const [ xx ] = useAtom(xxAtom);
-useWatch(()=>{}, ()=>[xx]); // 记录根值自身依赖
-useWatch(()=>{}, ()=>[xx.a, xx.b]); // 记录子节点依赖
 ```
