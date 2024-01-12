@@ -133,9 +133,13 @@ export function isArrLikeVal(val: any) {
   return Array.isArray(val) || isMap(val);
 }
 
-export const { isObject: isDict, getDataType } = limuUtils;
+export const { isObject: isDict, getDataType, isPrimitive } = limuUtils;
 
 /** 是否是原始值 */
 export function isPrim(val: any) {
   return !isJsObj(val);
+}
+
+export function ensureBool(mayBool: any, defaultBool: boolean) {
+  return typeof mayBool === 'boolean' ? mayBool : defaultBool;
 }

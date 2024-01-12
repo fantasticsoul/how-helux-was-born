@@ -3,12 +3,12 @@ import { state } from './state';
 import { delay } from '../../../logic/util';
 
 export function go(params: IDeriveFnParams) {
-  return state.val.f + 100;
+  return state.f + 100;
 }
 
 export function test() {
   const map: Record<number, any> = {};
-  state.val.list.forEach(item => map[item.id] = item);
+  state.list.forEach(item => map[item.id] = item);
   return map;
 }
 
@@ -16,7 +16,7 @@ export function test() {
  * 通过 IDeriveFnItem 主动约束结果返回类型和 deps 返回类型，同时 deps 返回类型自动透传给 params.input
  */
 export const fTask: IDeriveFnItem<number, [number]> = {
-  deps: () => [state.val.f],
+  deps: () => [state.f],
   fn: (params) => {
     return params.input[0];
   },
@@ -27,7 +27,7 @@ export const fTask: IDeriveFnItem<number, [number]> = {
 }
 
 export const fTask2 = defineDeriveFnItem<IDeriveFnItem<number, [number]>>({
-  deps: () => [state.val.f],
+  deps: () => [state.f],
   fn: (params) => {
     return params.input[0];
   },
@@ -41,7 +41,7 @@ export const fTask2 = defineDeriveFnItem<IDeriveFnItem<number, [number]>>({
  * 通过 defineDeriveTask 约束结果返回类型，自动推导出 deps 返回类型并透传给 params.input
  */
 export const f2 = defineDeriveTask(
-  () => [state.val.f] as const,
+  () => [state.f] as const,
 )<number>({
   fn: (params) => {
     return params.input[0];

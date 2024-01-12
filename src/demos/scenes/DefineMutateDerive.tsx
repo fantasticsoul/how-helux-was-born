@@ -3,12 +3,15 @@ import { $, share } from 'helux';
 import { MarkUpdate, Entry } from '../comps';
 import { dictFactory, delay } from '../logic/util';
 
-const [priceState, , ctxp] = share(dictFactory, { moduleName: 'DefineApi2' });
+const [priceState, , ctxp] = share(dictFactory, { moduleName: 'DefineApi2', alertDeadCycleErr: false });
 
 const md = ctxp.defineMutateDerive({
   a: 1, b: '2', c: 3
 })({
-  changeA: (draft) => draft.a = priceState.a.b.c + 100,
+  changeA: (draft, params) => {
+    console.log(' params.extraBound ', params.extraBound);
+    draft.a = priceState.a.b.c + 100;
+  },
   changeB: {
     deps: () => [priceState.info.name],
     async task(params) {
@@ -18,14 +21,36 @@ const md = ctxp.defineMutateDerive({
   }
 });
 
+const md2 = ctxp.defineMutateDerive({
+  a: 1, b: '2', c: 3
+})((stateInfo) => {
+  console.log('stateInfo', stateInfo);
+  return {
+    changeA: (draft, params) => {
+      console.log(' params.extraBound ', params.extraBound);
+      draft.a = priceState.a.b.c + 100;
+    },
+    changeB: {
+      deps: () => [priceState.info.name],
+      async task(params) {
+        await delay(1000);
+        params.draft.b = priceState.info.name + 'ccc';
+      },
+    }
+  };
+});
+
 console.log(md);
+console.log(md2);
 
 function changeC() {
   ctxp.reactive.a.b.c++;
 }
 
 function changeC1() {
-  ctxp.setState(draft => { draft.a.b1.c1++ });
+  ctxp.setState(draft => {
+    draft.a.b1.c1++;
+  });
   // ctxp.reactive.a.b1.c1++;
 }
 

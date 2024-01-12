@@ -51,20 +51,20 @@ x.mutate({
 
 const x2 = sharex({ a: 1, b: 2 }, { moduleName: 'yy2' });
 
-console.log(x.state.val.a);
+console.log(x.state.a);
 x.reactive.b = 100;
 x.flush();
-console.log(x.state.val.a);
+console.log(x.state.a);
 
 x.reactive.b = 103;
 x.flush();
-console.log(x.state.val.a);
-console.log(x.state.val.b);
+console.log(x.state.a);
+console.log(x.state.b);
 
 x.reactive.b = 108;
 x.flush();
-console.log(x.state.val.a);
-console.log(x.state.val.b);
+console.log(x.state.a);
+console.log(x.state.b);
 
 function Price() {
   const [base, , info] = useAtom(baseAtom);

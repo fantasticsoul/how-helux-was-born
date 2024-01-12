@@ -1,49 +1,49 @@
-// export { default as Block } from './Block';
-// export { default as Api_runMutate } from './Api_runMutate';
-// export { default as Api_defineActions } from './Api_defineActions';
-// export { default as Atom } from './Atom';
-// export { default as AtomExact } from './AtomExact';
-// export { default as AtomAction } from './AtomAction';
-// export { default as AtomMutate } from './AtomMutate';
-// export { default as Signal } from './Signal';
-// export { default as Signal_atomLoading } from './Signal_atomLoading';
-// export { default as Signal2 } from './Signal2';
-// export { default as Plugin } from './Plugin';
-// export { default as IsStable } from './IsStable';
-// export { default as DeriveToState } from './DeriveToState';
-// export { default as SetExtraDepsInSetState } from './SetExtraDepsInSetState';
-// export { default as TestDeepDrill } from './TestDeepDrill';
-// export { default as DeriveList } from './DeriveList';
-// export { default as GlobalId } from './GlobalId';
-// export { default as Demo1 } from './Demo1';
-// export { default as Watch } from './Watch';
-// export { default as Watch2 } from './Watch2';
-// export { default as WatchSubKey } from './WatchSubKey';
-// export { default as StopDep } from './StopDep';
-// export { default as UseDerived } from './UseDerived';
-// export { default as UseDerived2 } from './UseDerived2';
-// export { default as MutateFn } from './MutateFn';
-// export { default as DeriveTask } from './DeriveTask';
-// export { default as DeriveTask2 } from './DeriveTask2';
-// export { default as EmitAndOn } from './EmitAndOn';
-// export { default as UseEffect } from './UseEffect';
-// export { default as UseObject } from './UseObject';
-// export { default as UseMutable } from './UseMutable';
-// export { default as Produce } from './Produce';
-// export { default as CreateModel } from './CreateModel';
-// export { default as MutateTask } from './MutateTask';
-// export { default as Feat_arrStopDep } from './Feat_arrStopDep';
-// export { default as UseService } from './UseService';
+export { default as Block } from './Block';
+export { default as Api_runMutate } from './Api_runMutate';
+export { default as Api_defineActions } from './Api_defineActions';
+export { default as Atom } from './Atom';
+export { default as AtomExact } from './AtomExact';
+export { default as AtomAction } from './AtomAction';
+export { default as AtomMutate } from './AtomMutate';
+export { default as Signal } from './Signal';
+export { default as Signal_atomLoading } from './Signal_atomLoading';
+export { default as Signal2 } from './Signal2';
+export { default as Plugin } from './Plugin';
+export { default as IsStable } from './IsStable';
+export { default as DeriveToState } from './DeriveToState';
+export { default as SetExtraDepsInSetState } from './SetExtraDepsInSetState';
+export { default as TestDeepDrill } from './TestDeepDrill';
+export { default as DeriveList } from './DeriveList';
+export { default as GlobalId } from './GlobalId';
+export { default as Demo1 } from './Demo1';
+export { default as Watch } from './Watch';
+export { default as Watch2 } from './Watch2';
+export { default as WatchSubKey } from './WatchSubKey';
+export { default as StopDep } from './StopDep';
+export { default as UseDerived } from './UseDerived';
+export { default as UseDerived2 } from './UseDerived2';
+export { default as MutateFn } from './MutateFn';
+export { default as DeriveTask } from './DeriveTask';
+export { default as DeriveTask2 } from './DeriveTask2';
+export { default as EmitAndOn } from './EmitAndOn';
+export { default as UseEffect } from './UseEffect';
+export { default as UseObject } from './UseObject';
+export { default as UseMutable } from './UseMutable';
+export { default as Produce } from './Produce';
+export { default as CreateModel } from './CreateModel';
+export { default as MutateTask } from './MutateTask';
+export { default as Feat_arrStopDep } from './Feat_arrStopDep';
+export { default as UseService } from './UseService';
 export { default as UseWatch } from './UseWatch';
-// export { default as UseMemoFns } from './hooks/UseMemoFns';
-// export { default as UseStable } from './hooks/UseStable';
-// export { default as UseReactive } from './UseReactive';
+export { default as UseMemoFns } from './hooks/UseMemoFns';
+export { default as UseStable } from './hooks/UseStable';
+export { default as UseReactive } from './UseReactive';
 
-// // 检查 M2 取 draft 为何没拦住
-// export { default as M2 } from './special/M2';
+// 检查 M2 取 draft 为何没拦住
+export { default as M2 } from './special/M2';
 
-// // 【FIXED】这个示例触发 proxy 对象上写入了 symbol属性
-// export { default as AtomItemChange } from './special/AtomItemChange';
+// 【FIXED】这个示例触发 proxy 对象上写入了 symbol属性
+export { default as AtomItemChange } from './special/AtomItemChange';
 
 // export { default as MutateSelf } from './special/MutateSelf';
 // export { default as AtomSyncer } from './AtomSyncer';
@@ -77,6 +77,7 @@ export { default as UseWatch } from './UseWatch';
 // export { default as useMutateLoading_test } from './core-tests/useMutateLoading_test';
 // export { default as useMutateLoading2_test } from './core-tests/useMutateLoading2_test';
 // export { default as atomFnRunCount_test } from './core-tests/atomFnRunCount_test';
+export { default as ArrSet_test } from './core-tests/ArrSet_test';
 
 export {
   // WatchCb,
@@ -91,4 +92,4 @@ export {
 
 // export * from './scenes';
 
-export const INITIAL_KEY = 'UseWatch';
+export const INITIAL_KEY = 'ArrSet_test';

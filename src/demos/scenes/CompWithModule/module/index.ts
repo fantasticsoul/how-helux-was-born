@@ -16,6 +16,13 @@ export const deriveS = ctx.defineMutateSelf()(deriveSelf);
 // 全新可变派生对象
 export const deriveM = ctx.defineMutateDerive(mutateStateFn)(deriveMutate);
 
+export const deriveS2 = ctx.defineMutateSelf()(({ state, stateRoot })=>({
+ xx(){
+  // state.val;
+  // stateRoot.val;
+ },
+}));
+
 const go = deriveF.result.go;
 
 console.log('go', deriveF.result.go);

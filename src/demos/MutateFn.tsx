@@ -1,13 +1,20 @@
 import React from 'react';
-import { atom, share, useAtom } from 'helux';
+import { atom, share, useAtom, $ } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 
 
-const [aAtom] = atom({ a: 1, b: 2 }, {
+const [aAtom, aSet] = atom({ a: 1, b: 2 }, {
   mutate: {
-    changeB: (draft, params) => draft.b = params.state.a + 1,
+    changeB: (draft, params) => {
+      console.log('changeB');
+      draft.b = params.state.a + 1;
+    }
   },
 });
+
+function changeA() {
+  aSet(draft => { draft.a += 100 });
+}
 
 const [numAtom] = atom(3000);
 const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'MutateFn' });
@@ -36,25 +43,28 @@ function Price() {
   return <MarkUpdate name="Price" info={info}>{price.a}</MarkUpdate>;
 }
 
-function IdealPrice() {
-  const [idealPrice, , info] = useAtom(idealPriceState);
-  return <MarkUpdate name="IdealPrice" info={info}>{idealPrice.idealPrice}</MarkUpdate>;
-}
+// function IdealPrice() {
+//   const [idealPrice, , info] = useAtom(idealPriceState);
+//   return <MarkUpdate name="IdealPrice" info={info}>{idealPrice.idealPrice}</MarkUpdate>;
+// }
 
-function FinalPrice() {
-  const [finalPrice, , info] = useAtom(finalPriceState);
-  return <MarkUpdate name="FinalPrice" info={info}>{finalPrice.finalPrice}</MarkUpdate>;
-}
+// function FinalPrice() {
+//   const [finalPrice, , info] = useAtom(finalPriceState);
+//   return <MarkUpdate name="FinalPrice" info={info}>{finalPrice.finalPrice}</MarkUpdate>;
+// }
 
 function Demo(props: any) {
   return (
-    <Entry fns={[changePrice]}>
+    <Entry fns={[changeA, changePrice]}>
       <Price />
-      <Price />
+      {/* <Price />
       <IdealPrice />
       <IdealPrice />
       <FinalPrice />
-      <FinalPrice />
+      <FinalPrice /> */}
+      a:{$(aAtom.val.a)}
+      <br />
+      b:{$(aAtom.val.b)}
     </Entry>
   );
 }

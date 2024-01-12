@@ -28,7 +28,7 @@ const { actions } = defineActions()({
 
 watch(() => {
   reactive.a = 1000;
-}, () => [atomObj.val.b])
+}, () => [atomObj.b])
 
 
 window.actions = actions;

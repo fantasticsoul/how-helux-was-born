@@ -5,8 +5,8 @@ import { Entry, MarkUpdate } from '@helux/demo-utils';
 const { reactive, useReactive } = sharex({ a: 1, b: { b1: { b2: 1, ok: true } } });
 
 setInterval(() => {
-  reactive.a += 1;
-  reactive.b.b1.b2 += 1;
+  // reactive.a += 1;
+  // reactive.b.b1.b2 += 1;
 }, 2000);
 
 function toogleOkOut() {

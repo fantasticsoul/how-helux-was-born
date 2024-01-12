@@ -8,7 +8,7 @@ const [atomDict, , ctx] = atom(dictFactory);
 const { reactive } = sctx;
 
 const { actions, useLoading } = ctx.defineActions()({
-  async asyncAdd({draft}){
+  async asyncAdd({ draft }) {
     await delay(3000);
     draft.a.b.c++;
   }
@@ -23,7 +23,7 @@ async function updateC1() {
   reactive.loading = false;
 }
 function Info1() {
-  const [reactiveShared ] = useReactive(shared);
+  const [reactiveShared] = useReactive(shared);
   React.useEffect(() => {
     // setInterval(() => reactiveShared.a.b.c++, 1000);
   }, []);
@@ -52,7 +52,10 @@ function Info2() {
   React.useEffect(() => {
     // setInterval(() => reactiveShared.val.a.b.c++, 1000);
   }, []);
-  const add = () => reactiveShared.a.b.c++;
+  const add = () => {
+    console.log('reactiveShared.a.b.c', reactiveShared.a.b.c)
+    reactiveShared.a.b.c++;
+  };
   const asyncAdd = async () => {
     await delay(1000);
     reactiveShared.a.b.c++;

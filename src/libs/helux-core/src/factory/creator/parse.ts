@@ -93,6 +93,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
       watchKey: '',
       isFake: false,
       enabled: true,
+      extraBound: { state: {}, stateRoot: {}, isAtom: false },
     };
   } else if (isObj(fnItem)) {
     const { fn, desc, deps, task, immediate, checkDeadCycle, onlyDeps = false } = fnItem;
@@ -116,6 +117,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
         writeKeys: [],
         isFake: false,
         enabled: true,
+        extraBound: { state: {}, stateRoot: {}, isAtom: false },
       };
     }
   }
@@ -328,7 +330,7 @@ export function parseWatchOptions(forEffect: boolean, options?: WatchOptionsType
     immediate = options.immediate ?? false;
   }
   // 如果是为 watchEffect 准备参数，则 immediate 一定为 true
-  immediate = forEffect ? true : immediate
+  immediate = forEffect ? true : immediate;
 
   return { immediate, deps };
 }

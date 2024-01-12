@@ -4,7 +4,7 @@ import { MOUNTED, SCOPE_TYPE } from '../../consts';
 import { getDepKeyInfo } from '../../factory/common/util';
 import { createWatchLogic } from '../../factory/createWatch';
 import { parseWatchOptions } from '../../factory/creator/parse';
-import { buildFnCtx, delFnCtx, markFnStart, markFnEnd } from '../../helpers/fnCtx';
+import { buildFnCtx, delFnCtx, markFnEnd, markFnStart } from '../../helpers/fnCtx';
 import { recoverDep } from '../../helpers/fnDep';
 import { getSharedState } from '../../helpers/state';
 import type { CoreApiCtx } from '../../types/api-ctx';

@@ -187,7 +187,7 @@ const Demo = () => (
     {/* <h3>ctxp.reactive.a.b.c: {$(ctxp.reactive.a.b.c)}</h3>
     <h3>ctxp.reactive.a.b1.c1: {$(ctxp.reactive.a.b1.c1)}</h3>
     <h3>ctxp.state.a.b1.c1: {$(ctxp.state.a.b1.c1)}</h3> */}
-    <h3>getLoading().foo.loading: {$(getLoading().foo.loading)}</h3>
+    <h3>getLoading().foo.loading: {$(getLoading().foo.loading, val => `${val}`)}</h3>
     <h3>getLoading().foo.loading: {$(() => <h1>foo.loading:{`${getLoading().foo.loading}`}</h1>)}</h3>
     <h3>true:{true}</h3>
   </Entry>

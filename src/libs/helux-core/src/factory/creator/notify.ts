@@ -27,6 +27,7 @@ export function execDepFns(opts: ICommitOpts) {
   const { mutateCtx, internal } = opts;
   const { ids, globalIds, depKeys, triggerReasons, isFirstCall, from, sn, desc, fnKey: fromFnKey } = mutateCtx;
   const { key2InsKeys, id2InsKeys, insCtxMap, rootValKey } = internal;
+  console.log('---> depKeys ', depKeys);
 
   // these associate ins keys will be update
   let dirtyInsKeys: number[] = [];

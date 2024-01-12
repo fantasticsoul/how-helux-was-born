@@ -1,3 +1,4 @@
+import { markRaw } from 'helux';
 
 let seed = 0;
 
@@ -69,6 +70,17 @@ export function bindToWindow(obj: any) {
   Object.assign(window.see, obj);
 }
 
+function dict2() {
+  return {
+    a: {
+      a1: {
+        b: { c: 1 },
+        b1: { c1: 1 },
+      }
+    }
+  };
+}
+
 export function dictFactory() {
   return {
     loading: false,
@@ -83,6 +95,8 @@ export function dictFactory() {
       toBeDrive: 0,
       prefixedMark: '',
       newName: '',
+      any: null as any,
+      any2: markRaw(dict2()),
     },
     f: 1,
     g: 1,

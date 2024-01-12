@@ -5,7 +5,7 @@ import { markFnEnd, markFnStart, registerFn } from '../helpers/fnCtx';
 import { delFnDep, recordFnDepKeys } from '../helpers/fnDep';
 import { runFn } from '../helpers/fnRunner';
 import { getInternal, getSharedKey } from '../helpers/state';
-import type { Fn, IFnCtx, IWatchFnParams, ScopeType, SharedState, WatchOptionsType, WatchEffectOptionsType } from '../types/base';
+import type { Fn, IFnCtx, IWatchFnParams, ScopeType, SharedState, WatchEffectOptionsType, WatchOptionsType } from '../types/base';
 import { INS_CTX } from './creator/current';
 import { parseWatchOptions } from './creator/parse';
 interface ICreateWatchLogicOpts<T = SharedState> {

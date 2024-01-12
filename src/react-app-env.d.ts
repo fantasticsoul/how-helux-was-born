@@ -129,6 +129,7 @@ declare module 'helux' {
     mutateDict,
     runMutate,
     runMutateTask,
+    defineMutateFnItem,
     // sync api
     sync,
     syncer,

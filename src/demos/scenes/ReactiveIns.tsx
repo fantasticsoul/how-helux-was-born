@@ -5,7 +5,7 @@ import { dictFactory } from "../logic/util";
 
 const { share, atom, useReactive } = helux;
 const [shared, , sctx] = share(dictFactory);
-const [atomDict, , ctx] = atom(dictFactory);
+const [atomDict, , ctx] = atom(dictFactory, { moduleName: 'ReactiveIns' });
 
 function updateC1() {
   sctx.reactive.a.b.c++;
