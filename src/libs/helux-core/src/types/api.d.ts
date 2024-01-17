@@ -1,6 +1,6 @@
 /*
 |------------------------------------------------------------------------------------------------
-| helux-core@4.1.1
+| helux-core@4.2.0
 | A state library core that integrates atom, signal, collection dep, derive and watch,
 | it supports all react like frameworks ( including react 18 ).
 |------------------------------------------------------------------------------------------------
@@ -68,11 +68,13 @@ import type {
 } from './base';
 
 export declare const cst: {
-  VER: '4.1.1';
+  VER: '4.2.0';
   LIMU_VER: string;
   EVENT_NAME: {
-    ON_DATA_CHANGED: 'ON_DATA_CHANGED';
+    /** 共享状态创建时的事件 */
     ON_SHARE_CREATED: 'ON_SHARE_CREATED';
+    /** 共享状态变化时的事件 */
+    ON_DATA_CHANGED: 'ON_DATA_CHANGED';
   };
   RECORD_LOADING: {
     NO: NoRecord;
@@ -106,7 +108,7 @@ export declare const cst: {
  * ```
  * 如需感知组件上下文，则需要`useService`接口去定义服务函数，可查看 useService 相关说明
  */
-export function share<T extends PlainObject = PlainObject, O extends ICreateOptions<T> = ICreateOptions<T>>(
+export function share<T extends PlainObject, O extends ICreateOptions<T> = ICreateOptions<T>>(
   rawState: T | (() => T),
   createOptions?: O,
 ): readonly [ReadOnlyDict<T>, SetState<T>, ISharedCtx<T>];
@@ -744,6 +746,11 @@ interface IProduce {
  * 来自  LimuUtils.isDiff
  */
 export declare function isDiff(val1: any, val2: any): boolean;
+
+/**
+ * 来自  LimuUtils.isDraft，判断是否是草稿节点
+ */
+export declare function isDraft(mayDraft: any): boolean;
 
 export declare const produce: IProduce;
 

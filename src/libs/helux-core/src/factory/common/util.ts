@@ -133,7 +133,7 @@ export function isArrLikeVal(val: any) {
   return Array.isArray(val) || isMap(val);
 }
 
-export const { isObject: isDict, getDataType, isPrimitive } = limuUtils;
+export const { isObject: isDict, getDataType } = limuUtils;
 
 /** 是否是原始值 */
 export function isPrim(val: any) {

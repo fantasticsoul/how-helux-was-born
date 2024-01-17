@@ -39,7 +39,7 @@
     "hel-html-parser": "^1.0.2",
     "hel-micro-react": "^4.8.9",
     "hel-tdesign-react": "^1.5.0",
-    "helux": "^4.1.4",
+    "helux": "^4.1.6",
     "html-webpack-plugin": "^5.5.0",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^27.4.3",

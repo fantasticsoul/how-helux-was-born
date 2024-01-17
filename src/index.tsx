@@ -9,6 +9,9 @@ async function main() {
     return {
       toBe(actual: any) {
         console.log(`expect(${input}).toBe(${actual})`, input === actual);
+        if(!(input === actual)){ 
+          console.log(`expect ${input} actual ${actual}`);
+        }
       },
       toBeTruthy() {
         console.log('toBeTruthy()', !!input);

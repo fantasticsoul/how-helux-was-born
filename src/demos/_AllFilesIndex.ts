@@ -45,14 +45,14 @@ export { default as M2 } from './special/M2';
 // 【FIXED】这个示例触发 proxy 对象上写入了 symbol属性
 export { default as AtomItemChange } from './special/AtomItemChange';
 
-// export { default as MutateSelf } from './special/MutateSelf';
-// export { default as AtomSyncer } from './AtomSyncer';
-// export { default as Syncer } from './Syncer';
-// export { default as SyncerTop } from './SyncerTop';
-// export { default as MutateTask3_detectShareDc } from './MutateTask3_detectShareDc';
-// // TODO  待修复
-// export { default as FailAtReactiveRecover } from './user-case/FailAtReactiveRecover';
-// export { default as AtomObjectMutate } from './AtomObjectMutate';
+export { default as MutateSelf } from './special/MutateSelf';
+export { default as AtomSyncer } from './AtomSyncer';
+export { default as Syncer } from './Syncer';
+export { default as SyncerTop } from './SyncerTop';
+export { default as MutateTask3_detectShareDc } from './MutateTask3_detectShareDc';
+// TODO  待修复
+export { default as FailAtReactiveRecover } from './user-case/FailAtReactiveRecover';
+export { default as AtomObjectMutate } from './AtomObjectMutate';
 
 // // 这些示例曾因为代码问题引起死循环误判
 // export { default as DeadCycleCase1 } from './dead-cycle/Case1';
@@ -77,7 +77,10 @@ export { default as AtomItemChange } from './special/AtomItemChange';
 // export { default as useMutateLoading_test } from './core-tests/useMutateLoading_test';
 // export { default as useMutateLoading2_test } from './core-tests/useMutateLoading2_test';
 // export { default as atomFnRunCount_test } from './core-tests/atomFnRunCount_test';
-export { default as ArrSet_test } from './core-tests/ArrSet_test';
+// export { default as ArrSet_test } from './core-tests/ArrSet_test';
+// export { default as ArrDeepSet_test } from './core-tests/ArrDeepSet_test';
+// export { default as mutate1_test } from './core-tests/mutate1_test';
+export { default as watchCount2_test } from './core-tests/watchCount2_test';
 
 export {
   // WatchCb,
@@ -92,4 +95,4 @@ export {
 
 // export * from './scenes';
 
-export const INITIAL_KEY = 'ArrSet_test';
+export const INITIAL_KEY = 'watchCount2_test';
