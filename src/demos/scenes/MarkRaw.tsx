@@ -10,9 +10,9 @@ const [state, setPrice, ctxp] = share(dictFactory, {
   ],
 });
 
-ctxp.setOnReadHook((params)=>{
-  console.log('--> fullKeyPath', params.fullKeyPath);
-});
+// ctxp.setOnReadHook((params)=>{
+//   console.log('--> fullKeyPath', params.fullKeyPath);
+// });
 
 const { actions } = ctxp.defineActions()({
   change({ draft }) {

@@ -57,12 +57,13 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
     // 1 减轻运行负担，
     // 2 降低死循环可能性，例如在 watch 回调里调用顶层的 setState
     if (mutateCtx.enableDep) {
-      // 支持对 draft 操作时可以收集到依赖： draft.a = draft.b + 1
+      // 来自实例 reactive 透传的 onRead
       if (currReactive.onRead) {
-        // 来自顶层 reactive 透传的 onRead
         currReactive.onRead(opParams);
       } else {
-        if (getRunningFn().fnCtx) {
+        const runingFnCtx = getRunningFn().fnCtx;
+        // 支持对 draft 操作时可以收集到依赖： draft.a = draft.b + 1
+        if (runingFnCtx) {
           recordFnDepKeys([depKey], { sharedKey });
         }
         // 仅 top reactive 触发以下逻辑，为 block 收集依赖
@@ -70,6 +71,7 @@ export function handleOperate(opParams: IOperateParams, opts: { internal: TInter
           recordBlockDepKey([depKey]);
           recordLastest(sharedKey, value, internal.sharedState, depKey, fullKeyPath);
         }
+        internal.onRead?.(opParams);
       }
     }
     return;

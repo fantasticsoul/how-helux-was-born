@@ -3,11 +3,11 @@
  *
  *  @Author: fantasticsoul
  *--------------------------------------------------------------------------------------------*/
-import { buildLimuApis, FNIISH_HANDLER_MAP } from './core/build-limu-apis';
+import { buildLimuApis, FINISH_HANDLER_MAP } from './core/build-limu-apis';
 import { deepCopy as deepCopyFn } from './core/copy';
 import { deepFreeze as deepFreezeFn } from './core/freeze';
 import { getDraftMeta, isDiff as isDiffFn, isDraft as isDraftFn, shallowCompare as shallowCompareFn } from './core/meta';
-import { current as currentFn, original as originalFn, markRaw as markRawFn } from './core/user-util';
+import { current as currentFn, markRaw as markRawFn, original as originalFn } from './core/user-util';
 import type { ICreateDraftOptions, IInnerCreateDraftOptions, IOperateParams, ObjectLike, Op } from './inner-types';
 import { IMMUT_BASE, VER as v } from './support/consts';
 import { conf } from './support/inner-data';
@@ -17,13 +17,13 @@ import {
   has,
   isFn,
   isMap,
+  isMardedRaw,
   isObject,
   isPrimitive,
   isPromiseFn,
   isPromiseResult,
   isSet,
   isSymbol,
-  isMardedRaw,
   noop,
 } from './support/util';
 // 避免降到测试覆盖率
@@ -121,11 +121,11 @@ export function createDraft<T = ObjectLike>(base: T, options?: ICreateDraftOptio
  * @see https://tnfe.github.io/limu/docs/api/basic/create-draft
  */
 export function finishDraft<T = ObjectLike>(draft: Draft<T>): T {
-  const finishHandler: LimuApis['finishDraft'] = FNIISH_HANDLER_MAP.get(draft);
+  const finishHandler: LimuApis['finishDraft'] = FINISH_HANDLER_MAP.get(draft);
   if (!finishHandler) {
     throw new Error(`Not a Limu root draft or draft has been finished!`);
   }
-  FNIISH_HANDLER_MAP.delete(draft);
+  FINISH_HANDLER_MAP.delete(draft);
   return finishHandler(draft);
 }
 

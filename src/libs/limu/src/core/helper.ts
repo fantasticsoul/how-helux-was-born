@@ -4,14 +4,14 @@
  *  @Author: fantasticsoul
  *--------------------------------------------------------------------------------------------*/
 import { AnyObject, DraftMeta, IApiCtx } from '../inner-types';
-import { ARRAY, MAP, PROXYITEM_FNKEYS, SET, IS_RAW } from '../support/consts';
+import { ARRAY, IS_RAW, MAP, PROXYITEM_FNKEYS, SET } from '../support/consts';
 import { isFn, isObject, isPrimitive, noop } from '../support/util';
 import { makeCopyWithMeta } from './copy';
 import { attachMeta, getDraftMeta, getSafeDraftMeta, markModified, newMeta } from './meta';
 import { recordVerScope } from './scope';
 
 export function createScopedMeta(key: any, baseData: any, options: any) {
-  const { traps, parentType, fastModeRange, immutBase, apiCtx } = options;
+  const { traps, parentType, fastModeRange, immutBase, apiCtx, autoRevoke } = options;
   // new meta data for current data node
   const meta = newMeta(key, baseData, options);
 
@@ -30,7 +30,7 @@ export function createScopedMeta(key: any, baseData: any, options: any) {
   } else {
     const ret = Proxy.revocable(copy, traps);
     meta.proxyVal = ret.proxy;
-    meta.revoke = ret.revoke;
+    meta.revoke = autoRevoke ? ret.revoke : noop;
   }
   apiCtx.metaMap.set(copy, meta);
   // apiCtx.metaMap.set(baseData, meta);
@@ -78,9 +78,9 @@ export function getMayProxiedVal(val: any, options: { parentMeta: DraftMeta } & 
     if (!isFn(val)) {
       if (
         // 是一个全新的节点，不必生成代理，以便提高性能
-        parentMeta.newNodeStats[key]
+        parentMeta.newNodeStats[key] ||
         // 已被 markRaw 标记，不需转为代理
-        || val[IS_RAW]
+        val[IS_RAW]
       ) {
         return val;
       }

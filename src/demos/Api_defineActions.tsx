@@ -14,7 +14,7 @@ type Payloads = {
 };
 
 const { actions, useLoading } = ctx.defineActions<Payloads>()({
-  changeA({ draftRoot }) {
+  changeA({ draftRoot, payload }) {
     draftRoot.f += 200;
     return 1;
   },

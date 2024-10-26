@@ -182,6 +182,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const rules = options.rules || [];
   const before = options.before || noop;
   const mutate = options.mutate || noop;
+  const onRead = options.onRead || undefined;
   // 后续 parseRules 步骤会转 stopArrDep stopDepth 到 stopDepInfo 上
   const stopArrDep = options.stopArrDep ?? true;
   const stopDepth = options.stopDepth || STOP_DEPTH;
@@ -210,7 +211,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
     before,
     mutate,
     mutateFnDict,
-    onRead: null as any, // 等待 setOnReadHook 写入
+    onRead,
     enableMutate,
     stateType,
     recordLoading,
@@ -312,11 +313,11 @@ export function parseRules(options: ParsedOptions): IRuleConf {
 
 export function parseCreateMutateOpt(descOrOptions?: string | IRunMutateOptions) {
   // 不设定 desc 的话，默认指向可能存在的单函数
-  const { desc = SINGLE_MUTATE, strict = false, throwErr = false } = {} as IRunMutateOptions;
+  const { desc = SINGLE_MUTATE, strict = false, throwErr = false, extraArgs } = {} as IRunMutateOptions;
   if (typeof descOrOptions === 'string') {
-    return { desc: descOrOptions, strict, throwErr };
+    return { desc: descOrOptions, strict, throwErr, extraArgs };
   }
-  return { desc, strict, ...descOrOptions, throwErr };
+  return { desc, strict, throwErr, extraArgs, ...descOrOptions };
 }
 
 export function parseWatchOptions(forEffect: boolean, options?: WatchOptionsType) {

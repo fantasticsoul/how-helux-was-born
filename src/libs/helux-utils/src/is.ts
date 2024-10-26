@@ -5,6 +5,10 @@ import { noop } from './fn';
 const toString = Object.prototype.toString;
 const MAP_DESC = '[object Map]';
 
+export function isServer() {
+  return GLOBAL_REF.window === undefined && GLOBAL_REF.global !== undefined;
+}
+
 export function isMap(mayMap: any) {
   return toString.call(mayMap) === MAP_DESC;
 }

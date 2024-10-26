@@ -10,7 +10,7 @@ const changeItem1 = () => {
   setAtom(state => { state.list[0].name = Date.now() });
 };
 
-const ListItem = React.memo(function (props: any) {
+const ListItem: React.FC<any> = React.memo(function (props: any) {
   return (
     <MarkUpdate info={props.info} name="ListItem">{props.item.name}</MarkUpdate>
   );

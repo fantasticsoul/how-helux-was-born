@@ -38,7 +38,7 @@ interface IRunFnOpt {
 
 /**
  * 执行 watch 函数，内部会尝试检测死循环，防止无限调用情况产生
- * TODO  后续优化拦截逻辑，提高可读性
+ * TODO 后续优化拦截逻辑，提高可读性
  */
 function runWatch(fnCtx: IFnCtx, options: IRunFnOpt) {
   const { isFirstCall = false, triggerReasons = [], sn = 0, from, internal = fakeInternal, desc, fromFnKey } = options;
@@ -53,9 +53,9 @@ function runWatch(fnCtx: IFnCtx, options: IRunFnOpt) {
     return;
   }
 
-  // simpleWatch 的依赖时转移进去的，不需要判死循环，否则会照成误判
+  // block 组件生成 fnCtx 的依赖是转移进去的，不需要判死循环，否则会照成误判
   // 设定了 checkDeadCycle 为 false，不检查死循环
-  if (fnCtx.isSimpleWatch || !fnCtx.checkDeadCycle) {
+  if (fnCtx.forBlock || !fnCtx.checkDeadCycle) {
     return fnCtx.fn({ isFirstCall, triggerReasons, sn });
   }
   // 优先开始检查 mutate 多个同步函数间的死循环
@@ -150,7 +150,7 @@ export function runFn(fnKey: string, options: IRunFnOpt = {}) {
     return resultTuple(new Error(`not a valid watch or derive cb for key ${fnKey}`));
   }
   if (fnCtx.fnType === WATCH) {
-    // watch 需要合并后再外部独立执行
+    // 先合并 watch，然后在外部独立执行
     if (skipWatch) {
       return nodupPush(watchFnKeys, fnCtx.fnKey);
     }

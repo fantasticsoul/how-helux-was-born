@@ -42,13 +42,13 @@ export function buildSharedState(options: ParsedOptions) {
   const collectDep = (keyPath: string[], val: any) => {
     const depKey = getDepKeyByPath(keyPath, sharedKey);
     // using shared state in derived/watch callback
-    recordFnDepKeys([depKey], { sharedKey });
+    recordFnDepKeys([depKey], { sharedKey, kv: { [depKey]: val } });
     recordBlockDepKey([depKey]);
     recordLastest(sharedKey, val, sharedRoot, depKey, keyPath);
   };
 
   if (HAS_PROXY) {
-    // Proxy 环境使用 limu.immut 接口创建能自动同步最新数据得到只可读对象
+    // Proxy 环境使用 limu.immut 接口创建具有能自动同步最新数据特性的只可读对象
     sharedRoot = immut(rawState, {
       customKeys: OP_KEYS,
       onOperate: (params: IOperateParams) => {

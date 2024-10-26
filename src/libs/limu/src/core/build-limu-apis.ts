@@ -4,9 +4,9 @@
  *  @Author: fantasticsoul
  *--------------------------------------------------------------------------------------------*/
 import type { DraftMeta, IApiCtx, IExecOnOptions, IInnerCreateDraftOptions, ObjectLike, Op } from '../inner-types';
-import { ARRAY, CAREFUL_FNKEYS, CAREFUL_TYPES, CHANGE_FNKEYS, IMMUT_BASE, MAP, META_VER, SET, JS_SYM_KEYS } from '../support/consts';
+import { ARRAY, CAREFUL_FNKEYS, CAREFUL_TYPES, CHANGE_FNKEYS, IMMUT_BASE, JS_SYM_KEYS, MAP, META_VER, SET } from '../support/consts';
 import { conf } from '../support/inner-data';
-import { canBeNum, has, isPrimitive, isFn } from '../support/util';
+import { canBeNum, has, isFn, isPrimitive } from '../support/util';
 import { handleDataNode } from './data-node-processor';
 import { deepFreeze } from './freeze';
 import { createScopedMeta, getMayProxiedVal, getUnProxyValue } from './helper';
@@ -21,7 +21,7 @@ const PBL_DICT: Record<string, number> = {}; // for perf
 PROPERTIES_BLACK_LIST.forEach((item) => (PBL_DICT[item] = 1));
 
 const TYPE_BLACK_DICT: Record<string, number> = { [ARRAY]: 1, [SET]: 1, [MAP]: 1 }; // for perf
-export const FNIISH_HANDLER_MAP = new Map();
+export const FINISH_HANDLER_MAP = new Map();
 
 export function buildLimuApis(options?: IInnerCreateDraftOptions) {
   const opts = options || {};
@@ -42,6 +42,15 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
   const metaVer = genMetaVer();
   const apiCtx: IApiCtx = { metaMap: new Map(), newNodeMap: new Map(), debug, metaVer };
   ROOT_CTX.set(metaVer, apiCtx);
+
+  const autoRevoke = opts.autoRevoke ?? conf.autoRevoke;
+  const silenceSetTrapErr = opts.silenceSetTrapErr ?? true;
+  const logChangeFailed = (op: string, key: string) => {
+    console.warn(`${op} ${key} failed, cuase draft root has been finised!`);
+    return silenceSetTrapErr;
+  };
+
+  let isDraftFinished = false;
 
   const warnReadOnly = () => {
     if (!disableWarn) {
@@ -126,6 +135,30 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           // 避免报错 Method xx.yy called on incompatible receiver
           // 例如 Array.from(draft)
           if (isFn(currentVal)) {
+            // 执行 for(const item of list){ ... } 语句
+            if (Symbol.iterator === key && Array.isArray(parent)) {
+              let idx = 0;
+              // 模拟迭代器
+              // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_iterable_protocol
+              const iter = () => ({
+                next: () => {
+                  const len = parent.length;
+                  if (len === 0) {
+                    return { done: true, value: undefined };
+                  }
+                  // 前一次迭代已到达最后一个元素时，idx === len
+                  const done = idx === len;
+                  // key 格式统一为字符串，故这里包一层 String
+                  const value = done ? undefined : limuTraps.get(parent, String(idx));
+                  idx++;
+                  return { done, value };
+                },
+                [Symbol.iterator]: () => {
+                  return iter;
+                },
+              });
+              return iter;
+            }
             return currentVal.bind(parent);
           }
           return currentVal;
@@ -135,7 +168,7 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           return currentVal;
         }
         let mayProxyVal = currentVal;
-        const parentMeta = getSafeDraftMeta(parent, apiCtx) as DraftMeta;
+        const parentMeta = getSafeDraftMeta(parent, apiCtx);
 
         if (customKeys.includes(key)) {
           const ret = execOnOperate('get', key, { parentMeta, mayProxyVal, value: currentVal, isChanged: false, isCustom: true });
@@ -165,6 +198,7 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           readOnly,
           apiCtx,
           hasOnOperate,
+          autoRevoke,
         });
 
         // 用下标取数组时，可直接返回
@@ -195,15 +229,21 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
       },
       // parent 指向的是代理之前的对象
       set: (parent: any, key: any, value: any) => {
-        let targetValue = value;
+        if (isDraftFinished) {
+          return logChangeFailed('set', key);
+        }
+
         const parentMeta = getSafeDraftMeta(parent, apiCtx);
+        // fix issue https://github.com/tnfe/limu/issues/12
+        let isValueDraft = false;
 
         // is a draft proxy node
         if (isDraft(value)) {
+          isValueDraft = true;
           // see case debug/complex/set-draft-node
           if (isInSameScope(value, metaVer)) {
-            targetValue = getUnProxyValue(value, apiCtx);
-            if (targetValue === parent[key]) {
+            const rawValue = getUnProxyValue(value, apiCtx);
+            if (rawValue === parent[key]) {
               return true;
             }
           } else {
@@ -214,7 +254,7 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
         }
 
         if (readOnly) {
-          execOnOperate('set', key, { parentMeta, isChanged: false, value: targetValue });
+          execOnOperate('set', key, { parentMeta, isChanged: false, value });
           return warnReadOnly();
         }
 
@@ -222,8 +262,8 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
         if (parentMeta && parentMeta.selfType === ARRAY) {
           // @ts-ignore
           if (parentMeta.copy && parentMeta.__callSet && canBeNum(key)) {
-            execOnOperate('set', key, { parentMeta, value: targetValue });
-            parentMeta.copy[key] = targetValue;
+            execOnOperate('set', key, { parentMeta, value });
+            parentMeta.copy[key] = value;
             return true;
           }
           // @ts-ignore, mark is set called on parent node
@@ -236,7 +276,7 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           const node = parentMeta.modified ? parentMeta.copy : parentMeta.self;
           isChanged = node[key] !== value;
         } else {
-          const ret = execOnOperate('set', key, { parentMeta, value: targetValue });
+          const ret = execOnOperate('set', key, { parentMeta, value });
           isChanged = ret.isChanged;
         }
 
@@ -244,10 +284,11 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           handleDataNode(parent, {
             parentMeta,
             key,
-            value: targetValue,
+            value,
             metaVer,
             calledBy: 'set',
             apiCtx,
+            isValueDraft,
           });
         }
 
@@ -255,6 +296,10 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
       },
       // delete or Reflect.deleteProperty will trigger this trap
       deleteProperty: (parent: any, key: any) => {
+        if (isDraftFinished) {
+          return logChangeFailed('delete', key);
+        }
+
         const parentMeta = getSafeDraftMeta(parent, apiCtx);
         const value = parent[key];
         if (readOnly) {
@@ -305,10 +350,11 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
           compareVer,
           apiCtx,
           hasOnOperate,
+          autoRevoke,
         });
         recordVerScope(meta);
         meta.execOnOperate = execOnOperate;
-        FNIISH_HANDLER_MAP.set(meta.proxyVal, limuApis.finishDraft);
+        FINISH_HANDLER_MAP.set(meta.proxyVal, limuApis.finishDraft);
 
         return meta.proxyVal as T;
       },
@@ -341,6 +387,7 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
         }
         ROOT_CTX.delete(metaVer);
 
+        isDraftFinished = true;
         return final;
       },
     };

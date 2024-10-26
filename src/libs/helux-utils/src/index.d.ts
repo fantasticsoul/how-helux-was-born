@@ -7,13 +7,16 @@ export declare function delListItem(list: NumStrSymbol[], toDel: NumStrSymbol): 
 export declare function dedupList(list: Array<any>): any[];
 export declare function includeOne(loopList: any[], judgeList: any[]): boolean;
 export declare function matchListItem(list: string[], fullStr: string): string;
-export declare function enureReturnArr(fn?: Fn, arg?: any): any[];
+export declare function enureReturnArr(fn?: Fn, arg1?: any, arg2?: any): any[];
 export declare const GLOBAL_REF: Dict & Window & typeof globalThis;
 export declare const DEV_FLAG: boolean;
 export declare function noop(...args: any[]): undefined;
 export declare function noopVoid(...args: any[]): void;
 export declare function noopArgs<T extends any[] = any[]>(...args: T): T;
 export declare function noopArr(...args: any[]): any[];
+export declare function noopAny(...args: any[]): any;
+/** 是否是在 server 端运行 */
+export declare function isServer(): boolean;
 export declare function isMap(mayMap: any): boolean;
 export declare function isMax(input: number): boolean;
 export declare function isDebug(): boolean;
@@ -31,11 +34,19 @@ export declare function isSymbol(maySymbol: any): maySymbol is symbol;
 export declare function isPromise(mayObj: any): boolean;
 export declare function isProxyRevoked(proxy: Dict): boolean;
 export declare function isProxyAvailable(): boolean;
-/**
- * alert 提示错误格式为 `${customLabel}${errMsg}, see details in console.`，
- * customLabel 可定制
- */
-export declare function tryAlert(err: any, throwErr?: boolean, customLabel?: string): void;
+interface IAlertOpts {
+  /** default: false，是否抛出错误 */
+  throwErr?: boolean;
+  /** default: ''，定制的提示信息前缀 */
+  prefixLabel?: string;
+  /** default: ''，定制的提示信息后缀 */
+  suffixLabel?: string;
+  /** default: true，是否打印错误，*/
+  logErr?: boolean;
+  /** default: undefined，是否弹层显示错误，未指定时走内置规则：开发环境弹，生产环境不弹 */
+  alertErr?: boolean;
+}
+export function tryAlert(err: any, options?: IAlertOpts): void;
 /**
  *
  * @param msg - 提示信息

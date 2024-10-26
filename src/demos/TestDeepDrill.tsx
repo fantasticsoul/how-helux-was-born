@@ -16,7 +16,6 @@ console.log('draft.wrap.node.a', draft.wrap.node.a);
 console.log('1', draft.node);
 console.log('2', draft.wrap.node);
 
-
 const ori = {
   a: 50,
   doubleA: 0,
@@ -51,7 +50,7 @@ watch(() => {
   const { a } = ret;
   console.log('read a 2');
 
-  // TODO  原生watch draft 禁止收集
+  // TODO  原生 watch draft 禁止收集
   setState(draft => {
     console.log('watch and change a');
     draft.doubleA = a * 2;

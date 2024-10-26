@@ -4,11 +4,11 @@
 // export { default as ExactTrigger } from './ExactTrigger';
 // export { default as ExactTrigger2 } from './ExactTrigger2';
 // export { default as ExactTrigger2Share } from './ExactTrigger2Share';
-// export { default as ReplaceFnToValue } from './ReplaceFnToValue';
-// export { default as Reactive } from './Reactive';
-// export { default as Reactive2 } from './Reactive2';
-// export { default as ReactiveIns } from './ReactiveIns';
-// export { default as ReactiveAndLoding } from './ReactiveAndLoading';
+export { default as ReplaceFnToValue } from './ReplaceFnToValue';
+export { default as Reactive } from './Reactive';
+export { default as Reactive2 } from './Reactive2';
+export { default as ReactiveIns } from './ReactiveIns';
+export { default as ReactiveAndLoding } from './ReactiveAndLoading';
 // export { default as DefineApi } from './DefineApi';
 // export { default as DefineMutateDerive } from './DefineMutateDerive';
 // export { default as DefineMutateSelf } from './DefineMutateSelf';
@@ -16,4 +16,4 @@
 // export { default as CompWithModule_share } from './CompWithModule_share';
 // export { default as CompWithModuleClonealbe } from './CompWithModuleCloneable';
 // export { default as CompWithModuleCloneable_share } from './CompWithModuleCloneable_share';
-export { default as MarkRaw } from './MarkRaw';
+// export { default as MarkRaw } from './MarkRaw';

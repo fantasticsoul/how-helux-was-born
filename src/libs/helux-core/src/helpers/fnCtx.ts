@@ -1,8 +1,9 @@
-import { includeOne, matchDictKey, nodupPush, delListItem } from '@helux/utils';
+import { delListItem, includeOne, matchDictKey, nodupPush } from '@helux/utils';
+import { RUN_AT_SERVER } from '../consts';
 import { newFnCtx } from '../factory/common/ctor';
 import { getCtxMap, getFnCtx, getFnKey, markFnKey } from '../factory/common/fnScope';
-import { getDepKeyByPath } from '../factory/common/util';
 import { getFnScope } from '../factory/common/speedup';
+import { getDepKeyByPath } from '../factory/common/util';
 import type { Dict, Fn, IFnCtx, ScopeType } from '../types/base';
 import { delFnDep, delHistoryUnmoutFnCtx } from './fnDep';
 
@@ -30,7 +31,7 @@ export function markFnEnd() {
   const fnCtx = getFnCtx(runningFnKey);
   let targetKeys: string[] = [];
   if (fnCtx) {
-    const { depKeys: afterRunDepKeys, delPathAoa, runningSharedKey } = fnScope;
+    const { depKeys: afterRunDepKeys, fixedDepKeys, delPathAoa, runningSharedKey } = fnScope;
     const { depKeys } = fnCtx;
 
     const dict: Dict<number> = {};
@@ -43,11 +44,12 @@ export function markFnEnd() {
         delete dict[matched];
       }
     });
+    fixedDepKeys.forEach((k) => (dict[k] = 1));
     const validDepKeys = Object.keys(dict);
     validDepKeys.forEach((depKey) => nodupPush(depKeys, depKey));
-    
+
     // 移除认为是冗余的依赖
-    delPathAoa.forEach(pathArr => {
+    delPathAoa.forEach((pathArr) => {
       const len = pathArr.length;
       for (let i = 1; i <= len; i++) {
         const toDel = getDepKeyByPath(pathArr.slice(0, i), runningSharedKey);
@@ -59,6 +61,7 @@ export function markFnEnd() {
 
   fnScope.runningFnKey = '';
   fnScope.depKeys = [];
+  fnScope.fixedDepKeys = [];
   fnScope.delPathAoa = [];
   fnScope.runningSharedKey = 0;
   return targetKeys;
@@ -78,7 +81,14 @@ export function registerFn(fn: Fn, options: { specificProps: Partial<IFnCtx> & {
   const props = { fn, fnKey, ...specificProps };
   // 如 fnCtxBase 存在则 fnCtx 指向用户透传的 fnCtxBase
   const fnCtx = fnCtxBase ? Object.assign(fnCtxBase, props) : buildFnCtx(props);
-  getCtxMap(scopeType).set(fnKey, fnCtx);
+
+  // static 调用派生时始终记录 fnCtx
+  // hook 调用派生时仅在非服务器端执行才记录 fnCtx ，避免内存泄露
+  if (scopeType === 'static' || !RUN_AT_SERVER) {
+    // debugger;
+    getCtxMap(scopeType).set(fnKey, fnCtx);
+  }
+
   return fnCtx;
 }
 

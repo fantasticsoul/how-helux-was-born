@@ -1,5 +1,5 @@
 import { nodupPush, safeMapGet } from '@helux/utils';
-import { EXPIRE_MS, NOT_MOUNT, PROTO_KEY, SIZE_LIMIT, UNMOUNT, DERIVE } from '../consts';
+import { DERIVE, EXPIRE_MS, NOT_MOUNT, PROTO_KEY, RUN_AT_SERVER, SIZE_LIMIT, UNMOUNT } from '../consts';
 import { delFnDepData, getFnCtx, getRunningFn, opUpstreamFnKey } from '../factory/common/fnScope';
 import { hasChangedNode } from '../factory/common/sharedScope';
 import { getFnScope } from '../factory/common/speedup';
@@ -16,16 +16,25 @@ export function markIgnore(isIgnore = true) {
 /**
  * 自动记录当前正在运行的函数对 depKey 的依赖，以及 depKey 对应的函数记录
  */
-export function recordFnDepKeys(inputDepKeys: string[], options: { sharedKey?: number; specificCtx?: IFnCtx | null; belongCtx?: IFnCtx }) {
-  const { fnCtx: runningFnCtx, depKeys, isIgnore } = getRunningFn();
+export function recordFnDepKeys(
+  inputDepKeys: string[],
+  options: { sharedKey?: number; specificCtx?: IFnCtx | null; belongCtx?: IFnCtx; kv?: Dict },
+) {
+  const { fnCtx: runningFnCtx, depKeys, fixedDepKeys, isIgnore } = getRunningFn();
   const fnCtx: IFnCtx | null | undefined = options.specificCtx || runningFnCtx;
   if (!fnCtx) {
     // 来自 useGlobalForceUpdate 的 deps 收集
     DEPS_CB.current()(inputDepKeys);
     return;
   }
+  const { fnKey, scopeType } = fnCtx;
+  // 服务端运行的话，不记录任何 hook 实例对应的相关映射关系，避免不必要的服务端内存开销
+  if (RUN_AT_SERVER && scopeType === 'hook') {
+    return;
+  }
+
   const { DEPKEY_FNKEYS_MAP, SKEY_FNKEYS_MAP } = getFnScope();
-  const { belongCtx, sharedKey } = options;
+  const { belongCtx, sharedKey, kv = {} } = options;
 
   if (sharedKey) {
     nodupPush(fnCtx.depSharedKeys, sharedKey);
@@ -42,7 +51,6 @@ export function recordFnDepKeys(inputDepKeys: string[], options: { sharedKey?: n
     nodupPush(belongCtx.nextLevelFnKeys, runningFnCtx.fnKey);
   }
 
-  const { fnKey } = fnCtx;
   inputDepKeys.forEach((depKey: string) => {
     if (PROTO_KEY === depKey || isIgnore) {
       return;
@@ -51,6 +59,13 @@ export function recordFnDepKeys(inputDepKeys: string[], options: { sharedKey?: n
     // 等到 markFnEnd 时再按最长路径提取出所有 depKeys 转移到 fnCtx.depKeys 里
     if (runningFnCtx) {
       nodupPush(depKeys, depKey); // here depKeys is come from fnScope
+      // fix https://github.com/heluxjs/helux/issues/172, block 组件读取的数组 key 要固定住
+      if (runningFnCtx.forBlock) {
+        const val = kv[depKey];
+        if (Array.isArray(val)) {
+          nodupPush(fixedDepKeys, depKey); // here fixedDepKeys is come from fnScope
+        }
+      }
     }
 
     const fnKeys = safeMapGet(DEPKEY_FNKEYS_MAP, depKey, []);
@@ -70,6 +85,8 @@ export function ensureFnDepData(fnCtx?: IFnCtx) {
 /** TODO 后续接入内置 useEffect 后，这里可考虑移除 */
 export function recoverDep(fnCtx: IFnCtx) {
   const { FNKEY_HOOK_CTX_MAP, UNMOUNT_INFO_MAP } = getFnScope();
+  if (RUN_AT_SERVER) return;
+
   const { fnKey } = fnCtx;
   FNKEY_HOOK_CTX_MAP.set(fnKey, fnCtx);
   opUpstreamFnKey(fnCtx, true);

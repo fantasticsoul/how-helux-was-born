@@ -57,7 +57,6 @@ export function newMutateCtx(options: ISetFactoryOpts): IMutateCtx {
     sn = genRenderSN(),
     isFirstCall = false,
     desc = '',
-    onRead,
   } = options;
   return {
     fnKey: '',
@@ -78,7 +77,6 @@ export function newMutateCtx(options: ISetFactoryOpts): IMutateCtx {
     sn,
     isFirstCall,
     desc,
-    onRead,
   };
 }
 
@@ -140,7 +138,7 @@ export function newMutateFnItem(partial?: Partial<IMutateFnStdItem>): IMutateFnS
 
 export function newFnCtx() {
   const base: IFnCtx = {
-    fnKey: '', // 在 feDep.mapFn 阶段会生成
+    fnKey: '', // 在 fnDep.mapFn 阶段会生成
     fn: noop,
     subFnInfo: fnItem,
     checkDeadCycle: true,
@@ -170,7 +168,7 @@ export function newFnCtx() {
     shouldReplaceResult: false,
     isAsync: false,
     isAsyncTransfer: false,
-    isSimpleWatch: false,
+    forBlock: false,
     isRunning: false,
     dcErrorInfo: { err: null, tipFn: noop },
     asyncType: MAY_TRANSFER,

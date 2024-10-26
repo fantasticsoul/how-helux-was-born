@@ -308,6 +308,10 @@ export interface IRunMutateOptions {
    * 是否抛出错误
    */
   throwErr?: boolean;
+  /**
+   * 额外参数，用来传递给 mutate 的fn和task函数
+   */
+  extraArgs?: any;
 }
 
 export interface IMutateTaskParam<T = SharedState, P extends Arr = Arr, E extends SharedState = SharedState> {
@@ -326,6 +330,10 @@ export interface IMutateTaskParam<T = SharedState, P extends Arr = Arr, E extend
   /** deps 返回的结果 */
   input: P;
   extraBound: IBoundStateInfo<E>;
+  /**
+   * 额外参数，用来传递给 mutate 的fn和task函数
+   */
+  extraArgs?: any;
 }
 
 /**
@@ -345,6 +353,10 @@ export interface IMutateWitness<T = any> {
   run: MutateCall<T>;
   /** 人工调用 mutate 配置里的异步函数 */
   runTask: MutateTaskCall<T>;
+  /**
+   * 撤销 mutate 自动运行机制，这是一个不可逆的操作，执行后 mutate 将不再执行
+   */
+  cancel: () => void;
   /** 用户透传的原始描述值 */
   oriDesc: string;
   /**
@@ -370,9 +382,13 @@ export interface IMutateFnParams<T = SharedState, P extends Arr = Arr, E extends
   input: P;
   /** 只读状态 */
   state: StateType<T>;
-  /** 草稿根状态，对与 atom 对象，根状态是未拆箱的值 */
+  /** 草稿根状态，对于 atom 对象，根状态是未拆箱的值 */
   draftRoot: DraftRootType<T>;
   extraBound: IBoundStateInfo<E>;
+  /**
+   * 额外参数，用来传递给 mutate 的fn和task函数
+   */
+  extraArgs?: any;
 }
 
 /** 如定义了 task 函数，则 fn 在异步函数执行之前回执行一次，且只在首次执行一次，后续不会执行 */
@@ -516,10 +532,6 @@ export interface IMutateCtx {
    * 修改描述
    */
   desc: string;
-  /**
-   * useReactive 透传的 onRead，方便为每个实例单独收集依赖
-   */
-  onRead?: OnOperate;
 }
 
 export interface IInnerSetStateOptions extends ISetStateOptions {
@@ -548,7 +560,6 @@ export interface ISetFactoryOpts extends IInnerSetStateOptions {
    * 同时也减少不必要的运行时分析性能损耗
    */
   enableDep?: boolean;
-  onRead?: OnOperate;
 }
 
 /**
@@ -844,10 +855,6 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
   mutate: <P extends Arr = Arr>(fnItem: IMutateFnLooseItem<T, P> | MutateFn<T, P>) => IMutateWitness<T>;
   runMutate: (descOrOptions: string | IRunMutateOptions) => T;
   runMutateTask: (descOrOptions: string | IRunMutateOptions) => T;
-  /**
-   * 配置 onRead 钩子函数
-   */
-  setOnReadHook: (onRead: OnRead) => void;
   /**
    * 是否禁止 mutate 再次执行（ 首次一定执行，此函数只能禁止是否再次执行 ）
    * ```ts
@@ -1243,12 +1250,16 @@ export interface ICreateOptionsFull<T = SharedState> {
    * default: true，是否允许 mutate 执行，可以创建 atom 时设置，也可以中途通过 setEnableMutate 反复设置
    */
   enableMutate: boolean;
+  /**
+   * 任何读行为都会触发此函数
+   */
+  onRead: OnRead;
 }
 
 /**
  * 目前api层面只暴露部分配置参数供用户查看
  */
-export type CtxCreateOptions = Omit<ICreateOptionsFull, 'rules' | 'mutate' | 'before'>;
+export type CtxCreateOptions = Omit<ICreateOptionsFull, 'rules' | 'mutate' | 'before' | 'onRead'>;
 
 export interface IInnerCreateOptions<T = SharedState> extends ICreateOptionsFull<SharedState> {
   forAtom: boolean;
@@ -1530,6 +1541,11 @@ export interface IFnCtx {
   proxyResult: PlainObject;
   fnType: FnType;
   scopeType: ScopeType;
+  /**
+   * default: false
+   * 是否为 block 工作，true 表示由 block 重发读取记录时创建的，主要服务于 block 组件的依赖锁定流程
+   */
+  forBlock: boolean;
   /** work for hook derived fnCtx */
   updater: Fn;
   /** 为了更友好的支持热更新而加入的标记，标记当前 fnCtx 是否已过期 */
@@ -1554,11 +1570,6 @@ export interface IFnCtx {
   isAsync: boolean;
   /** 是否是一个中转结果的异步函数，内部用的标记 */
   isAsyncTransfer: boolean;
-  /**
-   * default: false
-   * 是否由 simple watch 创建
-   */
-  isSimpleWatch: boolean;
   /**
    * 是否正在运行中，辅助判断死循环
    */

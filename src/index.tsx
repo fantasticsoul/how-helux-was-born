@@ -22,6 +22,7 @@ async function main() {
   console.log('start main');
   // await import('./pure-tests');
   await import('./loadApp18');
+  // await import('./loadApp');
 }
 
 main().catch((err: any) => {

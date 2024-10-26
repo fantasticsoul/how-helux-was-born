@@ -1,4 +1,4 @@
-import { share, useAtom } from 'helux';
+import { share, useAtom, $ } from 'helux';
 import { getVal } from '@helux/utils';
 import React from 'react';
 import { MarkUpdate, Entry } from '../comps';
@@ -20,28 +20,38 @@ const [shared, setShared, ctx] = share({
 }, {
   stopArrDep: true,
   enableDraftDep: true,
+  onRead: (params) => {
+    console.log('trigger setOnReadHook 111', params);
+
+    // const key = params.fullKeyPath.join('.');
+    // if (typeof params.value === 'function' && !replacedMap[key]) {
+    //   replacedMap[key] = true;
+    //   // 注册 mutate
+    //   const witness = ctx.mutate((draft) => {
+    //     params.value(draft, shared);
+    //   });
+    //   params.replaceValue(getVal(witness.snap, params.fullKeyPath));
+    //   // return getVal(witness.snap, params.fullKeyPath);
+    // }
+  },
 });
 
 // 记录是否已替换
 const replacedMap: any = {};
-ctx.setOnReadHook((params) => {
-  console.log('setOnReadHook');
-  const key = params.fullKeyPath.join('.');
-  if (typeof params.value === 'function' && !replacedMap[key]) {
-    replacedMap[key] = true;
-    // 注册 mutate
-    const witness = ctx.mutate((draft) => {
-      params.value(draft, shared);
-    });
-    params.replaceValue(getVal(witness.snap, params.fullKeyPath));
-    // return getVal(witness.snap, params.fullKeyPath);
-  }
-});
 
 const changeABC = () => {
   setShared((draft) => {
+    console.log('draft.a.b.c', draft.a.b.c);
     draft.a.b.c += 1;
   });
+};
+
+const changeABCByReactive = () => {
+  ctx.reactive.a.b.c += 1;
+};
+
+const testOnRead = () => {
+  console.log('shared.a.b.c', shared.a.b.c);
 };
 
 function Info() {
@@ -55,10 +65,10 @@ function Info() {
 
 
 const Demo = () => (
-  <Entry fns={[changeABC]}>
+  <Entry fns={[changeABC, changeABCByReactive, testOnRead]}>
     <Info />
+    reactive.a.b.c: {$(ctx.reactive.a.b.c)}
   </Entry>
 );
 
 export default Demo;
-

@@ -2,7 +2,6 @@ import React from 'react';
 import { atom, share, useAtom, $ } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 
-
 const [aAtom, aSet] = atom({ a: 1, b: 2 }, {
   mutate: {
     changeB: (draft, params) => {
