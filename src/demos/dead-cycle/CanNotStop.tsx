@@ -8,7 +8,7 @@ const [baseAtom, setAtom] = atom(3000, { moduleName: 'baseAtom' });
 const x = atomx({ a: 1, b: 2 }, {
   moduleName: 'yy',
   alertDeadCycleErr: false,
-  mutate: [
+  mutateList: [
     {
       // TODO  这个是拦不住的死循环示例
       fn: (draft, { draftRoot }) => {

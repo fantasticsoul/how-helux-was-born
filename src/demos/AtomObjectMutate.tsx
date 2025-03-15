@@ -10,8 +10,8 @@ const [infoAtom, setAtom] = atom(
 const [funnyAtom] = atom({
   double: 0, funnyName: '',
 }, {
-  mutate: [
-    (draft) => {
+  mutateList: [
+    (draft, params) => {
       console.log('double mutate');
       draft.double = infoAtom.val.price * 2;
     },

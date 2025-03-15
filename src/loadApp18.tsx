@@ -5,6 +5,8 @@ import ReactDOM from "react-dom/client";
 import './addPluginAndMid';
 import App from './App';
 
+window.React2 = React;
+
 let rootNode = document.getElementById('root') as HTMLElement;
 if (!rootNode) {
   const div = document.createElement('div');
@@ -32,5 +34,5 @@ function renderBy18Strict() {
 }
 
 // renderBy16();
-renderBy18();
-// renderBy18Strict();
+// renderBy18();
+renderBy18Strict();

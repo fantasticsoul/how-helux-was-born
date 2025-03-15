@@ -3,8 +3,23 @@ import { mutate, share, useAtom } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from './logic/util';
 
-const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'Api_mutate2' });
+const [priceState, setPrice] = share({ a: 1, b: 100, c: [1, 2, 3] }, { moduleName: 'Api_mutate2' });
 const [finalPriceState, , ctx] = share({ retA: 0, time: 0 }, { moduleName: 'Api_mutate_finalPriceState2' });
+
+interface IOBJ {
+  a: number;
+  size: number;
+}
+// const ccc = share<IOBJ>({ a: 1, b: 100, c: [1, 2, 3] }, { moduleName: 'Api_mutate2' });
+const [ state ] = share<IOBJ>({ a: 1, size: 1 }, { moduleName: 'Api_mutate2' });
+// state.a;
+
+// const ccc2 = share([] as number[], { moduleName: 'Api_mutate2' });
+// const ccc3 = share('xx', { moduleName: 'Api_mutate2' });
+// const ccc4 = share(2222, { moduleName: 'Api_mutate2' });
+// const ccc5 = share(true, { moduleName: 'Api_mutate2' });
+// const ccc6 = share(new Map(), { moduleName: 'Api_mutate2' });
+// const ccc7 = share(new Set(), { moduleName: 'Api_mutate2' });
 
 // 外部定义 mutate 函数
 const witness = mutate(finalPriceState)({

@@ -12,6 +12,15 @@ export type DictOrCb<T = any> = Record<NumStrSymbol, T> | (() => Record<NumStrSy
 
 export type PlainObject = Record<string, {} | undefined | null>;
 
+// export type JSONDict = PlainObject;
+/** 这种写法可以监测出 Map Array Set 不合法，但是对象里如果含有 length size 属性的话会被误判 */
+// export type JSONDict = object & { length?: number; size?: number; };
+/**
+ * 先用 object 替代 PlainObject，支持 share<ISomeObj>() 这样的泛型校验通过，同时让 share(1) share(true) share('str') 的类型校验失败，
+ * 但还是无法检测 share([]) share(new Map) share(new Set) 不符合普通json对象
+ */
+export type JSONDict = object;
+
 export type DictN<T = any> = Record<number, T>;
 
 export type DictS<T = any> = Record<string, T>;
@@ -39,8 +48,8 @@ export type UnconfirmedArg = ValidArg | void;
 /** 调用时如未指定具体 payload 类型，收窄为 UnconfirmedArg，让用户不传递也能类型校验通过 */
 export type PayloadType<P extends Dict | undefined = undefined, K = any> = P extends Dict
   ? K extends keyof P
-    ? P[K]
-    : UnconfirmedArg
+  ? P[K]
+  : UnconfirmedArg
   : UnconfirmedArg;
 
 // use Awaited instead
@@ -314,7 +323,7 @@ export interface IRunMutateOptions {
   extraArgs?: any;
 }
 
-export interface IMutateTaskParam<T = SharedState, P extends Arr = Arr, E extends SharedState = SharedState> {
+export interface IMutateTaskParam<T = SharedState, P extends Arr = Arr, E extends JSONDict = JSONDict> {
   /** 是否第一次调用 */
   isFirstCall;
   /** 异步任务提供的 draft 是全局响应式对象 */
@@ -371,11 +380,11 @@ export interface IMutateWitness<T = any> {
 }
 
 // for mutate task
-export type MutateTask<T = SharedState, P extends Arr = Arr, E extends SharedState = SharedState> = (
+export type MutateTask<T = SharedState, P extends Arr = Arr, E extends JSONDict = JSONDict> = (
   param: IMutateTaskParam<T, P, E>,
 ) => Promise<void>;
 
-export interface IMutateFnParams<T = SharedState, P extends Arr = Arr, E extends SharedState = SharedState> {
+export interface IMutateFnParams<T = SharedState, P extends Arr = Arr, E extends JSONDict = JSONDict> {
   /** 是否第一次调用 */
   isFirstCall: boolean;
   /** mutate deps 函数的返回值 */
@@ -392,13 +401,13 @@ export interface IMutateFnParams<T = SharedState, P extends Arr = Arr, E extends
 }
 
 /** 如定义了 task 函数，则 fn 在异步函数执行之前回执行一次，且只在首次执行一次，后续不会执行 */
-export type MutateFn<T = SharedState, P extends Arr = Arr, E extends SharedState = SharedState> = (
+export type MutateFn<T = SharedState, P extends Arr = Arr, E extends JSONDict = JSONDict> = (
   /** 草稿状态，对于 atom 对象 draft 是已拆箱的值，如需操作未拆箱值可读取下面的 params.draftRoot */
   draft: DraftType<T>,
   params: IMutateFnParams<T, P, E>,
 ) => void;
 
-export interface IMutateFnItem<T = any, P extends Arr = Arr, E extends SharedState = SharedState> {
+export interface IMutateFnItem<T = any, P extends Arr = Arr, E extends JSONDict = JSONDict> {
   /** 依赖项列表，有 task 无 fn 时，可作为 task 的依赖收集函数 */
   deps?: (state: StateType<T>, boundState: IBoundStateInfo<E>) => P;
   /**
@@ -644,7 +653,7 @@ export interface IBoundStateInfo<S = any> {
   isAtom: boolean;
 }
 
-export interface IStateInfo<T = SharedState, E extends SharedState = any> {
+export interface IStateInfo<T = SharedState, E extends JSONDict = any> {
   state: StateType<T>;
   stateRoot: StateRootType<T>;
   isAtom: boolean;
@@ -678,8 +687,8 @@ export type SyncFnBuilder<T = SharedState, V = any> = (
 
 export type Syncer<T = SharedState> = T extends Atom | ReadOnlyAtom
   ? T['val'] extends Primitive
-    ? SyncerFn
-    : { [key in keyof T['val']]: SyncerFn }
+  ? SyncerFn
+  : { [key in keyof T['val']]: SyncerFn }
   : { [key in keyof T]: SyncerFn };
 
 export type SafeLoading<T = SharedState, O extends ICreateOptions<T> = ICreateOptions<T>> = O['mutate'] extends MutateFnDict<T>
@@ -688,8 +697,8 @@ export type SafeLoading<T = SharedState, O extends ICreateOptions<T> = ICreateOp
 
 type FnResultType<T extends PlainObject | DeriveFn> = T extends PlainObject
   ? T['fn'] extends Fn
-    ? DerivedAtom<ReturnType<T['fn']>>
-    : DerivedAtom<any>
+  ? DerivedAtom<ReturnType<T['fn']>>
+  : DerivedAtom<any>
   : T extends DeriveFn
   ? DerivedAtom<ReturnType<T>>
   : DerivedAtom<any>;
@@ -729,7 +738,7 @@ type ActionCtx<T = any, P extends Dict | undefined = undefined, D extends Dict<F
   useLoadingInfo: () => [Ext<LoadingState<D>>, SetState<LoadingState>, IInsRenderInfo];
 };
 
-type DefineMutateDerive<T extends SharedState = SharedState> = <I = SharedDict>(
+type DefineMutateDerive<T extends JSONDict = JSONDict> = <I = SharedDict>(
   inital: I | (() => I),
 ) => <D = Dict<MutateFn<I, any, T> | IMutateFnItem<I, any, T>>>(
   mutateDef: D | ((stateInfo: IStateInfo<I, T>) => D),
@@ -776,7 +785,7 @@ type DefineMutateDerive<T extends SharedState = SharedState> = <I = SharedDict>(
  * df.result.b; // 派生结果c
  * ```
  */
-type DefineFullDerive<T extends SharedState = SharedState> = <DR extends DepsResultDict | undefined = undefined>(
+type DefineFullDerive<T extends JSONDict = JSONDict> = <DR extends DepsResultDict | undefined = undefined>(
   throwErr?: boolean,
 ) => <
   /**
@@ -784,8 +793,8 @@ type DefineFullDerive<T extends SharedState = SharedState> = <DR extends DepsRes
    * 加上 & Dict 是为了支持用户配置 DR 之外的其他结果，不严格要求所有结果 key 都需要在 DR 里定义类型
    */
   D extends DR extends DepsResultDict
-    ? MultiDeriveFn<DR> & Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>
-    : Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>,
+  ? MultiDeriveFn<DR> & Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>
+  : Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>,
 >(
   deriveFnDict: D | ((boundStateInfo: IBoundStateInfo<T>) => D),
 ) => {
@@ -821,7 +830,7 @@ type DefineFullDerive<T extends SharedState = SharedState> = <DR extends DepsRes
 /**
  * 对自身状态节点定义派生函数，为统一 define api 调用风格，此处采用柯里化方式
  */
-type DefineMutateSelf<T extends SharedState = SharedState> = () => <D = Dict<MutateFn<T, any> | IMutateFnItem<T, any>>>(
+type DefineMutateSelf<T extends JSONDict = JSONDict> = () => <D = Dict<MutateFn<T, any> | IMutateFnItem<T, any>>>(
   mutateDef: D | ((stateInfo: IBoundStateInfo<T>) => D),
 ) => {
   witnessDict: { [K in keyof D]: IMutateWitness<T> };
@@ -1076,8 +1085,8 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
     throwErr?: boolean,
   ) => <
     D extends Dict<Fn> = P extends Dict
-      ? { [K in keyof P]: ActionTask<T, P[K]> } & { [K in string]: ActionTask<T, UnconfirmedArg> }
-      : { [K in string]: ActionTask<T, UnconfirmedArg> },
+    ? { [K in keyof P]: ActionTask<T, P[K]> } & { [K in string]: ActionTask<T, UnconfirmedArg> }
+    : { [K in string]: ActionTask<T, UnconfirmedArg> },
   >(
     /** action 函数定义字典集合 */
     actionFnDefs: D,
@@ -1118,7 +1127,7 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
   };
 }
 
-export interface ISharedCtx<T extends SharedDict = SharedDict> extends ISharedStateCtxBase<T> {
+export interface ISharedCtx<T extends JSONDict = JSONDict> extends ISharedStateCtxBase<T> {
   state: ReadOnlyDict<T>;
   stateRoot: ReadOnlyDict<T>;
   /**
@@ -1231,8 +1240,17 @@ export interface ICreateOptionsFull<T = SharedState> {
    * 定义当前状态对自身状态或其他状态某些数据节点有依赖的 `mutate` 函数集合或函数，它们将在依赖项变化时被自动执行，
    * 首次执行时会收集到每个函数各自对应的外部数据依赖并记录下来
    * 推荐走 defineMutateSelf 或 mutateDict 在外部定义 mutate 函数，以便获得更好的类型推导
+   * ```text
+   * 为正确推导出 mutate 为数组时的类型，v4.5.2 之后 mutate 类型由
+   * MutateFn<T> | MutateFnDict<T> | MutateFnList<T> 收窄为 MutateFn<T> | MutateFnDict<T>，
+   * 新增 mutateList 来承接数组的类型推导工作，强制将数组透传给 mutate 运行时还是有效的，只不过类型推导有异常
+   * ```
    */
-  mutate: MutateFn<T> | MutateFnDict<T> | MutateFnList<T>;
+  mutate: MutateFn<T> | MutateFnDict<T>;
+  /**
+   * 含义见 mutate
+   */
+  mutateList: MutateFnList<T>;
   /**
    * action、mutate、setState、sync 提交状态之前会触发执行的函数，可在此函数里再次修改 draft，该函数执行时机是在中间件之前
    */
@@ -1259,7 +1277,7 @@ export interface ICreateOptionsFull<T = SharedState> {
 /**
  * 目前api层面只暴露部分配置参数供用户查看
  */
-export type CtxCreateOptions = Omit<ICreateOptionsFull, 'rules' | 'mutate' | 'before' | 'onRead'>;
+export type CtxCreateOptions = Omit<ICreateOptionsFull, 'rules' | 'mutate' | 'mutateList' | 'before' | 'onRead'>;
 
 export interface IInnerCreateOptions<T = SharedState> extends ICreateOptionsFull<SharedState> {
   forAtom: boolean;
@@ -1299,7 +1317,7 @@ export interface IUseSharedStateOptions<T = any> {
    * function Demo(){
    *  const [state] = useAtom(dictAtom, { pure: true });
    *  const { extra, name, desc } = state;
-   *  // 这里继续下钻读取了 state.extra 的子节点，故state.extra 算作一个中间态的依赖
+   *  // 这里继续下钻读取了 state.extra 的子节点，故 state.extra 算作一个中间态的依赖
    *  const { list, mark } = extra;
    * }
    *
@@ -1316,7 +1334,7 @@ export interface IUseSharedStateOptions<T = any> {
    * // helux 内部经过比较 extra.list, extra.mask 值发现无变化后不会重渲染 Demo
    * setState(draft=> draft.extra = { ...draft.extra });
    *
-   * // 👻 但要注意，此时如果 extra 传给了 useEffect，并不会因为 extra的变化而引起 Effect 重新执行
+   * // 👻 但要注意，此时如果 extra 传给了 useEffect，并不会因为 extra 的变化而引起 Effect 重新执行
    * useEffect(()=>{//...logic}, [state.extra]);
    * // 如执行了则是因为其他依赖引起组件重渲染刚好顺带触发了 Effect 执行
    *
@@ -1330,10 +1348,11 @@ export interface IUseSharedStateOptions<T = any> {
    */
   pure?: boolean;
   /**
-   * 组件件可在渲染过实时收集到依赖，如需补充一些组件渲染过程中不体现的额外依赖时，设置此函数
-   * 此时组件的依赖是 deps 返回依赖和渲染完毕收集到的依赖合集
+   * 组件件可在渲染过实时收集到依赖，如需补充一些组件渲染过程中不体现的额外依赖时，设置此函数，
+   * 此时组件的依赖是 deps 返回依赖和渲染完毕收集到的依赖合集，
+   * deps 回调里的参数针对 atom 对象会自动拆箱
    */
-  deps?: (readOnlyState: T) => any[] | void;
+  deps?: (readOnlyState: T extends Atom ? T['val']: T ) => any[] | void;
   /**
    * default: true，是否记录数组自身依赖，当确认是孩子组件自己读数组下标渲染的场景，可设置为 false，
    * 这样数组被重置时不会触发重渲染
@@ -1374,7 +1393,7 @@ export interface IUseSharedStateOptions<T = any> {
   arrIndexDep?: boolean;
 }
 
-export interface IInnerUseSharedOptions<T = Dict> extends IUseSharedStateOptions<T> {
+export interface IInnerUseSharedOptions<T = any> extends IUseSharedStateOptions<T> {
   /**
    * 全局id，在 ICreateOptionsFull.rules 子项里配置 globalIds，
    * 此 id 需通过 useGlobalId 设定

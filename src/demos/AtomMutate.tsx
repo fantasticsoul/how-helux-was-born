@@ -8,7 +8,7 @@ const [baseAtom, setAtom] = atom(3000, { moduleName: 'baseAtom' });
 
 const [doubleAtom, setDouble] = atom(2, {
   moduleName: 'doubleAtom',
-  mutate: [
+  mutateList: [
     {
       // TODO 加入死循环示例
       fn: (draft: any, params: any) => {

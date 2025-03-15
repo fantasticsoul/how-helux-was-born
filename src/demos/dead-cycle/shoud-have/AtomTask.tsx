@@ -9,7 +9,7 @@ import { createDcDemo } from '../util';
 const Demo = createDcDemo(() => {
   const [state, setAtom] = atom(dictFactory, {
     moduleName: 'doubleAtom',
-    mutate: [
+    mutateList: [
       {
         deps: (state) => [state.f],
         task: async ({ draft, input }) => {

@@ -6,7 +6,7 @@ import { createDcDemo } from '../util';
 const Demo = createDcDemo(() => {
   const [, setDouble] = atom(2, {
     moduleName: 'doubleAtom',
-    mutate: [
+    mutateList: [
       {
         fn: (draft: any, params: any) => {
           return draft * 2;

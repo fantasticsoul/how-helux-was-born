@@ -4,6 +4,7 @@ import { MarkUpdate, Entry } from './comps';
 
 const [priceState, setPrice, ctx1] = share({ a: 1, b: 100, ccc: 1000, d: { d1: { d2: 1 } } }, {
   moduleName: 'Api_mutate_simple',
+  mutateList: [],
 });
 console.log('before mutate');
 const witness = mutate(priceState)((draft) => {

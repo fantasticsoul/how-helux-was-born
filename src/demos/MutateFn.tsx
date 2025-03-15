@@ -18,7 +18,7 @@ function changeA() {
 const [numAtom] = atom(3000);
 const [priceState, setPrice] = share({ a: 1, b: 100 }, { moduleName: 'MutateFn' });
 const [idealPriceState] = share({ idealPrice: 0, retB: 1 }, {
-  mutate: [
+  mutateList: [
     (draft) => draft.idealPrice = priceState.a + 1000 + numAtom.val,
     (draft) => { draft.retB = priceState.b + 2 + numAtom.val },
   ],

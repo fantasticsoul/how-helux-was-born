@@ -80,6 +80,7 @@ function runMutateRetA2Async() {
 
 function Price() {
   const [price, , info] = useAtom(priceState);
+  const [num] = useAtom(numAtom);
   return <MarkUpdate name="Price" info={info}>{price.a}</MarkUpdate>;
 }
 

@@ -5,7 +5,7 @@ async function test() {
   const [numAtom, setAtom] = atom(1);
   // 有fn，未指定 immediate 时，task 首次不执行
   const [bAtom, , ctx] = atom(0, {
-    mutate: [
+    mutateList: [
       {
         deps: () => [numAtom.val],
         fn: (draft, { input: [num], state }) => {
