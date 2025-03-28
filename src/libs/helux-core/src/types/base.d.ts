@@ -41,6 +41,8 @@ export type IOperateParams = OpParams;
 
 export type Primitive = boolean | number | string | null | undefined | BigInt;
 
+export type ValidAtom = Primitive | Map<any, any> | Set<any> | Array<any> | Dict | Primitive;
+
 export type ValidArg = Primitive | symbol | Map<any, any> | Set<any> | Array<any> | Fn | Dict;
 
 export type UnconfirmedArg = ValidArg | void;
@@ -1352,7 +1354,7 @@ export interface IUseSharedStateOptions<T = any> {
    * 此时组件的依赖是 deps 返回依赖和渲染完毕收集到的依赖合集，
    * deps 回调里的参数针对 atom 对象会自动拆箱
    */
-  deps?: (readOnlyState: T extends Atom ? T['val']: T ) => any[] | void;
+  deps?: (readOnlyState: T extends Atom ? T['val'] : T) => any[] | void;
   /**
    * default: true，是否记录数组自身依赖，当确认是孩子组件自己读数组下标渲染的场景，可设置为 false，
    * 这样数组被重置时不会触发重渲染
@@ -1401,6 +1403,8 @@ export interface IInnerUseSharedOptions<T = any> extends IUseSharedStateOptions<
   globalId?: NumStrSymbol;
   forAtom?: boolean;
   isReactive?: boolean;
+  beforeUpdate?: Fn;
+  forClass?: boolean;
 }
 
 export interface ISetStateOptions {
@@ -1641,6 +1645,12 @@ export interface ICompAtomCtx<T = any> extends IRenderInfo<T> {
   setState: SetState<T>;
 }
 
+export interface IClassCompAtomCtx<T = any> extends IRenderInfo<T> {
+  state: T;
+  setState: SetState<T>;
+  insCtx: any;
+}
+
 export interface IInsRenderInfo<T = any> extends IFnRenderInfo {
   isAtom: boolean;
   snap: any;
@@ -1752,6 +1762,7 @@ export interface IUseDerivedOptions {
    * ```
    */
   showLoading?: boolean;
+  beforeUpdate?: () => void;
 }
 
 export interface IWatchAndCallMutateDictOptions<T = SharedState> {
@@ -1838,3 +1849,106 @@ export interface IInitOptions {
    */
   isRootRender?: boolean;
 }
+
+export interface IBindAtomOptions {
+  /**
+   * 单个 atom 对象
+   */
+  atom?: ValidAtom;
+  /**
+   * 单个 atom 对象对应的 options 配置
+   */
+  atomOptions?: IUseSharedStateOptions;
+  /**
+   * atom 字典配置
+   */
+  atoms?: Record<string, any>;
+  /**
+   * atom 字典对应的 options 配置
+   */
+  atomsOptions?: Record<string, IUseSharedStateOptions>;
+  /**
+   * derived 字典配置
+   */
+  deriveds?: Record<string, any>;
+  /**
+   * derived 字典对应的 options 配置
+   */
+  derivedsOptions?: Record<string, IUseDerivedOptions>;
+  /**
+   * default: true，是否对导出的组件包裹一层 React.memo
+   */
+  memo?: boolean;
+  /**
+   * default: undefined，
+   * memo 为 true 时，透传给 React.memo 接口的比较 props 函数，不设置此函数时，默认走 react 内置的浅比较函数
+   */
+  propsAreEqual?: (prevProps: Dict, nextProps: Dict) => boolean;
+}
+
+export interface IWithAtomOptions extends IBindAtomOptions {
+  /**
+   * default: false，
+   * 为 false 时，走反向继承模式生成新的类组件
+   * 为 true 时，走属性模式生成新的类组件
+   */
+  isPropsProxy?: boolean;
+}
+
+/**
+ * 通过 withAtomOptions 参数推导出 hx 类型，通常可结合 makeWithAtomsOptions 函数使用
+ * @example
+ * ```
+ * const woptions = makeWithAtomsOptions({ atoms: { a: atomA, b: atomB }});
+ * class DemoCls extends React.Component<any> {
+ *  // 透传 woptions 类型给 HXType 将为 hx 赋上具体类型
+ *  private hx = assignThisHX<HXType<typeof woptions>>(this);
+ * }
+ * ```
+ */
+export type HXType<O extends IWithAtomOptions = IWithAtomOptions> = 'atom' extends keyof O
+  ? HXTypeByAD<O['atom'], O['atoms'], O['deriveds']>
+  : HXTypeByAD<DefaultClassAtom, O['atoms'], O['deriveds']>;
+
+type DefaultClassAtom = {
+  /**
+   * if no atom supplied to withAtoms, helux will give a default atom object { tip: 'default atom' }
+   * to make sure user can call hx.atom.xxx safely
+   */
+  tip: 'default atom',
+}
+
+/**
+ * 通过具体的 atoms、derived 推导出 hx 类型
+ */
+export type HXTypeByAD<
+A = any,
+AS extends Dict<any> = Dict<any>,
+DS extends Dict<any> = Dict<any>,
+> = {
+  atom: {
+    state: A extends ReadOnlyAtom ? AtomValType<A> : A;
+    setState: SetState<A>;
+    time: number;
+    isAtom: boolean;
+    setDraft: SetDraft<A>;
+    insKey: 0;
+    sn: 0;
+    getDeps: () => string[];
+    getPrevDeps: () => string[];
+  },
+  atoms: AS extends Dict ? {
+    [K in keyof AS]: {
+      state: AS[K] extends ReadOnlyAtom ? AtomValType<AS[K]> : AS[K];
+      setState: SetState<AS[K]>;
+      time: number;
+      isAtom: boolean;
+      setDraft: SetDraft<AS[K]>;
+      insKey: 0;
+      sn: 0;
+      getDeps: () => string[];
+      getPrevDeps: () => string[];
+    };
+  } : {};
+  deriveds: DS extends Dict ? { [K in keyof DS]: DerivedResultType<DS[K]> } : {};
+};

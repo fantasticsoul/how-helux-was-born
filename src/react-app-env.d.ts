@@ -117,6 +117,12 @@ declare module 'helux' {
     useObject,
     useLocalForceUpdate,
     useGlobalForceUpdate,
+    // for react class component
+    bindAtom,
+    withAtom,
+    assignThisHX,
+    getHX,
+    makeWithAtomOptions,
     // action api
     action,
     // signal api

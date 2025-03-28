@@ -1,6 +1,6 @@
 /*
 |------------------------------------------------------------------------------------------------
-| helux-core@4.5.0
+| helux-core@4.7.0
 | A state library core that integrates atom, signal, collection dep, derive and watch,
 | it supports all react like frameworks ( including react 18 ).
 |------------------------------------------------------------------------------------------------
@@ -25,6 +25,7 @@ import type {
   EnableStatus,
   Fn,
   IAtomCtx,
+  IBindAtomOptions,
   IBlockOptions,
   IBoundStateInfo,
   ICompAtomCtx,
@@ -44,6 +45,7 @@ import type {
   IUseDerivedOptions,
   IUseSharedStateOptions,
   IWatchFnParams,
+  IWithAtomOptions,
   JSONDict,
   LoadingState,
   LoadingStatus,
@@ -69,7 +71,7 @@ import type {
 } from './base';
 
 export declare const cst: {
-  VER: '4.4.2';
+  VER: '4.7.0';
   LIMU_VER: string;
   EVENT_NAME: {
     /** 共享状态创建时的事件 */
@@ -269,11 +271,11 @@ export function useAtom<T extends any = any>(
   sharedState: T,
   options?: IUseSharedStateOptions<T>,
 ): [
-  T extends ReadOnlyAtom ? AtomValType<T> : T,
-  // AtomTupleSetState<T>,
-  SetState<T>,
-  IInsRenderInfo<T>,
-];
+    T extends ReadOnlyAtom ? AtomValType<T> : T,
+    // AtomTupleSetState<T>,
+    SetState<T>,
+    IInsRenderInfo<T>,
+  ];
 
 /**
  * 区别于 useAtom，useAtomX 返回对象
@@ -287,12 +289,12 @@ export function useReactive<T = any>(
   sharedState: T,
   options?: IUseSharedStateOptions<T>,
 ): [
-  // 针对 atom，第一位 reactive 参数自动拆箱
-  T extends Atom ? T['val'] : T,
-  // 代表 reactiveRoot
-  T,
-  IInsRenderInfo,
-];
+    // 针对 atom，第一位 reactive 参数自动拆箱
+    T extends Atom ? T['val'] : T,
+    // 代表 reactiveRoot
+    T,
+    IInsRenderInfo,
+  ];
 
 export function useReactiveX<T = any>(sharedState: T, options?: IUseSharedStateOptions<T>): ICompReactiveCtx<T>;
 
@@ -339,7 +341,7 @@ export function useGlobalForceUpdate<T = any>(
  * "Called SetState() on an Unmounted Component" Errors
  * 3 默认返回稳定引用状态
  * ```
- * 代码示例：
+ * @example 代码示例：
  * ```ts
  * const [ stableState, setState, objApi ] = useObject({a:1, b:2});
  * // stableState 是稳定引用
@@ -353,13 +355,46 @@ export function useObject<T = Dict>(
 ): [T, (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void, IObjApi<T>];
 
 /**
- * 功能同 watch，在组件中使用 useWatch 来完成状态变化监听，会在组件销毁时自动取消监听
+ * 功能同 watch，默认首次不执行回调，故需要提前写清楚依赖，
+ * 可在组件中使用 useWatch 来完成状态变化监听，会在组件销毁时自动取消监听，
+ * 注意 useWatch 会调里不存在闭包陷阱，可总是获取到函数组件里的局部状态最新值
+ * @example 依赖写在 deps 里，首次不执行
+ * ```
+ *  useWatch(() => { // code... }, () => [sharedState.a]);
+ *  // or
+ *  useWatch(() => { // code... }, {deps: () => [sharedState.a]});
+ * ```
+ * @example 依赖写在回调里，首次执行回调收集到依赖，但不执行具体逻辑
+ * ```
+ *  useWatch((params) => {
+ *    // 此处收集到依赖
+ *    const { a } = sharedState;
+ *    // 首次执行则退出，仅为了收集到依赖（如需要首次也执行逻辑，可删除这里的 return）
+ *    if(params.isFirstCall) return;
+ *
+ *    // 非首次时将执行具体逻辑
+ *    // code...
+ *  }, { immediate: true });
+ * ```
  */
 export function useWatch(watchFn: (fnParams: IWatchFnParams) => void, options: WatchOptionsType);
 
 /**
  * 功能同 watchEffect 一样，区别在于 useWatchEffect 会立即执行回调，自动对首次运行时函数内读取到的值完成变化监听
  * 在组件中使用 useWatchEffect 来完成状态变化监听，会在组件销毁时自动取消监听
+ * @example
+ * ```
+ *  // 组件首次渲染就立即执行回调，同时也会收集到依赖
+ *  useWatchEffect(() => {
+ *    console.log('useWatchEffect: sharedState.a changed', sharedState.a);
+ *  });
+ *  // 等效于写为
+ *  useWatch(() => {
+ *    // 此时不用再函数写 sharedState.a 也能观察到其变化
+ *    console.log('sharedState.a changed');
+ *  }, { deps: () => [sharedState.a], immediate: true });
+ *
+ * ```
  */
 export function useWatchEffect(watchFn: (fnParams: IWatchFnParams) => void, options?: WatchEffectOptionsType);
 
@@ -411,7 +446,7 @@ export function useEffect(cb: EffectCb, deps?: any[]): void;
 export function useLayoutEffect(cb: EffectCb, deps?: any[]): void;
 
 export function useDerived<R = DerivedDict | DerivedAtom>(
-  resultOrFn: R,
+  result: R,
   options?: IUseDerivedOptions,
 ): [DerivedResultType<R>, LoadingStatus, IRenderInfo];
 
@@ -448,24 +483,23 @@ export function useMutable<T extends PlainObject>(
  *   // 如字典包含非方法值，可获取最新值
  *   const srv = useStable({
  *     readState() {
- *      console.log(`%c read state num ${obj.num}`, `color:green`);
- *    },
- *    readProps() {
- *     console.log(`%c read props num ${props.num}`, `color:green`);
- *   },
- *   changeState() {
- *     setObj({ num: random() });
- *   },
- *  });
+ *       console.log(`%c read state num ${obj.num}`, `color:green`);
+ *     },
+ *     readProps() {
+ *       console.log(`%c read props num ${props.num}`, `color:green`);
+ *     },
+ *     changeState() {
+ *       setObj({ num: random() });
+ *     },
+ *   });
  *
- *  // 如传入单函数，则返回的稳定的函数引用
- *  const fn = useStable(() => {
+ *   // 如传入单函数，则返回的稳定的函数引用
+ *   const fn = useStable(() => {
  *    console.log(`%c read state num ${obj.num}`, `color:green`);
- *  });
+ *   });
  *
- *  // 传入值，则只是返回最新值
- *  const numTwo = useStable(2);
- *
+ *   // 传入值，则只是返回最新值
+ *   const numTwo = useStable(2);
  * }
  * ```
  */
@@ -761,3 +795,129 @@ export declare const produce: IProduce;
  * see test: https://github.com/tnfe/limu/blob/main/test/api/markRaw.ts
  */
 export declare function markRaw<T extends any = any>(rawVal: T): T;
+
+/**
+ * 兼容 react 类组件使用 helux，区别于 withAtom，bindAtom 返回函数组件
+ */
+export declare function bindAtom<T extends any = any>(ClassComp: T, atomMap: IBindAtomOptions): T;
+
+/**
+ * 兼容 react 类组件使用 helux，可使用 withAtom 包裹目标类组件返回新的类组件，
+ * helux 会将 atom 上下文字典注入到 this.props.hx 上，可主动赋值到类成员属性 hx 上方便使用
+ * @example 透传单个 atom，通过 options.atom 参数传递
+ * ```tsx
+ * import { atom, withAtom, assignThisHX } from 'helux';
+ * const [numAtom] = atom({ num: 1, info: { addr: 'bj' } });
+ * 
+ * class DemoCls extends React.Component<any> {
+ *   // 先声明，运行时会由 withAtom 将值注入到此属性上
+ *   private hx = assignThisHX(this);
+ *   render() {
+ *     console.log(hx.atom.state); // 获取到 atom state
+ *   }
+ * }
+ *
+ * const IDemo = withAtom(DemoCls, { atom: numAtom });
+ * ```
+ * 
+ * @example 透传多个 atom，通过 options.atoms 参数传递
+ * ```tsx
+ * import { atom, withAtom, assignThisHX } from 'helux';
+ *
+ * const [numAtom] = atom({ num: 1, info: { addr: 'bj' } });
+ * const [bookAtom] = atom({ name: 'book', list: [] });
+ * 
+ * class DemoCls extends React.Component<any> {
+ *   private hx = assignThisHX(this);
+ *   addNum = () => {
+ *     this.hx.num.setState((draft: any) => void (draft.num += 2));
+ *   };
+ *   render() {
+ *     const { num: { state } } = this.hx;
+ *     return <div>hello num {state.num}<button onClick={this.addNum}>add num</button></div>;
+ *   }
+ * }
+ *
+ * const IDemo = withAtom(DemoCls, { atoms: { num: numAtom, book: bookAtom } });
+ * ```
+ * 
+ * @example 也支持既传 atom，又传 atoms
+ * ```
+ * const IDemo = withAtom(DemoCls, { atom: someAtom, atoms: { num: numAtom, book: bookAtom } });
+ * 
+ * // 在类组件里
+ * // this.hx.atom 获取到 atom 对应上下文
+ * // this.hx.atoms.num 和 this.hx.atoms.book 各自对应的 atom 对应上下文
+ * ```
+ */
+export declare function withAtom<T extends any = any>(ClassComp: T, options: IWithAtomOptions): T;
+
+/**
+ * 辅助 class 组件给hx指定相应的类型，
+ * isPropsProxy=true 处于属性代理模式时，hx 的值会由 assignThisHX 赋值上去，
+ * isPropsProxy=false 处于属性反向继承时，hx 的值会由包裹后的组件运行时赋值上去，
+ * 为了方便类型提示，建议总是调用 assignThisHX 赋值 hx，
+ * @example
+ * ```jsx
+ * const [numAtom] = atom({ num: 1, info: { addr: 'bj' }, show: true, time: Date.now() });
+ * const woptions = makeWithAtomOptions({ atoms: { num: numAtom, book: bookAtom } });
+ *
+ * class DemoCls extends React.Component<any> {
+ *   private hx = assignThisHX<HXType<typeof woptions>>(this);
+ *
+ *   constructor(props, context) {
+ *     // 注意，如在构造器里获取 hx 对象，建议使用 getHX 可安全获取，理由见 getHX 函数注释
+ *     const hx = getHX<HXType<typeof woptions>>(props, context); // ok
+ *     // const hx = this.hx; // error while isPropsProxy=false
+ *   }
+ *
+ *   addNum = () => {
+ *     // 此处将感知到类型提示
+ *     this.hx.num.setState((draft: any) => void (draft.num += 2));
+ *   };
+ * }
+ *
+ * const AtomedDemo = withAtom(DemoCls, woptions);
+ * ```
+ */
+export declare function assignThisHX<T extends any = any>(thisRef: any): T;
+
+/**
+ * 除 constructor 外其他成员函数均可通过 tis.hx 获取 hx 对象，但当 isPropsProxy=false 走反向继承时，
+ * 用户在 constructor 里是获取不到 this.hx 值的（isPropsProxy=true可以），此时需要从 context.hx 获取到，
+ * 为了能在 isPropsProxy 任意切换时都能安全获取到 hx，建议用户走 getHX 函数获取，
+ * （注：hx is short for helux class component atom context）
+ * @example
+ * ```ts
+ *  constructor(props, context) {
+ *    // const hx = this.hx; // error while isPropsProxy=false
+ *    const hx = getHX(props, context); // ok
+ *  }
+ * ```
+ * 可用 HXType 生成类型透传给 getHX 函数，
+ * @example
+ * ```ts
+ *  const woptions = makeWithAtomOptions({ atoms: { num: numAtom } });
+ *  // 获得类型提示
+ *  const hx = getHX<HXType<typeof woptions>>(props, context);
+ * ```
+ */
+export declare function getHX<T extends any = any>(props: any, context: any): T;
+
+/**
+ * 辅助独立创建 withAtom 接口的 options 时能够感知类型提示，同时方便将 options 透传给 HXType 时推导出 hx 具体类型
+ * @example
+ * ```
+ * const [numAtom] = atom({ num: 1, info: { addr: 'bj' }, show: true, time: Date.now() });
+ * // 书写 options 配置时获得类型提示
+ * const woptions = makeWithAtomOptions({ atoms: { num: numAtom } });
+ *
+ * class DemoCls extends React.Component<any> {
+ *  // 透传 woptions 类型给 HXType 将为 hx 赋上具体类型
+ *  private hx = assignThisHX<HXType<typeof woptions>>(this);a
+ * }
+ *
+ * const AtomedDemo = withAtom(DemoCls, woptions);
+ * ```
+ */
+export declare function makeWithAtomOptions<T extends IWithAtomOptions>(options: T): T;

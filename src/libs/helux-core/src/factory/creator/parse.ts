@@ -139,7 +139,7 @@ export function parseMutateFn(fnItem: Dict, inputDesc?: string, checkDupDict?: D
 export function parseMutate(
   mutate?: IInnerCreateOptions['mutate'] | IInnerCreateOptions['mutateList'] | null,
   cachedDict?: MutateFnStdDict,
-  enabled = true
+  enabled = true,
 ) {
   const mutateFnDict: MutateFnStdDict = {};
   const checkDupDict: MutateFnStdDict = cachedDict || {};

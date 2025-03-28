@@ -1,5 +1,5 @@
 import type { Fn } from 'helux';
-import { RENDER_END, RENDER_START } from '../../consts';
+import { RENDER_START, RENDER_END } from '../../consts';
 import type { InsCtxDef } from '../../factory/creator/buildInternal';
 import { INS_CTX } from '../../factory/creator/current';
 import { buildInsCtx } from '../../helpers/insCtx';
@@ -7,7 +7,9 @@ import { resetDepHelpData, updateDep } from '../../helpers/insDep';
 import { getInternal } from '../../helpers/state';
 import type { CoreApiCtx } from '../../types/api-ctx';
 import type { Dict, IInnerUseSharedOptions, IInsRenderInfo } from '../../types/base';
-import { checkAtom, checkStateVer, delInsCtx, isSharedKeyChanged, prepareTuple, recoverInsCtx } from './shared';
+import {
+  checkAtom, checkStateVer, delInsCtx, isSharedKeyChanged, prepareTuple, recoverInsCtx,
+} from './shared';
 import { useSync } from './useSync';
 
 // for skip ts check out of if block
@@ -56,7 +58,7 @@ function useClearEffect(apiCtx: CoreApiCtx, insCtx: InsCtxDef) {
 /**
  * 收集组件渲染需要的依赖，做一些其他设置逻辑
  */
-function useCollectDep<T = Dict>(apiCtx: CoreApiCtx, sharedState: T, insCtx: InsCtxDef, options: IInnerUseSharedOptions<T>) {
+function useCollectDep<T = Dict>(apiCtx: CoreApiCtx, sharedState: T, insCtx: InsCtxDef) {
   insCtx.renderStatus = RENDER_START;
   resetDepHelpData(insCtx);
   // adapt to react 18
@@ -94,7 +96,7 @@ export function useAtomLogic<T = Dict>(
   const { forAtom } = options;
   checkAtom(sharedState, forAtom);
   const insCtx = useInsCtx(apiCtx, sharedState, options);
-  useCollectDep(apiCtx, sharedState, insCtx, options);
+  useCollectDep(apiCtx, sharedState, insCtx);
   useClearEffect(apiCtx, insCtx);
   checkStateVer(insCtx);
   const tuple = prepareTuple(insCtx);

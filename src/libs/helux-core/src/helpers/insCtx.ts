@@ -21,10 +21,6 @@ import { getInternal } from './state';
  * 开始收集依赖
  */
 function collectDep(insCtx: InsCtxDef, info: DepKeyInfo, options: { parentType: string; rawVal: any }) {
-  if (!insCtx.canCollect) {
-    // 无需收集依赖
-    return;
-  }
   const { parentType, rawVal } = options;
   const isValArrLike = isArrLikeVal(rawVal);
   if (isValArrLike) {
@@ -75,8 +71,15 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
 
       const { fullKeyPath, keyPath, parentType } = opParams;
       const rawVal = callOnRead(opParams, onRead);
+      // 标记了 canCollect=false，无需收集依赖
+      if (!insCtx.canCollect) return;
+
       const depKey = getDepKeyByPath(fullKeyPath, sharedKey);
       const depKeyInfo = { depKey, keyPath: fullKeyPath, parentKeyPath: keyPath, sharedKey };
+      // console.trace(opParams.op, fullKeyPath);
+      if (fullKeyPath.length === 1) {
+        // console.trace(opParams.op, fullKeyPath);
+      }
       collectDep(insCtx, depKeyInfo, { parentType, rawVal });
     };
 
@@ -108,6 +111,10 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
           return handleHeluxKey(true, forAtom, sharedKey, key, value);
         }
         const rawVal = callOnRead(newOpParams(key, value, { isChanged: false, parentKeyPath: [] }), onRead);
+
+        // 标记了 canCollect=false，无需收集依赖
+        if (!insCtx.canCollect) return;
+
         const depKey = prefixValKey(key, sharedKey);
         const parentType = isDict(target) ? DICT : OTHER;
         collectDep(insCtx, { depKey, keyPath: [key], sharedKey }, { parentType, rawVal });
