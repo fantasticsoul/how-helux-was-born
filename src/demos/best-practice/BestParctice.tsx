@@ -29,6 +29,7 @@ type Payloads = {
 
 // actions 方法合集，useLoading 供组件获取方法运行状态的钩子
 const { actions, useLoading } = ctx.defineActions<Payloads>()({
+  // 异步方法
   async fetchList({ draft, payload }) {
     console.log(payload.page, payload.size);
     await delay();
@@ -42,6 +43,7 @@ const { actions, useLoading } = ctx.defineActions<Payloads>()({
     draft.list = list;
     draft.total = total;
   },
+  // 同步方法
   changeTotal({ draft, payload }) {
     draft.total = payload;
   }
