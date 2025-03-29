@@ -7,6 +7,8 @@
 import React from 'react';
 import { sharex } from 'helux';
 
+const delay = (ms = 1000) => new Promise(r => setTimeout(r, ms));
+
 interface IBook {
   id: string;
   name: string;
@@ -22,15 +24,27 @@ const ctx = sharex({ list: [] as IBook[], page: 1, size: 10, total: 0 }, { modul
 /** 确定不同函数的 payload 类型 */
 type Payloads = {
   fetchList: { page: number, size: number };
+  changeTotal: number,
 };
 
+// actions 方法合集，useLoading 供组件获取方法运行状态的钩子
 const { actions, useLoading } = ctx.defineActions<Payloads>()({
   async fetchList({ draft, payload }) {
     console.log(payload.page, payload.size);
-    const { list, total } = await Promise.resolve({ list: [{ id: '1', name: 'b1', price: 100 }], total: 10 });
+    await delay();
+    const { list, total } = await Promise.resolve({
+      list: [
+        { id: '1', name: `state_${Date.now()}`, price: 100 },
+        { id: '2', name: `helex_${Date.now()}`, price: 100 },
+      ],
+      total: 10,
+    });
     draft.list = list;
     draft.total = total;
   },
+  changeTotal({ draft, payload }) {
+    draft.total = payload;
+  }
 });
 
 function Shop() {
@@ -43,8 +57,10 @@ function Shop() {
     <div>
       {loading && <h1>fetching books</h1>}
       {err && <h1>{err.message}</h1>}
-      {ok && state.list.map((v) => <span>name:{v.name} price:{v.price}</span>)}
+      {ok && state.list.map((v) => <div key={v.id}>name:{v.name} price:{v.price}</div>)}
+      <h3>total {state.total}</h3>
       <button onClick={() => actions.fetchList({ page: 1, size: 10 })}>more</button>
+      <button onClick={() => actions.changeTotal(Date.now())}>change total</button>
     </div>
   );
 }
