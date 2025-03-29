@@ -43,6 +43,7 @@ export { default as WithAtoms } from './WithAtoms';
 // export { default as UseMemoFns } from './hooks/UseMemoFns';
 // export { default as UseStable } from './hooks/UseStable';
 // export { default as UseReactive } from './UseReactive';
+export { BestPractice } from './best-practice/BestParctice';
 
 // // 检查 M2 取 draft 为何没拦住
 // export { default as M2 } from './special/M2';
@@ -101,4 +102,4 @@ export {
 
 // export * from './scenes';
 
-export const INITIAL_KEY = 'EmitAndOn';
+export const INITIAL_KEY = 'BestPractice';
