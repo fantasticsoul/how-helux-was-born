@@ -1,4 +1,4 @@
-import type { ApiCtx, EffectCb } from '@helux/types';
+import type { ApiCtx, EffectCb, EffectStrictCb, Fn } from '@helux/types';
 import { getHookKey, isHookUnderStrictMode } from '../utils/hookKey';
 
 const fakeMount = { count: 0 };
@@ -17,8 +17,13 @@ function getKeyMount(hookKey: string) {
   return MOUNT_MAP.get(hookKey) || fakeMount;
 }
 
-function mayExecuteCb(hookKey: string, isDoubleCheck: boolean, cb: EffectCb) {
+function mayExecuteCb(hookKey: string, isDoubleCheck: boolean, cb: Fn, passIsStrict?: boolean) {
   const effectLogic = () => {
+    if (passIsStrict) {
+      cb(isDoubleCheck);
+      return () => { MOUNT_MAP.delete(hookKey) };
+    }
+
     const cleanUp = cb();
     return () => {
       MOUNT_MAP.delete(hookKey);
@@ -39,14 +44,14 @@ function mayExecuteCb(hookKey: string, isDoubleCheck: boolean, cb: EffectCb) {
   }
 }
 
-export function useEffectLogic(apiCtx: ApiCtx, cb: EffectCb, options: { isLayout?: boolean; deps?: any[] }) {
+export function useEffectLogic(apiCtx: ApiCtx, cb: EffectStrictCb, options: { isLayout?: boolean; deps?: any[]; passIsStrict?: boolean }) {
   const { useLayoutEffect, useEffect } = apiCtx.react;
-  const { isLayout, deps } = options;
+  const { isLayout, deps, passIsStrict } = options;
   const key = getHookKey();
   const useFn = isLayout ? useLayoutEffect : useEffect;
   useFn(() => {
     const isDoubleCheck = isHookUnderStrictMode(key);
-    return mayExecuteCb(key, isDoubleCheck, cb);
+    return mayExecuteCb(key, isDoubleCheck, cb, passIsStrict);
   }, deps);
 }
 
@@ -54,10 +59,6 @@ export function useLayoutEffect(apiCtx: ApiCtx, cb: EffectCb, deps?: any[]) {
   useEffectLogic(apiCtx, cb, { isLayout: true, deps });
 }
 
-/**
- * only works for root StrictMode currently
- * 此 useEffect 在严格模式下也只会触发一次挂载和卸载行为
- */
 export function useEffect(apiCtx: ApiCtx, cb: EffectCb, deps?: any[]) {
   useEffectLogic(apiCtx, cb, { deps });
 }

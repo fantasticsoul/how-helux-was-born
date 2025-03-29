@@ -271,11 +271,11 @@ export function useAtom<T extends any = any>(
   sharedState: T,
   options?: IUseSharedStateOptions<T>,
 ): [
-    T extends ReadOnlyAtom ? AtomValType<T> : T,
-    // AtomTupleSetState<T>,
-    SetState<T>,
-    IInsRenderInfo<T>,
-  ];
+  T extends ReadOnlyAtom ? AtomValType<T> : T,
+  // AtomTupleSetState<T>,
+  SetState<T>,
+  IInsRenderInfo<T>,
+];
 
 /**
  * 区别于 useAtom，useAtomX 返回对象
@@ -289,12 +289,12 @@ export function useReactive<T = any>(
   sharedState: T,
   options?: IUseSharedStateOptions<T>,
 ): [
-    // 针对 atom，第一位 reactive 参数自动拆箱
-    T extends Atom ? T['val'] : T,
-    // 代表 reactiveRoot
-    T,
-    IInsRenderInfo,
-  ];
+  // 针对 atom，第一位 reactive 参数自动拆箱
+  T extends Atom ? T['val'] : T,
+  // 代表 reactiveRoot
+  T,
+  IInsRenderInfo,
+];
 
 export function useReactiveX<T = any>(sharedState: T, options?: IUseSharedStateOptions<T>): ICompReactiveCtx<T>;
 
@@ -358,13 +358,15 @@ export function useObject<T = Dict>(
  * 功能同 watch，默认首次不执行回调，故需要提前写清楚依赖，
  * 可在组件中使用 useWatch 来完成状态变化监听，会在组件销毁时自动取消监听，
  * 注意 useWatch 会调里不存在闭包陷阱，可总是获取到函数组件里的局部状态最新值
- * @example 依赖写在 deps 里，首次不执行
+ * @example
+ * 依赖写在 deps 里，首次不执行
  * ```
  *  useWatch(() => { // code... }, () => [sharedState.a]);
  *  // or
  *  useWatch(() => { // code... }, {deps: () => [sharedState.a]});
  * ```
- * @example 依赖写在回调里，首次执行回调收集到依赖，但不执行具体逻辑
+ * @example
+ * 依赖写在回调里，首次执行回调收集到依赖，但不执行具体逻辑
  * ```
  *  useWatch((params) => {
  *    // 此处收集到依赖
@@ -451,9 +453,29 @@ export function useDerived<R = DerivedDict | DerivedAtom>(
 ): [DerivedResultType<R>, LoadingStatus, IRenderInfo];
 
 /**
- * 组件里监听来自 emit 接口发射的事件，会在组件销毁时自动取消监听
+ * 组件里监听来自 emit 接口发射的事件，会在组件销毁时自动取消监听，监听回调总是能读到外部最新值，不存在闭包陷阱
+ * @param onBeforeMount - default: false，
+ * false：在组件的挂载后完成监听，true：在组件的挂载前完成监听
+ * @example
+ * ```jsx
+ * import { emit, useOnEvent } from 'helux';
+ *
+ * function emitEvent() {
+ *   emit('test_event', 1, 2);
+ * }
+ *
+ * function Comp() {
+ *   const [num, setNum] = React.useState(1);
+ *   const change = () => setNum(prev => prev + 1);
+ *   useOnEvent('test_event', (...args) => {
+ *     console.log('receive args ', ...args);
+ *     console.log('num is ', num); // 这里总是能读到外部最新值，不存在闭包陷阱
+ *   });
+ *   return <button onClick={change}>change {num}</button>;
+ * }
+ * ```
  */
-export function useOnEvent(name: string, cb: Fn): void;
+export function useOnEvent(name: string, cb: Fn, onBeforeMount?: boolean): void;
 
 export interface IObjApi<T> {
   setState: (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void;
@@ -477,6 +499,7 @@ export function useMutable<T extends PlainObject>(
 
 /**
  * 生成稳定的对象，对象的所有方法将转为稳定引用，且回调里始终可以读到外部的最新值，无闭包陷阱
+ * @example
  * ```ts
  * function Comp(props: any) {
  *   const [obj, setObj] = useObject({ num: 1 });
@@ -804,11 +827,11 @@ export declare function bindAtom<T extends any = any>(ClassComp: T, atomMap: IBi
 /**
  * 兼容 react 类组件使用 helux，可使用 withAtom 包裹目标类组件返回新的类组件，
  * helux 会将 atom 上下文字典注入到 this.props.hx 上，可主动赋值到类成员属性 hx 上方便使用
- * @example 透传单个 atom，通过 options.atom 参数传递
- * ```tsx
+ * @example
+ * ```jsx
  * import { atom, withAtom, assignThisHX } from 'helux';
  * const [numAtom] = atom({ num: 1, info: { addr: 'bj' } });
- * 
+ *
  * class DemoCls extends React.Component<any> {
  *   // 先声明，运行时会由 withAtom 将值注入到此属性上
  *   private hx = assignThisHX(this);
@@ -819,32 +842,34 @@ export declare function bindAtom<T extends any = any>(ClassComp: T, atomMap: IBi
  *
  * const IDemo = withAtom(DemoCls, { atom: numAtom });
  * ```
- * 
- * @example 透传多个 atom，通过 options.atoms 参数传递
- * ```tsx
+ *
+ * @example
+ * 透传多个 atom，通过 options.atoms 参数传递
+ * ```jsx
  * import { atom, withAtom, assignThisHX } from 'helux';
  *
  * const [numAtom] = atom({ num: 1, info: { addr: 'bj' } });
  * const [bookAtom] = atom({ name: 'book', list: [] });
- * 
- * class DemoCls extends React.Component<any> {
+ *
+ * class DemoCls extends React.Component {
  *   private hx = assignThisHX(this);
  *   addNum = () => {
  *     this.hx.num.setState((draft: any) => void (draft.num += 2));
  *   };
  *   render() {
  *     const { num: { state } } = this.hx;
- *     return <div>hello num {state.num}<button onClick={this.addNum}>add num</button></div>;
+ *     return <div>hello num {state.num}<button onClick={this.addNum}> add num </button></div>;
  *   }
  * }
  *
  * const IDemo = withAtom(DemoCls, { atoms: { num: numAtom, book: bookAtom } });
  * ```
- * 
- * @example 也支持既传 atom，又传 atoms
+ *
+ * @example
+ * 也支持既传 atom，又传 atoms
  * ```
  * const IDemo = withAtom(DemoCls, { atom: someAtom, atoms: { num: numAtom, book: bookAtom } });
- * 
+ *
  * // 在类组件里
  * // this.hx.atom 获取到 atom 对应上下文
  * // this.hx.atoms.num 和 this.hx.atoms.book 各自对应的 atom 对应上下文

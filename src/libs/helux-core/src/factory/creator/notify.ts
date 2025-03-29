@@ -63,7 +63,7 @@ export function execDepFns(opts: ICommitOpts) {
         continue;
       }
       const insCtx = insCtxMap.get(insKey);
-      // TODO 考虑是否加上次判断？
+      // TODO 考虑是否加上此判断？
       // if (!insCtx || insCtx.renderStatus === RENDER_START) {
       if (!insCtx) {
         continue;

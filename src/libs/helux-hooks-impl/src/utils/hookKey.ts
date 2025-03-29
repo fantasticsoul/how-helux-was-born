@@ -1,17 +1,16 @@
-
 export const KEY_COUNT = new Map<string, number>();
 
 let isDev: boolean = false;
 
 try {
-  isDev = process.env.NODE_ENV === "development";
+  isDev = process.env.NODE_ENV === 'development';
 } catch (err) {
-  console.log();
-  // slicent here
+  // silent here
+  console.log('ignored err:', err);
 }
 
-// @ts-ignore
-if (globalThis.__LOG_DEV__) {
+// @ts-ignore log helux associate params
+if (globalThis.__LOG_HP__) {
   console.log('isDev', isDev);
 }
 
@@ -27,7 +26,7 @@ function getKey(err: any) {
   const list = err.stack.split('\n');
   let key = '';
   for (const item of list) {
-    // 双调用第二次堆栈里 renderWithHooks 之后的信息都不一样，需从这里开始断掉，
+    // 双调用的第二次错误信息堆栈里 renderWithHooks 之后的信息都不一样，需从这里开始断掉，
     if (item.includes('renderWithHooks')) {
       break;
     }
@@ -44,7 +43,7 @@ export function getHookKey() {
   let key = '';
   try {
     // @see https://jsperf.app/try-catch-performance-jls/2
-    throw new Error("hook key");
+    throw new Error('hook key');
   } catch (err: any) {
     key = getKey(err);
     addCount(key);

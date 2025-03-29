@@ -15,7 +15,6 @@ export interface IUseDerivedLogicOptions {
   asyncType?: AsyncType;
   showLoading?: boolean;
   forAtom?: boolean;
-  beforeUpdate?: Fn;
 }
 
 interface IDeriveCtx {

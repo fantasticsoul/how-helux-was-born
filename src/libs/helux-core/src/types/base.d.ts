@@ -31,6 +31,25 @@ export type FnA<P extends ReadOnlyArr = ReadOnlyArr> = (...args: P) => void;
 
 export type Off = Fn;
 
+export type DictFn = Dict<Fn>;
+
+export interface IAtomLifecycle {
+  /**
+   * 第一个使用当前共享对象的组件实例将要挂载时触发 willMount
+   * willMount will be triggered before first ins of current atom will mount
+   */
+  willMount: () => void;
+  /**
+   * 第一个使用当前共享对象的组件实例挂载完毕触发 mounted
+   * mounted will be triggered before first ins of current atom mounted
+   */
+  mounted: () => void;
+  /**
+   * 最后一个使用当前共享对象的组件实例卸载前触发 willUnmount
+   * willUnmount will be triggered before last ins of current will unmount
+   */
+  willUnmount: () => void;
+}
 export interface ILocalStateApi<T> {
   setState: (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void;
   /** 返回最新的状态，可能会变化，适用于透传给子组件 */
@@ -50,8 +69,8 @@ export type UnconfirmedArg = ValidArg | void;
 /** 调用时如未指定具体 payload 类型，收窄为 UnconfirmedArg，让用户不传递也能类型校验通过 */
 export type PayloadType<P extends Dict | undefined = undefined, K = any> = P extends Dict
   ? K extends keyof P
-  ? P[K]
-  : UnconfirmedArg
+    ? P[K]
+    : UnconfirmedArg
   : UnconfirmedArg;
 
 // use Awaited instead
@@ -689,8 +708,8 @@ export type SyncFnBuilder<T = SharedState, V = any> = (
 
 export type Syncer<T = SharedState> = T extends Atom | ReadOnlyAtom
   ? T['val'] extends Primitive
-  ? SyncerFn
-  : { [key in keyof T['val']]: SyncerFn }
+    ? SyncerFn
+    : { [key in keyof T['val']]: SyncerFn }
   : { [key in keyof T]: SyncerFn };
 
 export type SafeLoading<T = SharedState, O extends ICreateOptions<T> = ICreateOptions<T>> = O['mutate'] extends MutateFnDict<T>
@@ -699,8 +718,8 @@ export type SafeLoading<T = SharedState, O extends ICreateOptions<T> = ICreateOp
 
 type FnResultType<T extends PlainObject | DeriveFn> = T extends PlainObject
   ? T['fn'] extends Fn
-  ? DerivedAtom<ReturnType<T['fn']>>
-  : DerivedAtom<any>
+    ? DerivedAtom<ReturnType<T['fn']>>
+    : DerivedAtom<any>
   : T extends DeriveFn
   ? DerivedAtom<ReturnType<T>>
   : DerivedAtom<any>;
@@ -795,8 +814,8 @@ type DefineFullDerive<T extends JSONDict = JSONDict> = <DR extends DepsResultDic
    * 加上 & Dict 是为了支持用户配置 DR 之外的其他结果，不严格要求所有结果 key 都需要在 DR 里定义类型
    */
   D extends DR extends DepsResultDict
-  ? MultiDeriveFn<DR> & Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>
-  : Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>,
+    ? MultiDeriveFn<DR> & Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>
+    : Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>,
 >(
   deriveFnDict: D | ((boundStateInfo: IBoundStateInfo<T>) => D),
 ) => {
@@ -1087,8 +1106,8 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
     throwErr?: boolean,
   ) => <
     D extends Dict<Fn> = P extends Dict
-    ? { [K in keyof P]: ActionTask<T, P[K]> } & { [K in string]: ActionTask<T, UnconfirmedArg> }
-    : { [K in string]: ActionTask<T, UnconfirmedArg> },
+      ? { [K in keyof P]: ActionTask<T, P[K]> } & { [K in string]: ActionTask<T, UnconfirmedArg> }
+      : { [K in string]: ActionTask<T, UnconfirmedArg> },
   >(
     /** action 函数定义字典集合 */
     actionFnDefs: D,
@@ -1127,6 +1146,7 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
     useLoading: () => Ext<LoadingState<D>>;
     useLoadingInfo: () => [Ext<LoadingState<D>>, SetState<LoadingState>, IInsRenderInfo];
   };
+  defineLifecycle: (lifecycle: IAtomLifecycle) => void;
 }
 
 export interface ISharedCtx<T extends JSONDict = JSONDict> extends ISharedStateCtxBase<T> {
@@ -1403,8 +1423,6 @@ export interface IInnerUseSharedOptions<T = any> extends IUseSharedStateOptions<
   globalId?: NumStrSymbol;
   forAtom?: boolean;
   isReactive?: boolean;
-  beforeUpdate?: Fn;
-  forClass?: boolean;
 }
 
 export interface ISetStateOptions {
@@ -1645,12 +1663,6 @@ export interface ICompAtomCtx<T = any> extends IRenderInfo<T> {
   setState: SetState<T>;
 }
 
-export interface IClassCompAtomCtx<T = any> extends IRenderInfo<T> {
-  state: T;
-  setState: SetState<T>;
-  insCtx: any;
-}
-
 export interface IInsRenderInfo<T = any> extends IFnRenderInfo {
   isAtom: boolean;
   snap: any;
@@ -1762,7 +1774,6 @@ export interface IUseDerivedOptions {
    * ```
    */
   showLoading?: boolean;
-  beforeUpdate?: () => void;
 }
 
 export interface IWatchAndCallMutateDictOptions<T = SharedState> {
@@ -1884,6 +1895,16 @@ export interface IBindAtomOptions {
    * memo 为 true 时，透传给 React.memo 接口的比较 props 函数，不设置此函数时，默认走 react 内置的浅比较函数
    */
   propsAreEqual?: (prevProps: Dict, nextProps: Dict) => boolean;
+  /**
+   * 包裹组件渲染崩溃时的降级渲染视图，如用户未定义，将使用内置的降级视图
+   * <span>HeluxAtomComp render error: {err?.message || 'error occurred'}</span>
+   */
+  fallback?: (error: Error, errInfo: any) => any;
+  /**
+   * deufalt: false，
+   * 目标组件渲染崩溃时，是否在重渲染期间重建视图
+   */
+  rebuild?: boolean;
 }
 
 export interface IWithAtomOptions extends IBindAtomOptions {
@@ -1915,17 +1936,13 @@ type DefaultClassAtom = {
    * if no atom supplied to withAtoms, helux will give a default atom object { tip: 'default atom' }
    * to make sure user can call hx.atom.xxx safely
    */
-  tip: 'default atom',
-}
+  tip: 'default atom';
+};
 
 /**
  * 通过具体的 atoms、derived 推导出 hx 类型
  */
-export type HXTypeByAD<
-A = any,
-AS extends Dict<any> = Dict<any>,
-DS extends Dict<any> = Dict<any>,
-> = {
+export type HXTypeByAD<A = any, AS extends Dict<any> = Dict<any>, DS extends Dict<any> = Dict<any>> = {
   atom: {
     state: A extends ReadOnlyAtom ? AtomValType<A> : A;
     setState: SetState<A>;
@@ -1936,19 +1953,21 @@ DS extends Dict<any> = Dict<any>,
     sn: 0;
     getDeps: () => string[];
     getPrevDeps: () => string[];
-  },
-  atoms: AS extends Dict ? {
-    [K in keyof AS]: {
-      state: AS[K] extends ReadOnlyAtom ? AtomValType<AS[K]> : AS[K];
-      setState: SetState<AS[K]>;
-      time: number;
-      isAtom: boolean;
-      setDraft: SetDraft<AS[K]>;
-      insKey: 0;
-      sn: 0;
-      getDeps: () => string[];
-      getPrevDeps: () => string[];
-    };
-  } : {};
+  };
+  atoms: AS extends Dict
+    ? {
+        [K in keyof AS]: {
+          state: AS[K] extends ReadOnlyAtom ? AtomValType<AS[K]> : AS[K];
+          setState: SetState<AS[K]>;
+          time: number;
+          isAtom: boolean;
+          setDraft: SetDraft<AS[K]>;
+          insKey: 0;
+          sn: 0;
+          getDeps: () => string[];
+          getPrevDeps: () => string[];
+        };
+      }
+    : {};
   deriveds: DS extends Dict ? { [K in keyof DS]: DerivedResultType<DS[K]> } : {};
 };

@@ -1,7 +1,7 @@
 import type { ApiCtx, Dict, PartialStateCb } from '@helux/types';
 import { isFn } from '@helux/utils';
-import { useStable } from './useStable';
 import { useForceUpdate } from './useForceUpdate';
+import { useStable } from './useStable';
 
 interface IObjApi<T> {
   setState: (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void;
@@ -28,7 +28,8 @@ export function useObjectLogic<T extends object = Dict>(
   const api: IObjApi<T> = useStable(apiCtx, {
     setState(partialStateOrCb: any) {
       const cur = logicRef.current;
-      if (cur.unmount) { // already unmounted
+      if (cur.unmount) {
+        // already unmounted
         return;
       }
       let partial;
@@ -80,14 +81,11 @@ export function useObjectLogic<T extends object = Dict>(
  * 1 方便定义多个状态值时，少写很多 useState
  * 2 内部做了 unmount 判断，让异步函数也可以安全的调用 setState，避免 react 出现警告 :
  * "Called SetState() on an Unmounted Component" Errors
- * 3 可调用 useObject(xxState, true) 让元组第一位参数返回稳定引用
+ * 3 默认返回稳定引用状态
  * ```
  * @param initialState
  * @returns
  */
-export function useObject<T extends object = Dict>(
-  apiCtx: ApiCtx,
-  initialState: T | (() => T),
-) {
+export function useObject<T extends object = Dict>(apiCtx: ApiCtx, initialState: T | (() => T)) {
   return useObjectLogic(apiCtx, initialState);
 }

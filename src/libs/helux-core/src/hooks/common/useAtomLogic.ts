@@ -1,5 +1,5 @@
 import type { Fn } from 'helux';
-import { RENDER_START, RENDER_END } from '../../consts';
+import { RENDER_END, RENDER_START } from '../../consts';
 import type { InsCtxDef } from '../../factory/creator/buildInternal';
 import { INS_CTX } from '../../factory/creator/current';
 import { buildInsCtx } from '../../helpers/insCtx';
@@ -7,9 +7,7 @@ import { resetDepHelpData, updateDep } from '../../helpers/insDep';
 import { getInternal } from '../../helpers/state';
 import type { CoreApiCtx } from '../../types/api-ctx';
 import type { Dict, IInnerUseSharedOptions, IInsRenderInfo } from '../../types/base';
-import {
-  checkAtom, checkStateVer, delInsCtx, isSharedKeyChanged, prepareTuple, recoverInsCtx,
-} from './shared';
+import { checkAtom, checkStateVer, delInsCtx, isSharedKeyChanged, prepareTuple, recoverInsCtx } from './shared';
 import { useSync } from './useSync';
 
 // for skip ts check out of if block
@@ -37,6 +35,12 @@ function useInsCtx<T = Dict>(apiCtx: CoreApiCtx, sharedState: T, options: IInner
  */
 function useClearEffect(apiCtx: CoreApiCtx, insCtx: InsCtxDef) {
   apiCtx.react.useEffect(() => {
+    const { lifecycle } = insCtx.internal;
+    if (lifecycle.shouldCallMounted) {
+      lifecycle.mounted();
+      lifecycle.shouldCallMounted = false;
+    }
+
     insCtx.isFirstRender = false;
     INS_CTX.del(insCtx.rootVal);
     // 设定了 options.collect='first' 则首轮渲染结束后标记不能再收集依赖，阻值后续新的渲染流程里继续收集依赖的行为

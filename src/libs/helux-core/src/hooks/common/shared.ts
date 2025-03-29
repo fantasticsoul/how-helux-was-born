@@ -68,8 +68,12 @@ export function recoverInsCtx(insCtx: InsCtxDef) {
 
 export function delInsCtx(insCtx: InsCtxDef) {
   insCtx.mountStatus = UNMOUNT;
-  const { id, globalId, insKey } = insCtx;
-  insCtx.internal.delId(id, insKey);
+  const { id, globalId, insKey, internal } = insCtx;
+  internal.delId(id, insKey);
+  internal.insCount -= 1;
+  if (internal.insCount === 0) {
+    internal.lifecycle.willUnmount();
+  }
   delGlobalId(globalId, insKey);
   clearDep(insCtx);
 }

@@ -29,7 +29,7 @@
 // export { default as MutateFn } from './MutateFn';
 // export { default as DeriveTask } from './DeriveTask';
 // export { default as DeriveTask2 } from './DeriveTask2';
-// export { default as EmitAndOn } from './EmitAndOn';
+export { default as EmitAndOn } from './EmitAndOn';
 // export { default as UseEffect } from './UseEffect';
 export { default as WithAtoms } from './WithAtoms';
 // export { default as UseObject } from './UseObject';
@@ -101,4 +101,4 @@ export {
 
 // export * from './scenes';
 
-export const INITIAL_KEY = 'WithAtoms';
+export const INITIAL_KEY = 'EmitAndOn';

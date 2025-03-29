@@ -76,10 +76,6 @@ export function attachInsProxyState(insCtx: InsCtxDef) {
 
       const depKey = getDepKeyByPath(fullKeyPath, sharedKey);
       const depKeyInfo = { depKey, keyPath: fullKeyPath, parentKeyPath: keyPath, sharedKey };
-      // console.trace(opParams.op, fullKeyPath);
-      if (fullKeyPath.length === 1) {
-        // console.trace(opParams.op, fullKeyPath);
-      }
       collectDep(insCtx, depKeyInfo, { parentType, rawVal });
     };
 
@@ -274,6 +270,12 @@ export function buildInsCtx(options: Ext<IInnerUseSharedOptions>): InsCtxDef {
 
   internal.mapInsCtx(insCtx, insKey);
   internal.recordId(id, insKey);
+  internal.insCount += 1;
+  if (internal.insCount === 1) {
+    const { lifecycle } = internal;
+    lifecycle.willMount();
+    lifecycle.shouldCallMounted = true;
+  }
 
   // 首次渲染执行一次依赖项补充函数，并记录为固定依赖项
   if (isFn(deps)) {
