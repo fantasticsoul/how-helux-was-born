@@ -1,46 +1,46 @@
 import React from 'react';
 import './App.css';
-import * as demos from '../demos';
+import { useAutoSwitchComp, keySubKeys, getInitialKey, entryKeys, renderView } from './util';
 
 const stLabel: React.CSSProperties = { padding: '0 12px' };
-const compKeys = Object.keys(demos).filter(key => key !== 'INITIAL_KEY');
-let initialKey = demos.INITIAL_KEY;
-if (!compKeys.includes(initialKey)) {
-  initialKey = compKeys[0];
-}
-
-function renderView(key: string) {
-  // @ts-ignore
-  const Comp = demos[key];
-  return <Comp />;
-}
 
 function App() {
-  const [viewKey, setView] = React.useState(initialKey);
-  const changeView: React.ChangeEventHandler<HTMLInputElement> = (e) => setView(e.target.value);
-  const viewKeyRef = React.useRef(viewKey);
-  viewKeyRef.current = viewKey;
+  const initialKey = getInitialKey();
+  const [mainKey, setMainKey] = React.useState(initialKey);
+  const [subKey, setSubKey] = React.useState(initialKey);
+  const changeMainKey: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const mainKey = e.target.value;
+    setMainKey(mainKey);
+    setSubKey(keySubKeys[mainKey][0]);
+  }
+  const changeSubKey: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const subKey = e.target.value;
+    setSubKey(subKey);
+  }
+  const viewKeyRef = React.useRef([mainKey, subKey]);
+  viewKeyRef.current = [mainKey, subKey];
 
-  // React.useEffect(() => {
-  //   setInterval(() => {
-  //     const idx = compKeys.indexOf(viewKeyRef.current);
-  //     const nextIdx = idx === compKeys.length - 1 ? 0 : idx + 1;
-  //     setView(compKeys[nextIdx]);
-  //     console.log(`change to ${compKeys[nextIdx]}`);
-  //   }, 30);
-  // }, [viewKeyRef]);
+  // useAutoSwitchComp(viewKeyRef, setMainKey, setSubKey);
 
   return (
-    <div style={{ padding: '12px' }}>
-      <div style={{ padding: '12px' }}>
-        {compKeys.map(key => (
+    <div style={{ padding: '3px' }}>
+      <div style={{ padding: '3px' }}>
+        dir: {entryKeys.map(key => (
           <label key={key} style={stLabel}>
-            <input name="demo" type="radio" checked={key === viewKey} value={key} onChange={changeView} />
+            <input name="main" type="radio" checked={key === mainKey} value={key} onChange={changeMainKey} />
             {key}
           </label>
         ))}
       </div>
-      {renderView(viewKey)}
+      <div style={{ borderTop: '1px solid gray' }}>
+        comp: {keySubKeys[mainKey].map((key: string) => (
+          <label key={key} style={stLabel}>
+            <input name="sub" type="radio" checked={key === subKey} value={key} onChange={changeSubKey} />
+            {key}
+          </label>
+        ))}
+      </div>
+      {renderView(mainKey, subKey)}
     </div>
   );
 }

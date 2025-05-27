@@ -104,10 +104,10 @@ export {
 
 // export * from './scenes';
 
-// export { BestPractice } from './best-practice/BestParctice';
-// export { BestParctice2 } from './best-practice/BestParctice2';
-// export { BestParcticeLayered } from './best-practice/BestParcticeLayered';
-// export { DefineStoreDemo } from './best-practice/Best1/Comp';
+export { BestPractice } from './best-practice/BestParctice';
+export { BestParctice2 } from './best-practice/BestParctice2';
+export { BestParcticeLayered } from './best-practice/BestParcticeLayered';
+export { DefineStoreDemo } from './best-practice/Best1/Comp';
 // export { RawHelux as DefineStoreDemo } from './best-practice/RawHelux/Comp';
 
 // BestParctice2 BestParcticeLayered RawHelux
