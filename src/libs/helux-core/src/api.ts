@@ -1,6 +1,7 @@
 import { limuUtils, markRaw, produce } from 'limu';
 import { assignThisHX, bindAtom, getHX, makeWithAtomOptions, withAtom } from './class';
 import { EVENT_NAME, LIMU_VER, RECORD_LOADING, VER } from './consts/user';
+import { defineStore } from './factory/advance/defineStore';
 import { getAtom, isAtom, isDerivedAtom, isDerivedResult, isSharedState } from './factory/common/atom';
 import { addMiddleware } from './factory/common/middleware';
 import { addPlugin } from './factory/common/plugin';
@@ -36,7 +37,7 @@ import {
   useWatch,
   useWatchEffect,
 } from './hooks';
-import { block, dynamicBlock, signal } from './signal';
+import { block, dynamicBlock, getBlockParams, signal, SignalView, BlockView } from './signal';
 
 const { shallowCompare, isDiff, isDraft } = limuUtils;
 const createShared = share; // for compatible wit v2 helux
@@ -56,6 +57,7 @@ export {
   share,
   sharex,
   createShared,
+  defineStore,
   // derive api
   derive,
   deriveDict,
@@ -95,6 +97,9 @@ export {
   signal,
   block,
   dynamicBlock,
+  getBlockParams,
+  SignalView,
+  BlockView,
   // mutate api
   mutate,
   mutateDict,

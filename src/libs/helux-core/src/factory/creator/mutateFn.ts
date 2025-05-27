@@ -1,5 +1,5 @@
 import type { Dict } from '@helux/types';
-import { enureReturnArr, isPromise, noop } from '@helux/utils';
+import { enureReturnArr, isPromise, noop, noopAny } from '@helux/utils';
 import { FROM, SCOPE_TYPE } from '../../consts';
 import { getRunningFn, getSafeFnCtx } from '../../factory/common/fnScope';
 import { emitErr } from '../../factory/common/plugin';
@@ -14,6 +14,7 @@ import { getInternal } from '../../helpers/state';
 import type {
   ActionAsyncReturn,
   ActionReturn,
+  ActionReturnInner,
   Fn,
   From,
   IMutateFnStdItem,
@@ -23,8 +24,6 @@ import type {
 } from '../../types/base';
 import { createWatchLogic } from '../createWatch';
 import { buildReactive, flushActive, innerFlush } from './reactive';
-
-const noopAny: any = () => {};
 
 interface ICallMutateBase {
   /** 透传给用户 */
@@ -39,13 +38,16 @@ interface ICallMutateBase {
 
 interface ICallMutateFnOpt<T = SharedState> extends ICallMutateBase {
   /** fn 函数调用入参拼装 */
-  getArgs?: (param: { draft: T; draftRoot: T; setState: Fn; desc: string; input: any[]; extraArgs: any }) => any[];
+  getArgs?: (param: { draft: T; draftRoot: T; setState: Fn; desc: string; input: any[]; extraArgs: any, extra: any }) => any[];
+  getPayloadArgs?: () => any;
 }
 
 interface ICallAsyncMutateFnOpt extends ICallMutateBase {
   mergeReturn?: boolean;
   /** task 函数调用入参拼装，暂不像同步函数逻辑那样提供 draft 给用户直接操作，用户必须使用 setState 修改状态 */
   getArgs?: (param: { flush: any; draft: any; draftRoot: any; desc: string; setState: Fn; input: any[] }) => any[];
+  getPayloadArgs?: () => any;
+  skipResolve?: boolean;
 }
 
 const taskProm = new Map<any, boolean>();
@@ -67,18 +69,24 @@ function getInput(internal: TInternal, fnItem: IMutateFnStdItem) {
  * task 是否是一个异步函数，首次执行完毕即可分析得到结果并缓存到 taskProm 中
  */
 export function isTaskProm(task: any) {
-  return taskProm.get(task) ?? false;
+  return taskProm.get(task);
 }
 
 /** 呼叫异步函数的逻辑封装，mutate task 执行或 action 定义的函数（同步或异步）执行都会走到此逻辑 */
-export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options: ICallAsyncMutateFnOpt): ActionReturn | ActionAsyncReturn {
-  const { sn, getArgs = noop, from, throwErr, isFirstCall, fnItem, mergeReturn, extraArgs } = options;
+export function callAsyncMutateFnLogic<T = SharedState>(
+  targetState: T,
+  options: ICallAsyncMutateFnOpt,
+): Promise<ActionReturnInner> | ActionReturnInner {
+  const { sn, getArgs = noop, getPayloadArgs = noop, from, throwErr, isFirstCall, fnItem, mergeReturn, extraArgs, skipResolve } = options;
   const { desc = '', depKeys, task = noopAny, extraBound } = fnItem;
   const internal = getInternal(targetState);
-  const { sharedKey } = internal;
+  const { sharedKey, userExtra: extra } = internal;
   const customOptions: ISetFactoryOpts = { desc, sn, from };
   const statusKey = getStatusKey(from, desc);
-  const { draft, draftRoot } = buildReactive(internal, { depKeys, desc, from });
+
+  const payloadArgs = getPayloadArgs();
+  // 这里透传给 buildReactive 的 payload，后续会继续透传给 devtool
+  const { draft, draftRoot } = buildReactive(internal, { depKeys, desc, from, payloadArgs });
   const flush = (desc: string) => {
     innerFlush(sharedKey, desc);
   };
@@ -94,12 +102,13 @@ export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options:
   };
 
   const input = FROM.MUTATE === from ? getInput(internal, fnItem) : [];
-  const defaultParams = { isFirstCall, desc, setState, input, draft, draftRoot, flush, extraBound, extraArgs };
+  const defaultParams = { isFirstCall, desc, setState, input, draft, draftRoot, flush, extraBound, extraArgs, extra };
   const args = getArgs(defaultParams) || [defaultParams];
-  const isProm = taskProm.get(task);
-  const isUnconfirmedFn = isProm === undefined;
+
+  const isTaskFnProm = taskProm.get(task);
+  const isUnconfirmedFn = isTaskFnProm === undefined;
   const setStatus = (loading: boolean, err: any, ok: boolean) => {
-    if (isUnconfirmedFn || isProm) {
+    if (isUnconfirmedFn || isTaskFnProm) {
       /**
        * 异步函数调用发起前已调用 markFnEnd 来结束依赖收集行为，
        * 之前未结束这里会造成死循环（ 注：禁止异步函数依赖收集本就是合理行为 ）
@@ -113,52 +122,71 @@ export function callAsyncMutateFnLogic<T = SharedState>(targetState: T, options:
   };
 
   setStatus(true, null, false);
-  const handleErr = (err: any): ActionReturn => {
+  const handleErr = (err: any): ActionReturnInner => {
     FN_DEP_KEYS.del();
     setStatus(false, err, false);
     if (throwErr) {
       throw err;
     }
-    return { snap: internal.snap, err, result: null };
+    return { snap: internal.snap, err, result: null, setStatus };
   };
-  const handlePartial = (partial: any): ActionReturn => {
+  const handlePartial = (partial: any): ActionReturnInner => {
     // 来自 mutate 调用时，task 返回结果自动合并
     if (mergeReturn) {
       partial && setState(partial);
     }
-    setStatus(false, null, true);
+    // 没有透传 skipResolve 时，才能在这里主动标记 loading 为 false
+    // 否则需要在外部自己去标记，如 wrapAndMapAction 里
+    if (!skipResolve) {
+      setStatus(false, null, true);
+    }
     // 这里需要主动 flush 一次，让返回的 snap 是最新值（ flush 内部会主动判断 reactive 是否已过期，不会有冗余的刷新动作产生 ）
     // const nextState = actions.xxxMethod(); //  nextState 为最新值
     // 同时多个 action 组合使用时，下一个 action 可自动获取到最新的 draft
     flush(desc);
-
-    return { snap: internal.snap, err: null, result: partial };
+    // TODO  add afterAction lifecycle
+    return { snap: internal.snap, err: null, result: partial, setStatus };
   };
+  const handlePromResult = (result: any) => Promise.resolve(result).then(handlePartial).catch(handleErr);
 
   try {
+    // TODO  add boforeAction lifecycle
     const result = task(...args);
-    // is result a promise
-    const isProm = isPromise(result);
-    // 注：只能从结果判断函数是否是 Promise，因为编译后的函数很可能再套一层函数
-    taskProm.set(task, isProm);
-    if (isProm) {
-      return Promise.resolve(result).then(handlePartial).catch(handleErr);
+    const isResultProm = isPromise(result);
+    // 还未确定 task 是不是 promise 函数时，只能从结果判断函数是否是 Promise，因为编译后的函数很可能再套一层函数
+    if (isUnconfirmedFn) {
+      taskProm.set(task, isPromise(result));
     }
-    return handlePartial(result);
+
+    if (
+      // skipResolve=true，表示外部主动 resolve（ wrapAndMapAction ）且设置了 mergeReturn=false ，这里可直接调用 handlePartial
+      // 避免一次多余的错误日志漏到 react-dev-tool 的 hook 脚本里打印
+      skipResolve
+      // 已确定了结果为非 promise 对象时，调用 handlePartial 即可
+      || !isResultProm
+    ) {
+      // 这里 result 可能是一个 rejected 的 Promise
+      // wrapAndMapAction 里会进一步处理
+      return handlePartial(result);
+    }
+
+    return handlePromResult(result);
   } catch (err) {
+    // 能在此处捕捉到错误，说明 task 是一个同步函数
+    taskProm.set(task, false);
     return handleErr(err);
   }
 }
 
 /** 呼叫同步函数的逻辑封装 */
 export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICallMutateFnOpt<T>): ActionReturn {
-  const { sn, getArgs = noop, from, throwErr, isFirstCall = false, fnItem, extraArgs } = options;
+  const { sn, getArgs = noop, getPayloadArgs = noop, from, throwErr, isFirstCall = false, fnItem, extraArgs } = options;
   const { desc = '', watchKey, fn = noopAny, extraBound } = fnItem;
   const isMutate = FROM.MUTATE === from;
   isMutate && TRIGGERED_WATCH.set(watchKey);
 
   const internal = getInternal(targetState);
-  const { setStateFactory, forAtom, sharedRoot } = internal;
+  const { setStateFactory, forAtom, sharedRoot, userExtra: extra } = internal;
   // 第一次执行时开启依赖收集
   const enableDep = isMutate && isFirstCall;
   const setFactoryOpts: ISetFactoryOpts = { desc, sn, from, isFirstCall, enableDep };
@@ -166,16 +194,16 @@ export function callMutateFnLogic<T = SharedState>(targetState: T, options: ICal
   // 调用函数形如：(draft)=>draft.xxx+=1; 或 (draft, input)=>draft.xxx+=input[0]
   const setState: any = (cb: any) => {
     const { finish } = setStateFactory(setFactoryOpts); // 继续透传 sn from 等信息
-    return finish(cb);
+    return finish(cb, { from, desc, payloadArgs: getPayloadArgs() });
   };
 
   const state = getStateNode(sharedRoot, forAtom);
   const input = isMutate ? getInput(internal, fnItem) : [];
   const { draftNode: draft, draftRoot, finish } = setStateFactory(setFactoryOpts);
   // getArgs 由 createAtion 提供
-  const args = getArgs({ draft, draftRoot, setState, desc, input, extraArgs }) || [
+  const args = getArgs({ draft, draftRoot, setState, desc, input, extraArgs, extra }) || [
     draft,
-    { input, state, draftRoot, isFirstCall, extraBound, extraArgs },
+    { input, state, draftRoot, isFirstCall, extraBound, extraArgs, extra },
   ];
 
   try {

@@ -3,6 +3,27 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { useMutable } from "helux";
 
+const { produce, createDraft, finishDraft } = require('limu');
+const data = {
+  list: [],
+}
+const newData = produce(data, draft => {
+  draft.list.push({
+    name: '1',
+    p: 500,
+  });
+  draft.list.sort((a, b) => b.p ?? 100 - a.p ?? 100);
+});
+console.log(newData);
+const draft = createDraft(newData);
+draft.list.push({
+  name: '2',
+  p: 1000,
+});
+draft.list.sort((a, b) => (b.p ?? 100) - (a.p ?? 100));
+const x = finishDraft(draft);
+console.log(x);
+
 function App1(props) {
   console.log("Render App1");
   const [person, updatePerson] = props.useHook({

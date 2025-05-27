@@ -33,7 +33,7 @@ export function buildInternal(
     isDeep: boolean;
   },
 ) {
-  const { rawState, forAtom } = parsedOptions;
+  const { rawState, forAtom, before, onRead } = parsedOptions;
   const insCtxMap = new Map<number, InsCtxDef>();
   const key2InsKeys: KeyInsKeysDict = {};
   // id --> insKeys
@@ -44,6 +44,9 @@ export function buildInternal(
   if (forAtom) {
     rawStateVal = rawState.val;
   }
+  const hasBeforeCommit = before !== noop;
+  // 确保 extra 为内部持有的引用
+  const userExtra: Dict = Object.assign({}, parsedOptions.extra);
 
   return {
     ver: 0,
@@ -74,8 +77,16 @@ export function buildInternal(
       willMount: noop,
       mounted: noop,
       willUnmount: noop,
+      // 5.0 之后，将之前的 before 迁移到 lifecycle 里，同时用户透传的 lifecycle.beforeCommit 也会合并到此处
+      beforeCommit: before,
+      afterCommit: noop,
+      // 5.2 之后，将之前的 onRead 迁移到 lifecycle 里，同时用户透传的 lifecycle.onRead 也会合并到此处
+      onRead,
+      onWrite: noop,
       /** 严格模式下，在 effect 里判断 insCount=1 是失败的，需提前标记此变量，确保 mounted 触发 */
       shouldCallMounted: false,
+      // 优化 beforeCommit 执行效率
+      hasBeforeCommit,
     },
     recordId(id: NumStrSymbol, insKey: number) {
       if (!id) return;
@@ -99,7 +110,8 @@ export function buildInternal(
     delInsCtx(insKey: number) {
       insCtxMap.delete(insKey);
     },
-    extra: {} as Dict, // 记录一些需复用的中间生成的数据
+    userExtra, // 用户使用的 extra 数据
+    extra: {} as Dict, // 内部使用的 extra 数据
     loadingInternal: fakeInternal,
     level1ArrKeys,
   };

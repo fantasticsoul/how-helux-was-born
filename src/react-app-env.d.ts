@@ -129,7 +129,10 @@ declare module 'helux' {
     signal,
     block,
     dynamicBlock,
+    getBlockParams,
     $,
+    SignalView,
+    BlockView,
     // mutate api
     mutate,
     mutateDict,

@@ -1,4 +1,4 @@
-import { $, share, atom, derive, deriveDict, block } from 'helux';
+import { $, share, atom, derive, deriveDict, block, getBlockParams } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from "./logic/util";
@@ -121,7 +121,8 @@ function CbView() {
   );
 }
 
-const AsyncBlock = block((props, params) => {
+const AsyncBlock = block((props) => {
+  const params = getBlockParams(props);
   const { status } = params;
   const [val1, val2, val3, val4] = params.read(doubleNum.val, numAtom.val, sharedState.a, aPlusB2Result.val);
   console.log(props);

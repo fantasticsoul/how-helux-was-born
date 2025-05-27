@@ -1,4 +1,4 @@
-import { noop, noopArr } from '@helux/utils';
+import { noop, noopAny, noopArr } from '@helux/utils';
 import { IOperateParams } from 'limu';
 import { ASYNC_TYPE, FROM, NOT_MOUNT, RENDER_START } from '../../consts';
 import type { From, IFnCtx, IMutateCtx, IMutateFnStdItem, ISetFactoryOpts, OnOperate } from '../../types/base';
@@ -8,22 +8,22 @@ import { genRenderSN } from './key';
 const { MAY_TRANSFER } = ASYNC_TYPE;
 const { SET_STATE, REACTIVE } = FROM;
 const fakeGetReplaced = () => ({ isReplaced: false, replacedValue: null as any });
-const noopAny: (...args: any[]) => any = () => {};
 
 const fnItem = newMutateFnItem({ isFake: true });
 
 export interface IBuildReactiveOpts {
   isTop?: boolean;
   depKeys?: string[];
-  desc?: string;
+  desc: string;
   onRead?: OnOperate;
-  from?: From;
+  from: From;
   expired?: boolean;
   insKey?: number;
+  payloadArgs?: any;
 }
 
 export function newReactiveMeta(draft: any, buildOptions: IBuildReactiveOpts, finish: any = noop): IReactiveMeta {
-  const { desc = '', onRead, from = REACTIVE, depKeys = [], isTop = false, expired = false, insKey = 0 } = buildOptions;
+  const { desc = '', onRead, from = REACTIVE, depKeys = [], isTop = false, expired = false, insKey = 0, payloadArgs } = buildOptions;
   return {
     draft,
     finish,
@@ -43,12 +43,14 @@ export function newReactiveMeta(draft: any, buildOptions: IBuildReactiveOpts, fi
     onRead,
     from,
     insKey,
+    payloadArgs,
   };
 }
 
 export function newMutateCtx(options: ISetFactoryOpts): IMutateCtx {
   const {
     ids = [],
+    rkey = '',
     globalIds = [],
     isReactive = false,
     from = SET_STATE,
@@ -60,6 +62,7 @@ export function newMutateCtx(options: ISetFactoryOpts): IMutateCtx {
   } = options;
   return {
     fnKey: '',
+    rkey,
     depKeys: [],
     forcedDepKeys: [],
     triggerReasons: [],
@@ -77,6 +80,7 @@ export function newMutateCtx(options: ISetFactoryOpts): IMutateCtx {
     sn,
     isFirstCall,
     desc,
+    payloadArgs: undefined,
   };
 }
 

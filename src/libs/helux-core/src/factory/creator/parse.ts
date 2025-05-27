@@ -1,11 +1,24 @@
-import { canUseDeep, enureReturnArr, isDebug, isFn, isJsObj, isObj, nodupPush, noop, noopArr, safeObjGet, setNoop } from '@helux/utils';
+import {
+  canUseDeep,
+  enureReturnArr,
+  isDebug,
+  isFn,
+  isJsObj,
+  isObj,
+  isPlainObj,
+  nodupPush,
+  noop,
+  noopArr,
+  safeObjGet,
+  setNoop,
+} from '@helux/utils';
 import { immut } from 'limu';
 import { FROM, MUTATE_FN_ITEM, RECORD_LOADING, SINGLE_MUTATE, STATE_TYPE, STOP_ARR_DEP, STOP_DEPTH } from '../../consts';
 import { createOb, injectHeluxProto } from '../../helpers/obj';
 import { getSharedKey, markSharedKey } from '../../helpers/state';
 import type { CoreApiCtx } from '../../types/api-ctx';
 import type {
-  BlockOptionsType,
+  BlockOptionsWithReadType,
   Dict,
   IBlockOptions,
   ICreateOptions,
@@ -187,7 +200,8 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
   const rules = options.rules || [];
   const before = options.before || noop;
   const mutate = options.mutate || noop;
-  const onRead = options.onRead || undefined;
+  const onRead = options.onRead || noop;
+  const extra = isPlainObj(options.extra) ? options.extra : {};
   // 后续 parseRules 步骤会转 stopArrDep stopDepth 到 stopDepInfo 上
   const stopArrDep = options.stopArrDep ?? true;
   const stopDepth = options.stopDepth || STOP_DEPTH;
@@ -204,6 +218,7 @@ export function parseOptions(innerOptions: IInnerOptions, options: ICreateOption
     isDestroyed: false,
     alertDeadCycleErr,
     checkDeadCycle,
+    extra,
     rawState,
     sharedKey,
     sharedKeyStr,
@@ -349,13 +364,19 @@ export function parseWatchOptions(forEffect: boolean, options?: WatchOptionsType
   return { immediate, deps };
 }
 
-export function parseBlockOptions(options?: BlockOptionsType): IBlockOptions {
+export function parseBlockOptions(options?: BlockOptionsWithReadType, shouldUseRead?: boolean): IBlockOptions {
   if (!options) return {};
   if (typeof options === 'boolean') {
     return { enableStatus: options };
   }
-  if (isObj(options)) {
-    return options;
+  if (!isPlainObj(options)) {
+    return {};
   }
-  return {};
+
+  if (!shouldUseRead) {
+    // 剔除可能包含的 read 函数，因此函数值允许由内部的 signal 调用来传递
+    const { read, ...rest } = options;
+    return rest;
+  }
+  return options;
 }

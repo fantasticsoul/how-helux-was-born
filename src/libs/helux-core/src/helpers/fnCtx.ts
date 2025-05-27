@@ -1,4 +1,5 @@
-import { delListItem, includeOne, matchDictKey, nodupPush } from '@helux/utils';
+import { delListItem, includeOne, nodupPush } from '@helux/utils';
+import { getParentKey } from '../common';
 import { RUN_AT_SERVER } from '../consts';
 import { newFnCtx } from '../factory/common/ctor';
 import { getCtxMap, getFnCtx, getFnKey, markFnKey } from '../factory/common/fnScope';
@@ -37,7 +38,7 @@ export function markFnEnd() {
     const dict: Dict<number> = {};
     afterRunDepKeys.forEach((k) => (dict[k] = 1));
     afterRunDepKeys.forEach((depKey) => {
-      const matched = matchDictKey(dict, depKey);
+      const matched = getParentKey(dict, depKey);
       // 匹配到的子串不是 depKey 自身，就丢弃该子串
       // 随着子串不停地被丢弃，最长路径的多个 depKey 就保留下来了
       if (matched && matched !== depKey) {
@@ -82,10 +83,12 @@ export function registerFn(fn: Fn, options: { specificProps: Partial<IFnCtx> & {
   // 如 fnCtxBase 存在则 fnCtx 指向用户透传的 fnCtxBase
   const fnCtx = fnCtxBase ? Object.assign(fnCtxBase, props) : buildFnCtx(props);
 
-  // static 调用派生时始终记录 fnCtx
-  // hook 调用派生时仅在非服务器端执行才记录 fnCtx ，避免内存泄露
-  if (scopeType === 'static' || !RUN_AT_SERVER) {
-    // debugger;
+  if (
+    // static 调用派生时始终记录 fnCtx
+    scopeType === 'static'
+    // hook 调用派生时仅在浏览器端执行才记录 fnCtx ，避免服务器端内存泄露
+    || !RUN_AT_SERVER
+  ) {
     getCtxMap(scopeType).set(fnKey, fnCtx);
   }
 

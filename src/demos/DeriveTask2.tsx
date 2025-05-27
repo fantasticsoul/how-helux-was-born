@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { block, share, derive, deriveDict, atom, mutate, $ } from 'helux';
+import { block, share, derive, deriveDict, atom, mutate, $, getBlockParams } from 'helux';
 import { noop } from './logic/util';
 
 const delay = (ms = 1000) => new Promise(r => setTimeout(r, ms));
@@ -61,7 +61,8 @@ const { actions, useLoading } = ctx.defineActions()({
   },
 });
 
-const User = block((props, params) => {
+const User = block((props) => {
+  const params = getBlockParams(props);
   const { status } = params; // 读取派生结果变化状态
   console.log(status);
   const [b] = params.read(result.val); // 通过 read 锁定依赖
@@ -74,7 +75,8 @@ const User = block((props, params) => {
   );
 }, true);
 
-const User2 = block((props, params) => {
+const User2 = block((props) => {
+  const params = getBlockParams(props);
   const { status } = params; // 读取派生结果变化状态
   console.log(status);
   const [b] = params.read(result2.val); // 通过 read 锁定依赖

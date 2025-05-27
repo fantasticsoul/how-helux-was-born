@@ -1,4 +1,4 @@
-import { $, share, atom, derive, deriveDict, block } from 'helux';
+import { $, share, atom, derive, deriveDict, block, getBlockParams } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from "./logic/util";
@@ -38,10 +38,11 @@ function change_b_b1_b2() {
   setState(draft => { draft.b.b1.b2 = Date.now() });
 }
 
-const AsyncBlock = block<{ a: number }, { sayHello: any }>((props, params) => {
+const AsyncBlock = block<{ a: number }, { sayHello: any }>((props, ref) => {
+  const params = getBlockParams(props);
   console.log('Render AsyncBlock');
   const [count, setCount] = React.useState(0);
-  React.useImperativeHandle(params.ref, () => ({
+  React.useImperativeHandle(ref, () => ({
     sayHello() {
       console.log('hello count ', count);
     },

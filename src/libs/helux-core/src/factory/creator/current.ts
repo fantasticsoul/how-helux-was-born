@@ -50,6 +50,12 @@ export const DEPS_CB = {
 
 export const REACTIVE_DESC = {
   current: (key: number) => CURRENT_REACTIVE_DESC.get(key) || 'SetState',
+  /** 用一次就清理, 无默认值返回 */
+  currentOnce: (key: number) => {
+    const desc = CURRENT_REACTIVE_DESC.get(key);
+    CURRENT_REACTIVE_DESC.delete(key);
+    return desc;
+  },
   set: (key: number, desc: string) => CURRENT_REACTIVE_DESC.set(key, desc),
   del: (key: number) => CURRENT_REACTIVE_DESC.delete(key),
 };
@@ -63,6 +69,7 @@ export const FN_DEP_KEYS = {
 
 /** 记录、获取执行写操作的 draft 对象元数据 */
 export const REACTIVE_META = {
+  delActive: () => (CURRENT_CB_REACTIVE_KEY = ''),
   current: () => CURRENT_REACTIVE_META.get(CURRENT_CB_REACTIVE_KEY) || fakeReativeMeta,
   markUsing: (key: string) => (CURRENT_CB_REACTIVE_KEY = key),
   set: (key: string, obj: IReactiveMeta) => CURRENT_REACTIVE_META.set(key, obj),

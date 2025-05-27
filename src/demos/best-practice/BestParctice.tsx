@@ -46,7 +46,7 @@ const { actions, useLoading } = ctx.defineActions<Payloads>()({
   // 同步方法
   changeTotal({ draft, payload }) {
     draft.total = payload;
-  }
+  },
 });
 
 function Shop() {

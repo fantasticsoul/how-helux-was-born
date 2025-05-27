@@ -1,5 +1,7 @@
 import { HeluxPluginDevtool } from '@helux/plugin-devtool';
-import { addPlugin, addMiddleware, IPlugin } from 'helux';
+// import { addPlugin, addMiddleware, IPlugin } from 'helux';
+// import { addPlugin, addMiddleware, IPlugin } from './demos/best-practice/helux-store-pinia/api';
+import { addPlugin, addMiddleware, IPlugin, Middleware } from '@helux/store-pinia';
 
 const MyPlugin: IPlugin = {
   install(pluginCtx) {
@@ -17,5 +19,7 @@ const MyPlugin: IPlugin = {
 addPlugin(HeluxPluginDevtool);
 addPlugin(MyPlugin);
 addMiddleware((mid) => {
-  // console.log(mid);
+  if (mid.moduleName) { // 来自某个模块
+    mid.draft.timestamp = new Date(); // 修改一下事件戳
+  }
 });

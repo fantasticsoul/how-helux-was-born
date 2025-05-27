@@ -64,7 +64,7 @@ window.r = reactive;
 // }, 100)
 
 
-const A = block((props, params) => {
+const A = block((props) => {
   <MarkUpdate>
     MarkUpdate: {reactive.b.b1}
   </MarkUpdate>

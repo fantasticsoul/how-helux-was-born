@@ -4,7 +4,7 @@
  *  @Author: fantasticsoul
  *--------------------------------------------------------------------------------------------*/
 import type { DraftMeta, IApiCtx } from '../inner-types';
-import { ARRAY, MAP, META_KEY, SET } from '../support/consts';
+import { ARRAY, MAP, SET } from '../support/consts';
 import { deepDrill, isObject } from '../support/util';
 import { getDraftMeta, getMetaVer } from './meta';
 
@@ -13,7 +13,9 @@ function ressignArrayItem(listMeta: DraftMeta, itemMeta: DraftMeta, ctx: { targe
   const { targetNode, key } = ctx;
   // 数组顺序已变化
   if (isArrOrderChanged) {
-    const key = copy.findIndex((item: any) => item === itemMeta.copy);
+    // fix issue https://github.com/tnfe/limu/issues/13
+    // 元素经过 sort 后，可能已变成 proxy 对象，所以这里需要比较 copy 和 proxyVal
+    const key = copy.findIndex((item: any) => item === itemMeta.copy || item === itemMeta.proxyVal);
     if (key >= 0) {
       copy[key] = targetNode;
     }
@@ -31,7 +33,7 @@ export function isInSameScope(mayDraftProxy: any, callerScopeVer: string) {
 }
 
 export function clearScopes(rootMeta: DraftMeta, apiCtx: IApiCtx) {
-  const { debug } = apiCtx;
+  const { metaMap } = apiCtx;
 
   // TODO 下钻有一定的性能损耗，允许用户关闭此逻辑 findDraftNodeNewRef=false
   const drilledMap: Map<any, any> = new Map();
@@ -57,20 +59,18 @@ export function clearScopes(rootMeta: DraftMeta, apiCtx: IApiCtx) {
   });
 
   rootMeta.scopes.forEach((meta) => {
-    const { modified, copy, parentMeta, key, self, revoke, proxyVal, isDel, isFast } = meta;
+    const { modified, copy, parentMeta, key, self, revoke, proxyVal, isDel } = meta;
+    // LABEL: WAIT TEST(2025-05-25)
+    const leaveScope = () => {
+      metaMap.delete(self);
+      metaMap.delete(proxyVal);
+      // 这里还不能将 copy 的映射删除，否则会照成以下错误，留给 js 引擎自己清理即可
+      // fail at test/api/setAutoRevoke.ts -> set autoRevoke when call createDraft › read subNode
+      // metaMap.delete(copy);
+      revoke();
+    };
 
-    if (!copy) return revoke();
-
-    if (debug) {
-      if (isFast) {
-        // @ts-ignore
-        delete copy[META_KEY];
-      } else {
-        delete copy.__proto__[META_KEY];
-      }
-    }
-
-    if (!parentMeta) return revoke();
+    if (!copy || !parentMeta) return leaveScope();
 
     const targetNode = !modified ? self : copy;
     // 父节点是 Map、Set 时，parent 指向的是 ProxyItems，这里取到 copy 本体后再重新赋值
@@ -79,20 +79,20 @@ export function clearScopes(rootMeta: DraftMeta, apiCtx: IApiCtx) {
 
     if (parentType === MAP) {
       parentCopy.set(key, targetNode);
-      return revoke();
+      return leaveScope();
     }
     if (parentType === SET) {
       parentCopy.delete(proxyVal);
       parentCopy.add(targetNode);
-      return revoke();
+      return leaveScope();
     }
     if (parentType === ARRAY) {
       ressignArrayItem(parentMeta, meta, { targetNode, key });
-      return revoke();
+      return leaveScope();
     }
     if (isDel !== true) {
       parentCopy[key] = targetNode;
-      return revoke();
+      return leaveScope();
     }
   });
 

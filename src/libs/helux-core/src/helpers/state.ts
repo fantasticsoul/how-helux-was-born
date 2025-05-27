@@ -14,7 +14,8 @@ export function getInternalByKey(sharedKey: number): TInternal {
 
 export function getInternal<T = SharedState>(state: T): TInternal {
   const key = getSharedKey(state);
-  return getInternalByKey(key);
+  const val = getInternalByKey(key);
+  return val;
 }
 
 export function setInternal(state: SharedState, internal: TInternal) {
@@ -81,7 +82,8 @@ export function getSharedState(sharedKey: number) {
 }
 
 export function recordMod(sharedState: Dict, options: ParsedOptions) {
-  // 服务端运行，没必要记录模块信息到 global 上，避免服务端内存浪费、冗余的模块重复信息提示（nextjs里同一个地方的share代码会被多次调用）
+  // 服务端运行，没必要记录模块信息到 global 上，避免服务端内存浪费、
+  // 和冗余模块重复信息提示（nextjs里同一个地方的share代码会被多次调用）
   if (RUN_AT_SERVER) {
     return;
   }
@@ -96,7 +98,8 @@ export function recordMod(sharedState: Dict, options: ParsedOptions) {
       const locInfo = `\nloc1:${existedInternal.loc} \nloc2:${options.loc}`;
       warn(
         `only-dev-mode tip: moduleName ${moduleName} duplicate! `
-          + 'this does not effect helux but the duplicated module will be ignored by devtool'
+          + 'this does not effect helux but the duplicated module will be ignored by devtool '
+          + 'and the store tree keyed by moduleName'
           + locInfo,
       );
     }

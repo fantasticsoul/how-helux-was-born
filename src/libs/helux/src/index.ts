@@ -57,7 +57,10 @@ export const {
   signal,
   block,
   dynamicBlock,
+  getBlockParams,
   $,
+  SignalView,
+  BlockView,
   // mutate api
   mutate,
   mutateDict,

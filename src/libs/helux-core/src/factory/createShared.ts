@@ -51,6 +51,40 @@ export function ensureGlobal(apiCtx: CoreApiCtx, inputStateType?: string) {
   }
 }
 
+function wrapAndMapAction(actions: Dict, options: Dict) {
+  const { actionCreator, actionTask, desc, throwErr, isMultiPayload, isEAction } = options;
+  /** actionCreator 是来自 @type {import('./createAction').action} 调用的返回结果 */
+  // actionCreator(false) 的 false 表示设置 mergeReturn=false，调用的是 createAction 里的 action 函数
+  // actions 和 eActions 都不把 return 结果当做部分状态合并到 draft 上，仅作为普通结果返回，故设置 mergeReturn=false
+  // 同时 skipResolve=true，跳过 actionFn 内部处理，而是在 actionFnWrap 里处理 promise 结果
+  const actionFn = actionCreator(false)(actionTask, { desc, throwErr, isMultiPayload, skipResolve: true });
+  const actionFnWrap = (...args: any[]) => {
+    /** actionFn 进入到 @type {import('./createAction')} 文件第27行 */
+    const ret = actionFn(...args);
+    // actionFn 调用完毕后，内部会确认 task 是否是 promise 函数，故此处可拿到准确的结果
+    if (isTaskProm(actionTask)) {
+      return Promise.resolve(ret.result).then((result) => {
+        // action 和 eAction 返回结果不一样，针对 action 需提取出 result 再返回
+        const { setStatus, snap } = ret;
+        setStatus(false, null, true); // loading err ok
+        return isEAction ? { snap, result, err: null } : result;
+      }).catch((err) => {
+        const { setStatus, snap } = ret;
+        // 让 useLoading 同步到相关 action 运行的错误状态
+        setStatus(false, err, false);
+        // 对于 eAtions 调用，静默错误并携带到返回体里提供给用户使用
+        if (isEAction) {
+          return { snap, result: null, err };
+        }
+        throw err;
+      });
+    }
+    return isEAction ? ret : ret.result;
+  };
+  actionFnWrap.__fnName = desc;
+  actions[desc] = actionFnWrap;
+}
+
 function defineActions(
   options: {
     internal: TInternal;
@@ -60,37 +94,25 @@ function defineActions(
     actionCreator: any;
     actionDict: Dict;
     forTp?: boolean;
+    isMultiPayload?: boolean;
   },
   throwErr?: boolean,
 ) {
-  const { createFn, ldAction, actionDict, actionCreator, internal, apiCtx, forTp = false } = options;
+  const { createFn, ldAction, actionDict, actionCreator, internal, apiCtx, forTp = false, isMultiPayload = false } = options;
   // 提前触发伴生loading状态创建
   getLoadingInfo(createFn, { internal, from: ACTION, apiCtx });
   const actions: Dict = {};
   const eActions: Dict = {};
-  Object.keys(actionDict).forEach((key) => {
-    const actionOrFnDef = actionDict[key];
+  Object.keys(actionDict).forEach((desc) => {
+    const actionOrFnDef = actionDict[desc];
     // defineTpActions 传入的是已经创建好的 action 函数
     // 此时 actionOrFnDef 是 action 函数，这里提取 task 重新创建
     // defineActions 传入的是 actionFnDef 定义函数即 actionTask
     const actionTask = forTp ? actionOrFnDef.__task : actionOrFnDef;
-    // actions 和 eActions 都不把 return 结果当做部分状态合并到 draft 上，仅作为普通结果返回
-    const eActionFn = actionCreator(false)(actionTask, key, throwErr);
 
-    // eActions 对应函数返回原始的 { result, snap, err } 结构，故此处指向 actionFn 即可
-    eActionFn.__fnName = key;
-    eActions[key] = eActionFn;
-
-    // actions 对应函数需直接返回结果，故内部做拆解处理
-    const actionFn = (...args: any[]) => {
-      const ret = eActionFn(...args);
-      if (isTaskProm(actionTask)) {
-        return Promise.resolve(ret).then((data) => data.result);
-      }
-      return ret.result;
-    };
-    actionFn.__fnName = key;
-    actions[key] = actionFn;
+    wrapAndMapAction(eActions, { actionCreator, actionTask, desc, throwErr, isMultiPayload, isEAction: true });
+    // actions 函数一定是要抛出错误的，故 throwErr 参数传递 true
+    wrapAndMapAction(actions, { actionCreator, actionTask, desc, throwErr: true, isMultiPayload });
   });
 
   return {
@@ -121,9 +143,9 @@ function defineMutate(options: { common: ICommon; ldMutate: Dict; mutateFnDict: 
   };
 }
 
-function defineMutateDerive(options: { common: ICommon; ldMutate: Dict; inital: Dict; mutateFnDict: DictOrCb }) {
-  const { common, ldMutate, inital, mutateFnDict } = options;
-  const { stateRoot, useState, state, isAtom } = sharex(common.apiCtx, inital);
+function defineMutateDerive(options: { common: ICommon; ldMutate: Dict; inital: Dict; mutateFnDict: DictOrCb; shareOptions: any }) {
+  const { common, ldMutate, inital, mutateFnDict, shareOptions } = options;
+  const { stateRoot, useState, state, isAtom } = sharex(common.apiCtx, inital, shareOptions);
   const initialCommon = { ...common, stateRoot, state, isAtom, internal: getInternal(stateRoot) };
   // 注意此处是将原 common.stateRoot 作为 extra 转移给 defineMutate
   const result = defineMutate({ common: initialCommon, ldMutate, mutateFnDict, extra: common.stateRoot });
@@ -173,8 +195,8 @@ function setEnableMutate(enabled: boolean, internal: TInternal) {
 }
 
 function getOptions(internal: TInternal): CtxCreateOptions {
-  const { moduleName, deep, recordLoading, stopDepth, stopArrDep, alertDeadCycleErr, checkDeadCycle, enableMutate } = internal;
-  return { moduleName, deep, recordLoading, stopDepth, stopArrDep, alertDeadCycleErr, checkDeadCycle, enableMutate };
+  const { moduleName, deep, recordLoading, stopDepth, stopArrDep, alertDeadCycleErr, checkDeadCycle, enableMutate, extra } = internal;
+  return { moduleName, deep, recordLoading, stopDepth, stopArrDep, alertDeadCycleErr, checkDeadCycle, enableMutate, extra };
 }
 
 export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: any): any {
@@ -190,6 +212,7 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
   const ldMutate = initLoadingCtx(createFn, opt);
   const common: ICommon = { createFn, internal, apiCtx, state, stateRoot, isAtom: forAtom };
   const acCommon = { ...common, ldAction, actionCreator };
+  const { userExtra } = internal;
 
   return {
     state, // atom 的 state 指向拆箱后的值，share 的 state 指向根值
@@ -197,12 +220,15 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     stateRoot, // 指向 root
     setState,
     setDraft,
+    setExtra: (data: any) => Object.assign(userExtra, data),
     setEnableMutate: (enabled: boolean) => setEnableMutate(enabled, internal),
     getOptions: () => getOptions(internal),
-    defineActions: (throwErr?: boolean) => (actionDict: Dict<ActionTask>) => defineActions({ ...acCommon, actionDict }, throwErr),
+    defineActions: (throwErr?: boolean, isMultiPayload?: boolean) => (actionDict: Dict<ActionTask>) =>
+      defineActions({ ...acCommon, actionDict, isMultiPayload }, throwErr),
     defineTpActions: (throwErr?: boolean) => (actionDict: Dict<Action>) =>
       defineActions({ ...acCommon, actionDict, forTp: true }, throwErr),
-    defineMutateDerive: (inital: Dict) => (mutateFnDict: DictOrCb) => defineMutateDerive({ common, ldMutate, inital, mutateFnDict }),
+    defineMutateDerive: (inital: Dict, shareOptions: any) => (mutateFnDict: DictOrCb) =>
+      defineMutateDerive({ common, ldMutate, inital, mutateFnDict, shareOptions }),
     defineMutateSelf: () => (mutateFnDict: DictOrCb) => defineMutate({ common, ldMutate, mutateFnDict }),
     defineFullDerive: (throwErr?: boolean) => (deriveFnDict: DictOrCb) => defineFullDerive({ common, deriveFnDict, throwErr }),
     defineLifecycle: (lifecycle: DictFn) => defineLifecycle(lifecycle, internal),
@@ -210,7 +236,7 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     runMutate: (descOrOptions: string | IRunMutateOptions) => runMutate(stateRoot, descOrOptions),
     runMutateTask: (descOrOptions: string | IRunMutateOptions) => runMutateTask(stateRoot, descOrOptions),
     action: actionCreator,
-    call: (fn: Fn, payload: any, desc: string, throwErr: boolean) => actionTaskCreator(fn, desc, throwErr)(payload),
+    call: (fn: Fn, payload: any, desc: string, throwErr: boolean) => actionTaskCreator(fn, { desc, throwErr })(payload),
     useState: (options?: any) => useAtom(apiCtx, stateRoot, options),
     useStateX: (options?: any) => useAtomX(apiCtx, stateRoot, options),
     useForceUpdate: (presetDeps?: (sharedState: any) => any[]) => useGlobalForceUpdate(apiCtx, stateRoot, presetDeps),
@@ -233,6 +259,7 @@ export function createSharedLogic(innerOptions: IInnerOptions, createOptions?: a
     useReactiveX: (options?: any) => useReactiveX(apiCtx, stateRoot, options),
     flush: (desc?: string) => flush(stateRoot, desc),
     isAtom: forAtom,
+    extra: userExtra,
   };
 }
 

@@ -29,7 +29,7 @@ export interface IReactiveMeta {
   /** 是否存在 flush 任务 */
   hasFlushTask: boolean;
   /** 下一个微任务开始时触发 flush 执行 */
-  nextTickFlush: (desc?: string) => void;
+  nextTickFlush: () => void;
   data: any[];
   /**
    * 是否是顶层 reactive 对象
@@ -59,4 +59,8 @@ export interface IReactiveMeta {
    * 当前 reactive 对像可能来自于实例
    */
   insKey: number;
+  /**
+   * 记录对应的 action 执行的 payload 参数列表
+   */
+  payloadArgs: any;
 }

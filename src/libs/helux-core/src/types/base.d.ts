@@ -1,4 +1,4 @@
-import type { ForwardedRef, FunctionComponent, PropsWithChildren, ReactNode } from '@helux/types';
+import type { FunctionComponent, PropsWithChildren, ReactNode } from '@helux/types';
 import type { IOperateParams as OpParams } from 'limu';
 import type { DepKeyInfo } from './inner';
 
@@ -33,22 +33,38 @@ export type Off = Fn;
 
 export type DictFn = Dict<Fn>;
 
-export interface IAtomLifecycle {
+export interface ILifecycle<T extends any = any> {
   /**
    * 第一个使用当前共享对象的组件实例将要挂载时触发 willMount
    * willMount will be triggered before first ins of current atom will mount
    */
-  willMount: () => void;
+  willMount?: () => void;
   /**
    * 第一个使用当前共享对象的组件实例挂载完毕触发 mounted
    * mounted will be triggered before first ins of current atom mounted
    */
-  mounted: () => void;
+  mounted?: () => void;
   /**
    * 最后一个使用当前共享对象的组件实例卸载前触发 willUnmount
    * willUnmount will be triggered before last ins of current will unmount
    */
-  willUnmount: () => void;
+  willUnmount?: () => void;
+  /**
+   * 变更的状态提交之前回触发此函数，执行时机是在所有中间件执行之前，在此函数里可以对草稿做2次修改或其他事情
+   */
+  beforeCommit?: (params: BeforeFnParams<T>) => void;
+  /**
+   * 变更的状态提交之后会触发此函数
+   */
+  afterCommit?: (params: AfterFnParams<T>) => void;
+  /**
+   * 任何读行为都会触发此函数
+   */
+  onRead?: OnRead;
+  /**
+   * 任何写行为都会触发此函数
+   */
+  onWrite?: OnWrite;
 }
 export interface ILocalStateApi<T> {
   setState: (partialStateOrCb: Partial<T> | PartialStateCb<T>) => void;
@@ -69,8 +85,8 @@ export type UnconfirmedArg = ValidArg | void;
 /** 调用时如未指定具体 payload 类型，收窄为 UnconfirmedArg，让用户不传递也能类型校验通过 */
 export type PayloadType<P extends Dict | undefined = undefined, K = any> = P extends Dict
   ? K extends keyof P
-    ? P[K]
-    : UnconfirmedArg
+  ? P[K]
+  : UnconfirmedArg
   : UnconfirmedArg;
 
 // use Awaited instead
@@ -106,10 +122,15 @@ export type RecordLoading = NoRecord | RecordToPrivate | RecordToGlobal;
 export type From = 'Reactive' | 'CbReactive' | 'Mutate' | 'Action' | 'SetState' | 'Sync' | 'Loading';
 
 /**
- * onRead用于给开发者配置读操作钩子函数，所有值读取操作均触发此钩子函数，
- * 如果 onReadFn 返回了具体指，则会透传给用户，这是一个危险的操作，用户需自己为此负责
+ * onRead 用于给开发者配置读操作钩子函数，所有值读取操作均触发此钩子函数，
+ * 调用 replaceValue 可替换读取值，这是一个危险的操作，用户需自己为此负责
  */
 export type OnRead = (opParams: IOperateParams) => any;
+
+/**
+ * 调用 replaceValue 可替换写入值，这是一个危险的操作，用户需自己为此负责
+ */
+export type OnWrite = (opParams: IOperateParams) => void;
 
 export interface IBlockCtx {
   key: string;
@@ -149,9 +170,29 @@ export interface IBlockOptions<P = object> {
    * memo 的比较函数，默认走 react 内置的浅比较规则，如确定 block 不传递任何 props，建议设置为 ()=>true
    */
   compare?: (prevProps: Readonly<PropsWithChildren<P>>, nextProps: Readonly<PropsWithChildren<P>>) => boolean;
+  /**
+   * 用户关注的 action 函数 status
+   */
+  useStatusList?: () => LoadingStatus[];
+}
+
+export type RenderCbType = 'forwardRef' | 'memo' | 'normal';
+
+export interface IBlockOptionsWithRead<P = object> extends IBlockOptions<P> {
+  /**
+   * 读取函数，创建 block 时会自动执行此函数并锁定相关依赖
+   */
+  read?: Fn;
+  ref?: any;
+  /** 来自 BlockView 透传的其他属性 */
+  viewProps?: any;
+  cbType?: RenderCbType;
+  useStatusList?: () => LoadingStatus[];
 }
 
 export type BlockOptionsType = EnableStatus | IBlockOptions;
+
+export type BlockOptionsWithReadType = EnableStatus | IBlockOptionsWithRead;
 
 /**
  * block 渲染函数内部存在判断逻辑时，可使用 read 提前锁定住相关依赖
@@ -162,9 +203,21 @@ export type BlockOptionsType = EnableStatus | IBlockOptions;
  */
 export type Read = <P extends readonly any[] = readonly any[]>(...args: P) => P;
 
-export type BlockParams<P = object, T = any> = { props: P; status: LoadingStatus; read: Read; ref?: ForwardedRef<T> };
+export interface IBlockParams<P = object> {
+  props: P;
+  status: LoadingStatus;
+  /**
+   * 读函数，用于锁定依赖，同时会返回数据
+   */
+  read: Read,
+  /**
+   * 是否是假的 blockParams 参数，避免用户频繁使用可选链，可安全切换组件渲染模式为block或非block，
+   * 注：在 block 函数里渲染的组件可获取到真的 blockParams 参数
+   */
+  isFake: boolean;
+}
 
-export type BlockCb<P = object, T = any> = (props: P, params?: BlockParams<T>) => ReactNode;
+export type BlockCb<P = object, T = any> = (props: P, params?: IBlockParams<T>) => ReactNode;
 
 // maybe add a new interface that pass 3 args in the future ?
 // export type BlockCbV2<P = object> = (props: P, ref?: ForwardedRef<any>, blockCtx: BlockCbCtx) => ReactNode;
@@ -302,6 +355,8 @@ export interface IActionTaskParams<T = any, P = UnconfirmedArg> {
 export type ActionReturn<R = any, T = any> = { result: R; err: Error | null; snap: NextSharedDict<T> };
 
 export type ActionAsyncReturn<R = any, T = any> = Promise<{ result: R; err: Error | null; snap: NextSharedDict<T> }>;
+
+export type ActionReturnInner = ActionReturn & { setStatus: Fn };
 
 export type Action<F extends Fn = Fn, P = any, T = SharedDict> = (payload: P, throwErr?: boolean) => ActionReturn<ReturnType<F>, T>;
 
@@ -547,6 +602,10 @@ export interface IMutateCtx {
   draftVal: any;
   from: From;
   isReactive: boolean;
+  /**
+   * 对于的 reactive meta key
+   */
+  rkey: string;
   enableDep: ISetFactoryOpts['enableDep'];
   /**
    * 调用序列号，sn 序号相同表示同一批次触发重渲染
@@ -562,10 +621,15 @@ export interface IMutateCtx {
    * 修改描述
    */
   desc: string;
+  /**
+   * 透传来自 action 的 payloadArgs
+   */
+  payloadArgs: any;
 }
 
 export interface IInnerSetStateOptions extends ISetStateOptions {
   from?: From;
+  desc?: string;
   isFirstCall?: boolean;
   /** 触发 finish 的函数 key，用于辅助发现死循环 */
   fnKey?: string;
@@ -574,11 +638,17 @@ export interface IInnerSetStateOptions extends ISetStateOptions {
    * 是否忽略cb返回值，setDraft 接口会设置为 false
    */
   handleCbReturn?: boolean;
+  /**
+   * action 函数调用会透传此参数
+   */
+  payloadArgs?: string;
 }
 
 export interface ISetFactoryOpts extends IInnerSetStateOptions {
   sn?: number;
   isReactive?: boolean;
+  /** reactive meta key */
+  rkey?: string;
   /**
    * 目前通用 operateState 里支持依赖收集的场景：
    * 1 mutate( draft=> draft.xx );
@@ -708,8 +778,8 @@ export type SyncFnBuilder<T = SharedState, V = any> = (
 
 export type Syncer<T = SharedState> = T extends Atom | ReadOnlyAtom
   ? T['val'] extends Primitive
-    ? SyncerFn
-    : { [key in keyof T['val']]: SyncerFn }
+  ? SyncerFn
+  : { [key in keyof T['val']]: SyncerFn }
   : { [key in keyof T]: SyncerFn };
 
 export type SafeLoading<T = SharedState, O extends ICreateOptions<T> = ICreateOptions<T>> = O['mutate'] extends MutateFnDict<T>
@@ -718,8 +788,8 @@ export type SafeLoading<T = SharedState, O extends ICreateOptions<T> = ICreateOp
 
 type FnResultType<T extends PlainObject | DeriveFn> = T extends PlainObject
   ? T['fn'] extends Fn
-    ? DerivedAtom<ReturnType<T['fn']>>
-    : DerivedAtom<any>
+  ? DerivedAtom<ReturnType<T['fn']>>
+  : DerivedAtom<any>
   : T extends DeriveFn
   ? DerivedAtom<ReturnType<T>>
   : DerivedAtom<any>;
@@ -734,7 +804,7 @@ type FnResultValType<T extends IDeriveFnItem | DeriveFn> = T extends IDeriveFnIt
  * defineActions 调用返回 actionCtx 上下文对象，包括 actions、eActions、getLoading、useLoading
  */
 type ActionCtx<T = any, P extends Dict | undefined = undefined, D extends Dict<Fn> = Dict<ActionTask<T, UnconfirmedArg>>> = {
-  /** 调用 actions.xxMethod，返回结果为函数内部执行完毕返回的结果，会抛出函数执行过程出现的错误 */
+  /** 调用 actions.xxMethod，返回结果为函数内部执行完毕返回的结果，会抛出函数执行过程中出现的错误 */
   actions: {
     [K in keyof D]: (
       /** 支持用户单独使用 ActionTaskParam 标记类型并推导给 action 函数 */
@@ -761,6 +831,7 @@ type ActionCtx<T = any, P extends Dict | undefined = undefined, D extends Dict<F
 
 type DefineMutateDerive<T extends JSONDict = JSONDict> = <I = SharedDict>(
   inital: I | (() => I),
+  options?: ICreateOptions<I>,
 ) => <D = Dict<MutateFn<I, any, T> | IMutateFnItem<I, any, T>>>(
   mutateDef: D | ((stateInfo: IStateInfo<I, T>) => D),
 ) => {
@@ -814,8 +885,8 @@ type DefineFullDerive<T extends JSONDict = JSONDict> = <DR extends DepsResultDic
    * 加上 & Dict 是为了支持用户配置 DR 之外的其他结果，不严格要求所有结果 key 都需要在 DR 里定义类型
    */
   D extends DR extends DepsResultDict
-    ? MultiDeriveFn<DR> & Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>
-    : Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>,
+  ? MultiDeriveFn<DR> & Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>
+  : Dict<DeriveFn<any, any, T> | IDeriveFnItem<any, any, T>>,
 >(
   deriveFnDict: D | ((boundStateInfo: IBoundStateInfo<T>) => D),
 ) => {
@@ -860,7 +931,7 @@ type DefineMutateSelf<T extends JSONDict = JSONDict> = () => <D = Dict<MutateFn<
   useLoadingInfo: () => [Ext<LoadingState<D>>, SetState<LoadingState>, IInsRenderInfo];
 };
 
-export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICreateOptions<T>> {
+export interface ISharedStateCtxBase<T = any, E = any, O extends ICreateOptions<T> = ICreateOptions<T>> {
   /**
    * 标识当前对象是否是 atom 对象
    * ```
@@ -882,6 +953,8 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
   syncer: Syncer<T>;
   setState: SetState<T>;
   setDraft: SetDraft<T>;
+  extra: E,
+  setExtra: (partial: Partial<E>) => void;
   mutate: <P extends Arr = Arr>(fnItem: IMutateFnLooseItem<T, P> | MutateFn<T, P>) => IMutateWitness<T>;
   runMutate: (descOrOptions: string | IRunMutateOptions) => T;
   runMutateTask: (descOrOptions: string | IRunMutateOptions) => T;
@@ -1093,21 +1166,26 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
    * // eActions 方法调用返回格式如 {result, snap, err}，
    * // 它的异常默认被拦截掉不再继续抛出，只是并发送给插件和伴生loading状态
    * const {result, snap, err} = eActions.changeA([1,1]);
-   * // eAction 支持调用方法并抛出错误，此时错误既发给插件和伴生loading状态，也也向上抛出，用户需自己 catch
+   * // eAction 支持调用方法并抛出错误，此时错误既发给插件和伴生loading状态，也向上抛出，用户需自己 catch
    * const {result, snap, err} = eActions.changeA([1,1], true);
    * ```
    */
   defineActions: <P extends Dict | undefined = undefined>(
     /**
      * default: false，
-     * false 表示 ActionCtx.eActions 调用时，错误不抛出，传递给返回元组的第二位参数 [ result, err ]，
+     * false 表示 ActionCtx.eActions 调用时，错误不抛出，传递给返回数据里 { result, err, snap } 里的 err，
      * true 则表示抛出，此时用户外部的逻辑要自己 try catch 捕获错误
      */
     throwErr?: boolean,
+    /**
+     * default: false，
+     * 是否是多个 payload 参数
+     */
+    isMultiPayload?: boolean,
   ) => <
     D extends Dict<Fn> = P extends Dict
-      ? { [K in keyof P]: ActionTask<T, P[K]> } & { [K in string]: ActionTask<T, UnconfirmedArg> }
-      : { [K in string]: ActionTask<T, UnconfirmedArg> },
+    ? { [K in keyof P]: ActionTask<T, P[K]> } & { [K in string]: ActionTask<T, UnconfirmedArg> }
+    : { [K in string]: ActionTask<T, UnconfirmedArg> },
   >(
     /** action 函数定义字典集合 */
     actionFnDefs: D,
@@ -1146,11 +1224,17 @@ export interface ISharedStateCtxBase<T = any, O extends ICreateOptions<T> = ICre
     useLoading: () => Ext<LoadingState<D>>;
     useLoadingInfo: () => [Ext<LoadingState<D>>, SetState<LoadingState>, IInsRenderInfo];
   };
-  defineLifecycle: (lifecycle: IAtomLifecycle) => void;
+  defineLifecycle: (lifecycle: ILifecycle) => void;
 }
 
-export interface ISharedCtx<T extends JSONDict = JSONDict> extends ISharedStateCtxBase<T> {
+export interface ISharedCtx<T extends JSONDict = JSONDict, E extends JSONDict = JSONDict> extends ISharedStateCtxBase<T, E> {
+  /**
+   * state 和 stateRoot 均指向同一个代理对象
+   */
   state: ReadOnlyDict<T>;
+  /**
+   * 即 state
+   */
   stateRoot: ReadOnlyDict<T>;
   /**
    * 全新定义一个状态对象并对其定义派生函数，这些函数可依赖其他 atom 或 share 对象来计算当前对象的各个节点值
@@ -1163,16 +1247,17 @@ export interface ISharedCtx<T extends JSONDict = JSONDict> extends ISharedStateC
   useStateX: (options?: IUseSharedStateOptions<T>) => ICompAtomCtx<T>;
 }
 
-export interface IAtomCtx<T = any> extends ISharedStateCtxBase<Atom<T>> {
+export interface IAtomCtx<T = any, E = any> extends ISharedStateCtxBase<Atom<T>, E> {
   /**
    * state 指向共享状态拆箱后的值引用，
    * 因元组结果第一位固定指向 stateRoot，所以需要注意元组解构转为对象解构的命名方式
    * ```
-   * ❌ 从元组解构转为对象解构后，依然取 state
-   * const [ state ] = atom(1) -> const { state } = atomx(1)
+   * ❌ 从元组解构转为对象解构后，依然取 state 是错误的，对于原始类型来说此时的 state 是原始值而非 atom 对象
+   * const [ state ] = atom(1) -> const { state } = atomx(1); // state is 1
    * ✅ 从元组解构转为对象解构后，取 stateRoot 才是元组第一位指向的引用
-   * const [ state ] = atom(1) -> const { stateRoot: state } = atomx(1)
-   * const [ stateRoot ] = atom(1) -> const { stateRoot: } = atomx(1)
+   * const [ stateRoot ] = atom(1) -> const { stateRoot } = atomx(1)
+   * // 或使用别名
+   * const [ state ] = atom(1) -> const { stateRoot: state } = atomx(1); state is { val: 1}
    * ```
    */
   state: ReadOnlyAtomVal<Atom<T>>;
@@ -1196,11 +1281,34 @@ export interface IAtomCtx<T = any> extends ISharedStateCtxBase<Atom<T>> {
 }
 
 export interface BeforeFnParams<T = SharedState> {
+  /** 模块名，未指定时内部会自动生成 */
+  moduleName: string;
+  /** 触发自哪里 */
   from: From;
-  desc?: FnDesc;
-  sn?: number;
+  /** 提交描述 */
+  desc: FnDesc;
+  /** 变更批次 */
+  sn: number;
+  /**
+   * 草稿根对象，对于 shared 来说，draftRoot 和 draft是同一个值，
+   * 对于 atom 来说，draftRoot 是未拆箱值
+   */
   draftRoot: DraftRootType<T>;
+  /** 草稿对象, 对于 shared 来说，draft 就是根对象，对于 atom 来说，draft 是已拆箱值 */
   draft: DraftType<T>;
+}
+
+export interface AfterFnParams<T = SharedState> {
+  /** 模块名，未指定时内部会自动生成 */
+  moduleName: string;
+  /** 状态快照，总是指向 root */
+  snap: T;
+  /** 提交描述 */
+  desc: FnDesc;
+  /** 变更批次 */
+  sn: number;
+  /** 触发自哪里 */
+  from: From;
 }
 
 export interface IDataRule<T = any> {
@@ -1275,6 +1383,7 @@ export interface ICreateOptionsFull<T = SharedState> {
   mutateList: MutateFnList<T>;
   /**
    * action、mutate、setState、sync 提交状态之前会触发执行的函数，可在此函数里再次修改 draft，该函数执行时机是在中间件之前
+   * v5.0之后，lifecycle 里定义的 beforeCommit 会覆盖此函数
    */
   before: (params: BeforeFnParams<T>) => void;
   /**
@@ -1292,14 +1401,20 @@ export interface ICreateOptionsFull<T = SharedState> {
   enableMutate: boolean;
   /**
    * 任何读行为都会触发此函数
+   * @deprecated 建议配置到 lifecycle 中，此处的配置会自动转移到 lifecyle 里
    */
   onRead: OnRead;
+  /**
+   * 其他方便actions、derived里可读取使用的中间数据，例如 dom ref，配置等，
+   * 这些数据放 state 里会被代理，更适合放extra
+   */
+  extra: Dict;
 }
 
 /**
  * 目前api层面只暴露部分配置参数供用户查看
  */
-export type CtxCreateOptions = Omit<ICreateOptionsFull, 'rules' | 'mutate' | 'mutateList' | 'before' | 'onRead'>;
+export type CtxCreateOptions = Omit<ICreateOptionsFull, 'rules' | 'mutate' | 'mutateList' | 'before' | 'onRead' | 'onWrite'>;
 
 export interface IInnerCreateOptions<T = SharedState> extends ICreateOptionsFull<SharedState> {
   forAtom: boolean;
@@ -1804,6 +1919,8 @@ export interface IDataChangedInfo {
   type: string;
   /** 快照 */
   snap: SharedState;
+  /** action 透传的 payload 参数列表 */
+  payloadArgs: any;
 }
 
 export interface IMiddlewareCtx extends IDataChangingInfo {
@@ -1861,31 +1978,15 @@ export interface IInitOptions {
   isRootRender?: boolean;
 }
 
-export interface IBindAtomOptions {
-  /**
-   * 单个 atom 对象
-   */
-  atom?: ValidAtom;
+export interface IBindAtomBaseOptions {
   /**
    * 单个 atom 对象对应的 options 配置
    */
   atomOptions?: IUseSharedStateOptions;
   /**
-   * atom 字典配置
+   * 基于 mutateDerive 导出的 atom 对象对应的 options 配置
    */
-  atoms?: Record<string, any>;
-  /**
-   * atom 字典对应的 options 配置
-   */
-  atomsOptions?: Record<string, IUseSharedStateOptions>;
-  /**
-   * derived 字典配置
-   */
-  deriveds?: Record<string, any>;
-  /**
-   * derived 字典对应的 options 配置
-   */
-  derivedsOptions?: Record<string, IUseDerivedOptions>;
+  derivedAtomOptions?: IUseSharedStateOptions;
   /**
    * default: true，是否对导出的组件包裹一层 React.memo
    */
@@ -1905,6 +2006,42 @@ export interface IBindAtomOptions {
    * 目标组件渲染崩溃时，是否在重渲染期间重建视图
    */
   rebuild?: boolean;
+}
+
+export interface IWithStoreOptions extends IBindAtomBaseOptions {
+  /**
+   * default: false，
+   * 为 false 时，走反向继承模式生成新的类组件
+   * 为 true 时，走属性模式生成新的类组件
+   */
+  isPropsProxy?: boolean;
+}
+
+export interface IBindAtomOptions extends IBindAtomBaseOptions {
+  /**
+   * 单个 atom 对象
+   */
+  atom?: ValidAtom;
+  /**
+   * 单个 atom 对象对应的导出 atom 对象，此 atom 是可变派生结果（基于 defineMutateDerive 生成）
+   */
+  derivedAtom?: ValidAtom;
+  /**
+   * atom 字典配置
+   */
+  atoms?: Record<string, any>;
+  /**
+   * atom 字典对应的 options 配置
+   */
+  atomsOptions?: Record<string, IUseSharedStateOptions>;
+  /**
+   * derived 字典配置，derived 是全量派生结果（基于derive函数返回的结果）
+   */
+  deriveds?: Record<string, any>;
+  /**
+   * derived 字典对应的 options 配置
+   */
+  derivedsOptions?: Record<string, IUseDerivedOptions>;
 }
 
 export interface IWithAtomOptions extends IBindAtomOptions {
@@ -1927,9 +2064,10 @@ export interface IWithAtomOptions extends IBindAtomOptions {
  * }
  * ```
  */
-export type HXType<O extends IWithAtomOptions = IWithAtomOptions> = 'atom' extends keyof O
-  ? HXTypeByAD<O['atom'], O['atoms'], O['deriveds']>
-  : HXTypeByAD<DefaultClassAtom, O['atoms'], O['deriveds']>;
+export type HXType<O extends IWithAtomOptions = IWithAtomOptions> = ('atom' extends keyof O
+  ? HXTypeByAD<O['atom'], O['atoms'] & {}, O['deriveds'] & {}>
+  : HXTypeByAD<DefaultClassAtom, O['atoms'] & {}, O['deriveds'] & {}>) &
+  ('derivedAtom' extends keyof O ? HXDerivedAtomType<O['derivedAtom']> : HXTypeByAD<DefaultClassAtom>);
 
 type DefaultClassAtom = {
   /**
@@ -1955,19 +2093,43 @@ export type HXTypeByAD<A = any, AS extends Dict<any> = Dict<any>, DS extends Dic
     getPrevDeps: () => string[];
   };
   atoms: AS extends Dict
-    ? {
-        [K in keyof AS]: {
-          state: AS[K] extends ReadOnlyAtom ? AtomValType<AS[K]> : AS[K];
-          setState: SetState<AS[K]>;
-          time: number;
-          isAtom: boolean;
-          setDraft: SetDraft<AS[K]>;
-          insKey: 0;
-          sn: 0;
-          getDeps: () => string[];
-          getPrevDeps: () => string[];
-        };
-      }
-    : {};
+  ? {
+    [K in keyof AS]: {
+      state: AS[K] extends ReadOnlyAtom ? AtomValType<AS[K]> : AS[K];
+      setState: SetState<AS[K]>;
+      time: number;
+      isAtom: boolean;
+      setDraft: SetDraft<AS[K]>;
+      insKey: 0;
+      sn: 0;
+      getDeps: () => string[];
+      getPrevDeps: () => string[];
+    };
+  }
+  : {};
   deriveds: DS extends Dict ? { [K in keyof DS]: DerivedResultType<DS[K]> } : {};
 };
+
+/**
+ * 求 hx.derivedAtom 类型
+ */
+export type HXDerivedAtomType<A = any> = {
+  derivedAtom: {
+    state: A extends ReadOnlyAtom ? AtomValType<A> : A;
+    setState: SetState<A>;
+    time: number;
+    isAtom: boolean;
+    setDraft: SetDraft<A>;
+    insKey: 0;
+    sn: 0;
+    getDeps: () => string[];
+    getPrevDeps: () => string[];
+  };
+};
+
+export interface ICreateActionOptions {
+  desc?: string;
+  throwErr?: boolean;
+  isMultiPayload?: boolean;
+  skipResolve?: boolean;
+}

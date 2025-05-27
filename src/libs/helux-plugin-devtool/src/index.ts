@@ -8,6 +8,11 @@ const moduleInfoMap: Record<string, { name: string; state: any }> = {
   [pluginName]: { name: pluginName, state: 'init helux devtool' }, // 避免调试时再刷新浏览器出现 no store 错误导致 devtool 无法启动
 };
 
+function getWindow() {
+  // @ts-ignore
+  return window || global;
+}
+
 function createReducer(module: string, initState = {}) {
   return function (state: any, action: any) {
     if (state === undefined) state = initState;
@@ -34,11 +39,8 @@ function tryInjectReduxDevTool() {
   const redecers = createReducers();
   if (!Object.keys(redecers).length) return;
 
-  reduxStore = createStore(
-    combineReducers(redecers),
-    // @ts-ignore
-    window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__(),
-  );
+  const g = getWindow(); // global this
+  reduxStore = createStore(combineReducers(redecers), g.__REDUX_DEVTOOLS_EXTENSION__ && g.__REDUX_DEVTOOLS_EXTENSION__());
   injected = true;
 
   reduxStore.subscribe(function () {
@@ -61,8 +63,9 @@ function dispatchAction(actionForRedux: any) {
 }
 
 function getPayload(dataInfo: IDataChangedInfo) {
-  const { snap, type, moduleName } = dataInfo;
-  return { type, payload: snap, module: moduleName };
+  const { snap, type, moduleName, payloadArgs: args = [] } = dataInfo;
+  // redux 要求 payload 必须是对象，这里包装为 { args } 格式，同时放一份到外层方便直接查看
+  return { type, payload: { args }, snap, args, module: moduleName };
 }
 
 function replaceReducer(moduleName: string, snap: any) {

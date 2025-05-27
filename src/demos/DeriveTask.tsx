@@ -1,4 +1,4 @@
-import { $, share, atom, deriveDict, useDerived, block, derive } from 'helux';
+import { $, share, atom, deriveDict, useDerived, block, getBlockParams } from 'helux';
 import React from 'react';
 import { MarkUpdate, Entry } from './comps';
 import { delay } from "./logic/util";
@@ -22,7 +22,8 @@ function changeA() {
   });
 }
 
-const RetBlock = block((props, params) => {
+const RetBlock = block((props) => {
+  const params = getBlockParams(props);
   const [val] = params.read(result.val);
   return (
     <MarkUpdate>

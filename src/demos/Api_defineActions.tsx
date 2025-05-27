@@ -13,7 +13,7 @@ type Payloads = {
   foo: number;
 };
 
-const { actions, useLoading } = ctx.defineActions<Payloads>()({
+const { actions, useLoading, eActions } = ctx.defineActions<Payloads>()({
   changeA({ draftRoot, payload }) {
     draftRoot.f += 200;
     return 1;
@@ -26,10 +26,11 @@ const { actions, useLoading } = ctx.defineActions<Payloads>()({
     if (typeof payload !== 'number') return;
     const a = dispatch(actions.changeA, [1, 1]);
     const b = await dispatch(actions.changeB, [1, 1]);
-
+    
     await delay(1000);
     draftRoot.a.b.c += payload;
     await delay(1000);
+    throw new Error('xxx');
     draftRoot.a.b.c += payload;
   },
 });
@@ -39,13 +40,15 @@ function Comp() {
   const loadingState = useLoading();
   const { foo } = loadingState;
   const srv = useService({
-    foo() {
-      actions.foo(state.f);
+    async foo() {
+      const result = await eActions.foo(state.f);
+      console.log('err ', result.err);
     },
     seeDeps() {
       console.log(info.getDeps());
     },
   });
+  console.log('foo.loading', foo.loading);
 
   return <MarkUpdate name="Comp" info={info}>
     {foo.loading && 'loading'}

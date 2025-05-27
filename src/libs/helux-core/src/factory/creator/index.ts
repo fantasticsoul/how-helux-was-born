@@ -1,6 +1,7 @@
+import { FROM } from '../../consts';
 import { recordMod } from '../../helpers/state';
 import type { ICreateOptions } from '../../types/base';
-import { markFnExpired } from '../common/fnScope';
+import { ensureHMRRunWell } from '../common/fnScope';
 import { clearInternal } from '../common/internal';
 import { emitShareCreated } from '../common/plugin';
 import { buildSharedState } from './buildShared';
@@ -21,11 +22,11 @@ export function buildSharedObject<T = any>(innerOptions: IInnerOptions, createOp
   const internal = mapSharedToInternal(sharedRoot, sharedState, parsedOptions);
 
   recordMod(sharedRoot, parsedOptions);
-  markFnExpired();
+  ensureHMRRunWell();
   watchAndCallMutateDict({ target: sharedRoot, dict: parsedOptions.mutateFnDict });
 
   // 创建顶层使用的响应式对象
-  const { draft, draftRoot } = buildReactive(internal, { isTop: true });
+  const { draft, draftRoot } = buildReactive(internal, { isTop: true, from: FROM.REACTIVE, desc: '' });
   internal.reactive = draft;
   internal.reactiveRoot = draftRoot;
   clearInternal(parsedOptions.moduleName, internal.loc);

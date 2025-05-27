@@ -1,11 +1,11 @@
 /*
 |------------------------------------------------------------------------------------------------
-| helux-core@4.7.0
+| helux-core@5.2.1
 | A state library core that integrates atom, signal, collection dep, derive and watch,
 | it supports all react like frameworks ( including react 18 ).
 |------------------------------------------------------------------------------------------------
 */
-import type { MutableRefObject, ReactNode } from '@helux/types';
+import type { ForwardedRef, MutableRefObject, ReactNode } from '@helux/types';
 import type { Draft, GenNewStateCb, ICreateDraftOptions } from 'limu';
 import type {
   Action,
@@ -14,7 +14,7 @@ import type {
   Atom,
   AtomValType,
   BlockComponent,
-  BlockParams,
+  IBlockParams,
   ChangeDraftCb,
   DerivedAtom,
   DerivedDict,
@@ -30,6 +30,7 @@ import type {
   IBoundStateInfo,
   ICompAtomCtx,
   ICompReactiveCtx,
+  ICreateActionOptions,
   ICreateOptions,
   IDeriveFnItem,
   IDeriveTaskOptions,
@@ -71,7 +72,7 @@ import type {
 } from './base';
 
 export declare const cst: {
-  VER: '4.7.0';
+  VER: '5.0.2';
   LIMU_VER: string;
   EVENT_NAME: {
     /** 共享状态创建时的事件 */
@@ -111,36 +112,36 @@ export declare const cst: {
  * ```
  * 如需感知组件上下文，则需要`useService`接口去定义服务函数，可查看 useService 相关说明
  */
-export function share<T extends JSONDict, O extends ICreateOptions<T> = ICreateOptions<T>>(
+export function share<T extends JSONDict = JSONDict, E extends JSONDict = JSONDict, O extends ICreateOptions<T> = ICreateOptions<T>>(
   rawState: T | (() => T),
   createOptions?: O,
-): readonly [ReadOnlyDict<T>, SetState<T>, ISharedCtx<T>];
+): readonly [ReadOnlyDict<T>, SetState<T>, ISharedCtx<T, E>];
 // ): readonly [ReadOnlyDict<T>, SetDraft<T>, ISharedCtx<T>];
 
 /**
  * 支持共享所有类型值的接口，会自动装箱为 {val:T} 结构的数据
  */
-export function atom<T = any, O extends ICreateOptions<Atom<T>> = ICreateOptions<Atom<T>>>(
+export function atom<T = any, E extends JSONDict = JSONDict, O extends ICreateOptions<Atom<T>> = ICreateOptions<Atom<T>>>(
   rawState: T | (() => T),
   createOptions?: O,
-): readonly [ReadOnlyAtom<T>, SetState<T>, IAtomCtx<T>];
+): readonly [ReadOnlyAtom<T>, SetState<T>, IAtomCtx<T, E>];
 // ): readonly [ReadOnlyAtom<T>, AtomTupleSetState<Atom<T>>, IAtomCtx<T>];
 
 /**
  * 效果完全等同 share，唯一的区别是 share 返回元组 [state,setState,ctx] sharex 返回 ctx 自身
  */
-export function sharex<T extends JSONDict, O extends ICreateOptions<T> = ICreateOptions<T>>(
+export function sharex<T extends JSONDict = JSONDict, E extends JSONDict = JSONDict, O extends ICreateOptions<T> = ICreateOptions<T>>(
   rawState: T | (() => T),
   createOptions?: O,
-): ISharedCtx<T>;
+): ISharedCtx<T, E>;
 
 /**
  * 效果完全等同 atom，唯一的区别是 share 返回元组 [state,setState,call] atom 返回 ctx 自身
  */
-export function atomx<T = any, O extends ICreateOptions<Atom<T>> = ICreateOptions<Atom<T>>>(
+export function atomx<T = any, E extends JSONDict = JSONDict, O extends ICreateOptions<Atom<T>> = ICreateOptions<Atom<T>>>(
   rawState: T | (() => T),
   createOptions?: O,
-): IAtomCtx<T>;
+): IAtomCtx<T, E>;
 
 /**
  * 定义全量派生结果，支持同步和异步，支持返回 pritimive 类型，如果确定返回 dict 数据，可优先考虑使用 deriveDict 接口，
@@ -271,11 +272,11 @@ export function useAtom<T extends any = any>(
   sharedState: T,
   options?: IUseSharedStateOptions<T>,
 ): [
-  T extends ReadOnlyAtom ? AtomValType<T> : T,
-  // AtomTupleSetState<T>,
-  SetState<T>,
-  IInsRenderInfo<T>,
-];
+    T extends ReadOnlyAtom ? AtomValType<T> : T,
+    // AtomTupleSetState<T>,
+    SetState<T>,
+    IInsRenderInfo<T>,
+  ];
 
 /**
  * 区别于 useAtom，useAtomX 返回对象
@@ -289,12 +290,12 @@ export function useReactive<T = any>(
   sharedState: T,
   options?: IUseSharedStateOptions<T>,
 ): [
-  // 针对 atom，第一位 reactive 参数自动拆箱
-  T extends Atom ? T['val'] : T,
-  // 代表 reactiveRoot
-  T,
-  IInsRenderInfo,
-];
+    // 针对 atom，第一位 reactive 参数自动拆箱
+    T extends Atom ? T['val'] : T,
+    // 代表 reactiveRoot
+    T,
+    IInsRenderInfo,
+  ];
 
 export function useReactiveX<T = any>(sharedState: T, options?: IUseSharedStateOptions<T>): ICompReactiveCtx<T>;
 
@@ -631,7 +632,7 @@ export function runDeriveTask<T = SharedState>(result: T, throwErr?: boolean): P
  * ```
  */
 export function block<P = object, T = any>(
-  cb: (props: P, params: BlockParams<P, T>) => ReactNode,
+  cb: (props: P, ref: ForwardedRef<T>) => ReactNode,
   options?: EnableStatus | IBlockOptions<P>,
 ): BlockComponent<P>;
 
@@ -639,10 +640,17 @@ export function block<P = object, T = any>(
  * 功能同 block，适用于在组件里调用动态生成组件的场景，会在组件销毁后自动释放掉占用的内存
  * 如果在组件里使用 block 生成组件，也能正常工作，但会额外占用一些不会释放的内存
  */
-export function dynamicBlock<P = object, Ref = any>(
-  cb: (props: P, params: BlockParams<P, Ref>) => ReactNode,
+export function dynamicBlock<P = object, T = any>(
+  cb: (props: P, ref: ForwardedRef<T>) => ReactNode,
   options?: EnableStatus | IBlockOptions<P>,
 ): BlockComponent<P>;
+
+/**
+ * 获取 props 上的 blockParams 参数，如不存在也会返回，并标识 isFake=true，
+ * 在 signal(getProps, Comp) 场景，这样设计课让 Comp 在 signal 外或 signal 中均可正常渲染不报错
+ * @param props 
+ */
+export function getBlockParams<P = object>(props: P): IBlockParams<P>;
 
 /**
  * 创建一个具有 signal 响应粒度的视图，仅当传入的值发生变化才渲染且只渲染 signal 区域，helux 同时也导出了 $ 符号表示 signal 函数
@@ -656,7 +664,11 @@ export function dynamicBlock<P = object, Ref = any>(
  * <div>...long content {$(User)}</div>
  * // ✅ ok，复杂渲染逻辑可传入渲染函数，（注：可将这个回调通过 block 抽象为一个组件）
  * <div>...long content {$(()=><div><span>{sharedUser.infoObj.grade}</span><span>{sharedUser.infoObj.addr}</span></div>)}</div>
- *
+ * // ✅ ok，支持 props 和 渲染函数分离定义
+ * const Info = (props)=><div>name:{props.name}-age{props.age}</div>;
+ * const getProps = ()=>({ name: state.info.name, age: state.info.age });
+ * <div>...long content {$(getProps,Info)}</div>
+ * 
  * //  atom 响应示例
  * // ✅ ok，传入原始值 atom，推荐这种写法
  * <div>...long content {$(atom)}</div>
@@ -670,19 +682,76 @@ export function dynamicBlock<P = object, Ref = any>(
  * // 不成功或有缺陷的响应示例
  * // ❌ bad 传入对象，react 本身也不允许，考虑使用 ()=> ReactNode 写法替代
  * <div>...long content {$(sharedUser.infoObj)}</div>
+ * // ✅ 可使用 ()=> ReactNode 写法替代
+ * <div>...long content {$((v)=>`${sharedUser.infoObj.name}-${sharedUser.infoObj.age}`)}</div>
+ * // ✅ 👉 更推荐定制 format 函数来展开此对象渲染，避免重复从根对象开始的取值过程
+ * <div>...long content {$(sharedUser.infoObj, (v)=>`${v.name}-${v.age}`)}</div>
  * // ❌ bad 传入多个值
  * <div>...long content {$([1,2,3]])}</div>
  * // ❌ 内部存在有判断，可能会造成响应依赖缺失
  * <div>...long content {$(()=><div>{sharedUser.age >10?sharedUser.name:sharedUser.nickname}</div>)}</div>
+ * // ✅ 👉推荐定制format函数，会函数里将所有依赖提前声明，随后再做判断
+ * <div>...long content {$(sharedUser, (v)=>{const{age,name,nickname}=v;return age>10?name:nickname})}</div>
  * ```
- * @param inputVar
  */
-export function signal(inputVar: SingalVal | (() => SingalVal), format?: (val: any) => any): ReactNode;
+export function signal<T extends SingalVal>(
+  inputVar: T,
+  format?: (val: T) => any,
+  enableStatus?: EnableStatus,
+): ReactNode;
+export function signal(
+  inputVar: (props: any) => SingalVal,
+  format?: (val: T) => any,
+  EnableStatus
+): ReactNode;
+export function signal(inputVar: (props: any) => SingalVal, EnableStatus): ReactNode;
 
 /**
  * signal 函数的简写导出
  */
 export const $: typeof signal;
+
+type SignalViewProps<T extends SingalVal, O extends object> = {
+  input: T | (() => T);
+  format: (val: T) => any;
+  /**
+   * 响应异步计算任务的状态变化
+   */
+  enableStatus?: EnableStatus;
+  ref?: any;
+  /**
+   * 当前组件关心的 action 函数 status 变化列表
+   */
+  useStatusList?: () => LoadingStatus[];
+} & Omit<O, 'input' | 'format' | 'enableStatus' | 'ref'>;
+
+/**
+ * signal 的组件化写法
+ */
+export function SignalView<T extends SingalVal = any, O extends object = any>(
+  props: SignalViewProps<T, O>,
+): ReactNode;
+
+type BlockViewProps<Data extends object = any, OtherProps extends object = any> = {
+  data: () => Data;
+  comp: (props: Data & OtherProps) => any; // react component def
+  /**
+   * 响应异步计算任务的状态变化
+   */
+  enableStatus?: EnableStatus;
+  ref?: any;
+  /**
+   * 当前组件关心的 action 函数 status 变化列表
+   */
+  useStatusList?: () => LoadingStatus[];
+} & Omit<O, 'data' | 'comp' | 'enableStatus' | 'ref'>;
+
+/**
+ * 收窄 SignalView，变换属性为 data, comp
+ */
+export function BlockView<Data extends object = any, OtherProps extends object = any>(
+  props: BlockViewProps<Data, OtherProps>,
+): ReactNode;
 
 /**
  * 添加中间件，可在数据提交前做二次修改，可写入数据传递给下一个中间件
@@ -734,7 +803,7 @@ export function action<T = any>(
   sharedState: T,
 ): <P = any>() => <F extends Fn = ActionTask<T, P>>(
   fn: F,
-  desc?: string,
+  descOrOptions?: string | ICreateActionOptions,
 ) => ReturnType<F> extends Promise<any> ? ActionAsync<F, P, T> : Action<F, P, T>;
 
 /**
@@ -836,7 +905,7 @@ export declare function bindAtom<T extends any = any>(ClassComp: T, atomMap: IBi
  *   // 先声明，运行时会由 withAtom 将值注入到此属性上
  *   private hx = assignThisHX(this);
  *   render() {
- *     console.log(hx.atom.state); // 获取到 atom state
+ *     console.log(this.hx.atom.state); // 获取到 atom state
  *   }
  * }
  *
@@ -854,10 +923,10 @@ export declare function bindAtom<T extends any = any>(ClassComp: T, atomMap: IBi
  * class DemoCls extends React.Component {
  *   private hx = assignThisHX(this);
  *   addNum = () => {
- *     this.hx.num.setState((draft: any) => void (draft.num += 2));
+ *     this.hx.atoms.num.setState((draft: any) => void (draft.num += 2));
  *   };
  *   render() {
- *     const { num: { state } } = this.hx;
+ *     const { num: { state } } = this.hx.atoms;
  *     return <div>hello num {state.num}<button onClick={this.addNum}> add num </button></div>;
  *   }
  * }

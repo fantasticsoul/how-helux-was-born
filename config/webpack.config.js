@@ -316,7 +316,7 @@ module.exports = function (webpackEnv) {
         .filter(ext => useTypeScript || !ext.includes('ts')),
       alias: {
         // 'helux-plugin-redux-devtool': path.resolve(__dirname, '../src/libs-base/helux-plugin-redux-devtool/src'),
-        
+
         // 如需开启源码修改调试，( 解开1关闭2，或者解开2关闭1 )
         // 面向所有类 react 的包组织模式，对应helux仓库 packages/**/* 的源码
         'helux': path.resolve(__dirname, '../src/libs/helux/src'),
@@ -327,6 +327,7 @@ module.exports = function (webpackEnv) {
         '@helux/types': path.resolve(__dirname, '../src/libs/helux-types/src'),
         '@helux/plugin-devtool': path.resolve(__dirname, '../src/libs/helux-plugin-devtool/src'),
         'limu': path.resolve(__dirname, '../src/libs/limu/src'),
+        '@helux/store-pinia': path.resolve(__dirname, '../src/libs/helux-store-pinia/api'),
 
         // Support React Native Web
         // https://www.smashingmagazine.com/2016/08/a-glimpse-into-the-future-with-react-native-for-web/

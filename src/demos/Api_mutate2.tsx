@@ -1,9 +1,12 @@
 import React from 'react';
-import { mutate, share, useAtom } from 'helux';
+import { mutate, share, sharex, atomx, useAtom } from 'helux';
 import { MarkUpdate, Entry } from './comps';
 import { random, delay } from './logic/util';
 
-const [priceState, setPrice] = share({ a: 1, b: 100, c: [1, 2, 3] }, { moduleName: 'Api_mutate2' });
+const [priceState, setPrice] = share(
+  { a: 1, b: 100, c: [1, 2, 3] },
+  { moduleName: 'Api_mutate2', extra: { tip: 'extra' } }
+);
 const [finalPriceState, , ctx] = share({ retA: 0, time: 0 }, { moduleName: 'Api_mutate_finalPriceState2' });
 
 interface IOBJ {
@@ -11,8 +14,22 @@ interface IOBJ {
   size: number;
 }
 // const ccc = share<IOBJ>({ a: 1, b: 100, c: [1, 2, 3] }, { moduleName: 'Api_mutate2' });
-const [ state ] = share<IOBJ>({ a: 1, size: 1 }, { moduleName: 'Api_mutate2' });
-// state.a;
+const [state] = share<IOBJ>({ a: 1, size: 1 }, { moduleName: 'Api_mutate2' });
+const ctx2 = sharex<IOBJ, { info: number, gogo: number }>(
+  { a: 1, size: 1 },
+  { moduleName: 'Api_mutate2', extra: { info: 'sss' } }
+);
+console.log('ctx2.extra', ctx2.extra);
+ctx2.setExtra({ gogo: 1 });
+console.log('ctx2.extra 2', ctx2.extra);
+
+const ctx3 = atomx<IOBJ, { info: number, gogo: number }>(
+  { a: 1, size: 1 },
+  { moduleName: 'Api_mutate2', extra: { info: 'sss' } }
+);
+console.log('ctx3.extra', ctx3.extra);
+ctx3.setExtra({ gogo: 1 });
+console.log('ctx3.extra 2', ctx3.extra);
 
 // const ccc2 = share([] as number[], { moduleName: 'Api_mutate2' });
 // const ccc3 = share('xx', { moduleName: 'Api_mutate2' });
