@@ -117,6 +117,10 @@ const useStatusList = () => {
 };
 
 
+const Label = (val: any) => {
+  return `first val ${val.first}, last is ${val.last}`;
+}
+
 const Demo = () => {
   const ref = React.useRef(null);
   const list = useStatusList();
@@ -125,10 +129,25 @@ const Demo = () => {
   const status = ac.useLoading().changeB12Sync;
   if (status.loading) return <span>is loading...</span>;
 
+  // @ts-ignore
+  const badCase = <SignalView input={sharedState.info.name.first} />;
   return (
     <Entry fns={[changeB2, changeA, changeAtom, changeName, changeB12Sync, ac.actions.changeB12Sync, ac.actions.changeB12Sync_2]}>
-      {/* <BlockView data={getProps2} comp={Name} ref={ref} /> */}
-      <BlockView<Data, Other> data={getProps} comp={AsyncBlockPure} enableStatus useStatusList={useStatusList} />
+      <BlockView data={getProps2} comp={Name} ref={ref} />
+
+      {$(sharedState.info.name.first)}<br />
+      {$(sharedState.info.name, val => `first val ${val.first}, last is ${val.last}`)}<br />
+      {badCase}<br />
+      <SignalView input={() => sharedState.info.name.first} format={val => `first val -> ${val}`} /><br />
+      <SignalView input={() => sharedState.info.name} format={val => `first val ${val.first}, last is ${val.last}`} /><br />
+      <SignalView input={() => sharedState.info.name} format={Label} /><br />
+      <BlockView data={() => sharedState.info.name} comp={Label} /><br />
+
+      {/* {$(sharedState.info.name.first)}<br />
+      {$(sharedState.info.name, (val) => `first val ${val.first}, last is ${val.last}`)} */}
+
+      {/* <BlockView<Data, Other> data={getProps} comp={AsyncBlockPure} useStatusList={useStatusList} label="label" /> */}
+      <button onClick={() => setState(draft => void (draft.info.name.first = `${Date.now()}`))}>change sharedState.info.name.first</button>
     </Entry>
   );
 };

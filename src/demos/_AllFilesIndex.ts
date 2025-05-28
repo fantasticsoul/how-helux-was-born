@@ -3,7 +3,7 @@
 // export { default as BlockListNested } from './BlockListNested';
 // export { default as BlockChildBug } from './BlockChildBug';
 // export { default as Api_runMutate } from './Api_runMutate';
-export { default as Api_defineActions } from './Api_defineActions';
+// export { default as Api_defineActions } from './Api_defineActions';
 // export { default as Atom } from './Atom';
 // export { default as UseLimu } from './limu-case/useLimu';
 // export { default as AtomExact } from './AtomExact';
@@ -104,10 +104,10 @@ export {
 
 // export * from './scenes';
 
-export { BestPractice } from './best-practice/BestParctice';
-export { BestParctice2 } from './best-practice/BestParctice2';
-export { BestParcticeLayered } from './best-practice/BestParcticeLayered';
-export { DefineStoreDemo } from './best-practice/Best1/Comp';
+// export { BestPractice } from './best-practice/BestParctice';
+// export { BestParctice2 } from './best-practice/BestParctice2';
+// export { BestParcticeLayered } from './best-practice/BestParcticeLayered';
+// export { DefineStoreDemo } from './best-practice/Best1/Comp';
 // export { RawHelux as DefineStoreDemo } from './best-practice/RawHelux/Comp';
 
 // BestParctice2 BestParcticeLayered RawHelux

@@ -711,9 +711,24 @@ export function signal(inputVar: (props: any) => SingalVal, EnableStatus): React
  */
 export const $: typeof signal;
 
-type SignalViewProps<T extends SingalVal, O extends object> = {
-  input: T | (() => T);
-  format: (val: T) => any;
+type SignalViewProps<T extends SingalVal = any, OtherProps extends object = any> = {
+  /**
+   * 信号响应输入值，必须透传函数 ()=>T，
+   * ```jsx
+   *  // 不支持 input 为 T 的原因如下，考虑下面两个连续声明在一起的组件
+   * <SignalView input={state.a.b} format={...} />
+   * <SignalView input={state.a} format={...} />
+   * // 编译后是
+   * react.createElement(SignalView, {input:state.a.b, forat:...})
+   * react.createElement(SignalView, {input:state.a, forat:...})
+   * // SignalView 对应函数的执行是延后的，真正执行 SignalView 时，拿到的依赖为 state.a 了，而不是想要的 state.a.b
+   * // 但 $ 写法是支持直接绑定值的，因为它的执行时间并没有延后
+   * {$(state.a.b, format)}
+   * {$(state.a, format)}
+   * ```
+   */
+  input: () => T;
+  format?: (val: T) => any;
   /**
    * 响应异步计算任务的状态变化
    */
@@ -723,7 +738,7 @@ type SignalViewProps<T extends SingalVal, O extends object> = {
    * 当前组件关心的 action 函数 status 变化列表
    */
   useStatusList?: () => LoadingStatus[];
-} & Omit<O, 'input' | 'format' | 'enableStatus' | 'ref'>;
+} & Omit<OtherProps, 'input' | 'format' | 'enableStatus' | 'ref'>;
 
 /**
  * signal 的组件化写法
@@ -744,7 +759,7 @@ type BlockViewProps<Data extends object = any, OtherProps extends object = any> 
    * 当前组件关心的 action 函数 status 变化列表
    */
   useStatusList?: () => LoadingStatus[];
-} & Omit<O, 'data' | 'comp' | 'enableStatus' | 'ref'>;
+} & Omit<OtherProps, 'data' | 'comp' | 'enableStatus' | 'ref'>;
 
 /**
  * 收窄 SignalView，变换属性为 data, comp

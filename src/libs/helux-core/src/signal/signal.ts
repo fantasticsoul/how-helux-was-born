@@ -8,7 +8,7 @@ import { disableReuseLatest, enableReuseLatest, getLastest } from '../factory/co
 import { getSharedKey } from '../helpers/state';
 import type { CoreApiCtx } from '../types/api-ctx';
 import type { SingalVal, RenderCbType, LoadingStatus } from '../types/base';
-import { dynamicBlock, dynamicBlockWithRead } from './block';
+import { dynamicBlockWithRead } from './block';
 import { alwaysEqual, wrapDerivedAtomSignalComp, wrapDerivedSignalComp, wrapSignalComp } from './common/wrap';
 import { noopVal } from './common/util';
 
@@ -21,10 +21,20 @@ interface ISignalLogicOptions {
   useStatusList?: () => LoadingStatus[];
 }
 
-const cbTypeMap: Record<string, string> = {
+const str2CompType: Record<string, string> = {
   'Symbol(react.forward_ref)': 'forwardRef',
   'Symbol(react.memo)': 'memo',
 };
+const compTypeMap: Record<string, number> = {
+  'forwardRef': 1,
+  'memo': 1,
+};
+
+function mayLogNotFnError(input: any, label: string) {
+  if (!isFn(input)) {
+    console.error(`found ${label} not a function, this may lead an unexpected render result!`);
+  }
+}
 
 function getCbType(result: any) {
   if (!result) {
@@ -43,7 +53,7 @@ function getCbType(result: any) {
 
   const reactTypeOf = result['$$typeof'] || '';
   const str: string = reactTypeOf.toString();
-  return (cbTypeMap[str] || 'normal') as RenderCbType;
+  return (str2CompType[str] || 'normal') as RenderCbType;
 }
 
 function signalLogic(apiCtx: CoreApiCtx, options: ISignalLogicOptions): ReactNode {
@@ -53,67 +63,61 @@ function signalLogic(apiCtx: CoreApiCtx, options: ISignalLogicOptions): ReactNod
     return react.createElement(input as any);
   }
   const compare = alwaysEqual;
+  const isInputFn = isFn(input);
   const isFormatFn = isFn(mayFormat);
+  const cbType = getCbType(mayFormat);
+  const isFormatAsComp = !!compTypeMap[cbType];
 
-  if (isFn(input)) {
-    // for $(()=>atom), $(()=>derivdedAtom), $(()=>ReactNode)
-    const cbType = getCbType(mayFormat);
-    if (!isFormatFn && cbType === 'normal') {
-      const estatus = typeof mayFormat === 'boolean' ? mayFormat : enableStatus;
-      if (estatus) {
-        const read = () => input();
-        const Comp = dynamicBlockWithRead(apiCtx, input, { compare, read, enableStatus: true });
-        return react.createElement(Comp);
-      }
-
-      const Comp = dynamicBlock(apiCtx, input, { compare, enableStatus: estatus });
-      return react.createElement(Comp);
-    }
-
-    // const getProps = ()=>({ name: state.info.name, age: state.info.age });
-    // const Info = (props)=><div>name:{props.name}-age{props.age}</div>;
-    // for $(getProps, Info);
-    // 此时 format 作为渲染函数，input 作为锁定依赖的函数，返回结果同时也会透传给渲染函数
+  // 此时 format 作为渲染函数，input 作为锁定依赖的函数，返回结果同时也会透传给渲染函数
+  // const getProps = ()=>({ name: state.info.name, age: state.info.age });
+  // const Info = (props)=><div>name:{props.name}-age{props.age}</div>;
+  // for $(getProps, Info),
+  // <BlockView data={getProps} comp={Info} />
+  // <SignalView input={getProps} format={Info} />
+  if (isInputFn && isFormatAsComp) {
+    const estatus = typeof mayFormat === 'boolean' ? mayFormat : enableStatus;
     const renderFn: any = mayFormat;
     if (!renderFn.displayName) {
       renderFn.displayName = 'BlockViewRender';
     }
-    const options = { compare, read: input, enableStatus, ref, viewProps, cbType, useStatusList };
+    const options = { compare, read: input, enableStatus: estatus, ref, viewProps, cbType, useStatusList };
     const Comp = dynamicBlockWithRead(apiCtx, renderFn, options);
     return react.createElement(Comp);
   }
 
+  const result = isInputFn ? input() : input;
   const format = isFormatFn ? mayFormat : noopVal;
-  // for $(derivdedAtom)
-  if (isDerivedAtom(input)) {
-    const Comp = wrapDerivedAtomSignalComp(apiCtx, { result: input, compare, format });
+  // for $(derivdedAtom) , $(()=>derivdedAtom)
+  if (isDerivedAtom(result)) {
+    const Comp = wrapDerivedAtomSignalComp(apiCtx, { result, compare, format });
     return react.createElement(Comp);
   }
 
-  // for $(atom)
-  if (isAtom(input)) {
-    const sharedKey = getSharedKey(input);
+  // for $(atom), $(()=>atom)
+  if (isAtom(result)) {
+    const sharedKey = getSharedKey(result);
     const depKey = prefixValKey('val', sharedKey);
     const keyPath = ['val'];
-    const options = { sharedKey, sharedState: input, depKey, keyPath, keyPaths: [keyPath], compare, format };
+    const options = { sharedKey, sharedState: result, depKey, keyPath, keyPaths: [keyPath], compare, format };
     const Comp = wrapSignalComp(apiCtx, options);
     return react.createElement(Comp);
   }
 
   // for $(val, (val)=>{/** 展开val多个子节点渲染，或渲染val本身 */})
+  // for <SignalView input={()=>val} format={(val)=>...} />
   const readedInfo = getLastest();
   let isInputJustRead = false;
-  let finalInput = input;
+  let finalResult = result;
   // 传入的 mayFormat 是函数时则执行，这期间会触发收集依赖
   if (isFormatFn) {
     enableReuseLatest();
-    finalInput = mayFormat(input);
+    finalResult = mayFormat(result);
     disableReuseLatest();
     isInputJustRead = true;
   }
 
   const { sharedKey, val, stateOrResult, depKey, keyPath, keyPaths, isDerivedResult } = readedInfo;
-  if (isInputJustRead || finalInput === val || original(finalInput) === val) {
+  if (isInputJustRead || finalResult === val || original(finalResult) === val) {
     // for $(atomDerived.val), user unbox atomDerived manually
     if (readedInfo.isDerivedAtom) {
       const Comp = wrapDerivedAtomSignalComp(apiCtx, { result: stateOrResult, compare, format });
@@ -134,7 +138,7 @@ function signalLogic(apiCtx: CoreApiCtx, options: ISignalLogicOptions): ReactNod
     }
   }
 
-  return finalInput;
+  return finalResult;
 }
 
 export function signal(
@@ -147,13 +151,20 @@ export function signal(
 }
 
 export function SignalView(props: any, ref: any) {
-  const { input, format, enableStatus, useStatusList, ...viewProps } = props;
+  const { input, format: mayFormat, enableStatus, useStatusList, ...viewProps } = props;
+  mayLogNotFnError(input, 'SignalView input');
   const apiCtx = getApiCtx();
-  return signalLogic(apiCtx, { input, mayFormat: format, enableStatus, useStatusList, ref, viewProps });
+  const options = { input, mayFormat, enableStatus, useStatusList, ref, viewProps };
+  return signalLogic(apiCtx, options);
 }
 
 export function BlockView(props: any, ref: any) {
-  const { data, comp, enableStatus, useStatusList, ...viewProps } = props;
+  const { data: input, comp, enableStatus, useStatusList, ...viewProps } = props;
+  mayLogNotFnError(input, 'BlockView data');
+  // 类型上标识了 comp 必传，但实际运行如未传递 comp 则尝试使用 input 作为渲染函数
+  // 此时 input 既是数据输入源，也是渲染函数
+  const mayFormat = comp || input;
   const apiCtx = getApiCtx();
-  return signalLogic(apiCtx, { input: data, mayFormat: comp, enableStatus, useStatusList, ref, viewProps });
+  const options = { input, mayFormat, enableStatus, useStatusList, ref, viewProps };
+  return signalLogic(apiCtx, options);
 }
