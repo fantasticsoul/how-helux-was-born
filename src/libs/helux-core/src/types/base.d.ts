@@ -188,7 +188,7 @@ export interface IBlockOptionsWithRead<P = object> extends IBlockOptions<P> {
   viewProps?: any;
   cbType?: RenderCbType;
   useStatusList?: () => LoadingStatus[];
-  forView?: boolean;
+  isFormatAsComp?: boolean;
   blockCtx?: any;
 }
 

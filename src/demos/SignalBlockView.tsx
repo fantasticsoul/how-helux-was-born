@@ -114,8 +114,13 @@ const Name = React.forwardRef((props: any, b: any) => {
   React.useEffect(() => {
     console.log('first render');
   }, []);
+  React.useImperativeHandle(b, () => ({
+    hello() {
+      console.log('hello Name' + props.mark);
+    }
+  }))
 
-  return <div>{`>> result:${first} ${last}`} name {name}</div>;
+  return <div>{`>> result:${first} ${last}`} name {name} mark: {props.mark}</div>;
 });
 
 
@@ -132,7 +137,7 @@ const Name2 = (props: any, b: any) => {
     }
   }))
 
-  return <div>{`>> result:${first} ${last}`} name {name}</div>;
+  return <div>{`>> result:${first} ${last}`} name {name}, mark {props.mark}</div>;
 };
 
 const NameBlock = block((props) => {
@@ -190,11 +195,11 @@ const Demo = () => {
 
       {/* {$(NameBlock)} */}
 
-      <BlockView data={getProps2} comp={Name2} ref={ref} name={name} mark="BlockView" />
+      {/* <BlockView data={getProps2} comp={Name2} ref={ref} name={name} mark="BlockView" /> */}
       {/* <BlockV2 data={getProps2} comp={Name2} ref={ref} viewProps={{ name, mark: 'BlockV2' }} /> */}
 
       {/* <BlockView comp={Name} ref={ref} /> */}
-      {/* <SignalView input={getProps2} format={Name} ref={ref} /> */}
+      {/* <SignalView input={getProps2} format={Name} ref={ref} mark="SignalView" /> */}
 
       {/* {$(sharedState.info.name.first)}<br /> */}
 
@@ -217,10 +222,10 @@ const Demo = () => {
 
       {/* <SignalView input={() => `-first val ${sharedState.info.name.first}, -last is ${sharedState.info.name.last}`} /><br /> */}
 
-      {/* <SignalView
+      <SignalView
         input={() => `-first val ${sharedState.info.name.first}, -last is ${sharedState.info.name.last}`}
         format={(result) => `result is: ${result}`}
-      /> */}
+      />
       <br />
       {btn}
       <button onClick={() => setName(`local_${Date.now()}`)}>change local name</button>

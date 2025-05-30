@@ -37,7 +37,6 @@ export function blockNormalLogic<P = object>(innerOptions: IBlockLogicOptions<P>
     blockCtx,
     () => {
       const Comp = (props: any, inputRef: ForwardedRef<any>) => {
-        console.log('Render makeBlockComp', props, 'inputRef', inputRef, 'options.ref', options.ref);
         const { ref, viewProps } = getRefAndViewProps(blockCtx, options, inputRef);
         const result = markBlockAndRunCb(
           blockCtx,

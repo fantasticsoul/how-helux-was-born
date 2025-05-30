@@ -84,14 +84,15 @@ export function renderResult(apiCtx: CoreApiCtx, blockCtx: IBlockCtx, result: an
 }
 
 export function makeBlockComp<P = object>(apiCtx: CoreApiCtx, blockCtx: IBlockCtx, factory: Fn, options: IBlockOptionsWithRead<P>) {
-  const { memo = true, compare, forView } = options;
+  const { memo = true, compare, isFormatAsComp } = options;
   const { key } = blockCtx;
   const { react } = apiCtx;
   const forwardRef = react.forwardRef || noop;
   const Comp = factory();
 
-  // 来自 BlockView 调用，无需再做 ref 转发处理
-  if (forView) {
+  // 来自 BlockView 或 SignalView 调用透传了组件时，
+  // 无需再做 ref 转发处理，因顶层 api 已包裹了 forwardRef
+  if (isFormatAsComp) {
     return Comp;
   }
 

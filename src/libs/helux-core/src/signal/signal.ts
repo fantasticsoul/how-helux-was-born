@@ -75,13 +75,13 @@ export function signalLogic(apiCtx: CoreApiCtx, options: ISignalLogicOptions): R
   // for <SignalView input={getProps} format={Info} />
   // for $(()=><div>{stage.name}{state.age}</div>)
   // for $(()=><div>{stage.name}{state.age}</div>, true)
-  if (isInputFn && (mayFormat === undefined || isFormatAsComp || forView)) {
+  if (isInputFn && (mayFormat === undefined || isFormatAsComp)) {
     const estatus = isFormatBool ? mayFormat : enableStatus;
     const read: any = input;
     const renderFn: any = isFormatAsComp ? mayFormat : input;
     const { blockCtx } = options;
     const blkOpt: IBlockOptionsWithRead = {
-      compare, read, enableStatus: estatus, ref, viewProps, forView, cbType, useStatusList, blockCtx,
+      compare, read, enableStatus: estatus, ref, viewProps, isFormatAsComp, cbType, useStatusList, blockCtx,
     };
     const Comp = dynamicBlockWithRead(apiCtx, renderFn, blkOpt);
     return react.createElement(Comp);
