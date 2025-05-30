@@ -11,7 +11,7 @@
 // export { default as AtomMutate } from './AtomMutate';
 // export { default as Signal } from './Signal';
 // export { default as Signal_atomLoading } from './Signal_atomLoading';
-// export { default as Signal2 } from './Signal2';
+export { default as Signal2 } from './Signal2';
 export { default as SignalBlockView } from './SignalBlockView';
 // export { default as Plugin } from './Plugin';
 // export { default as IsStable } from './IsStable';

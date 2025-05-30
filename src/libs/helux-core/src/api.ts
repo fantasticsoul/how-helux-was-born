@@ -37,7 +37,8 @@ import {
   useWatch,
   useWatchEffect,
 } from './hooks';
-import { block, dynamicBlock, getBlockParams, signal, SignalView, BlockView } from './signal';
+// import { block, dynamicBlock, getBlockParams, signal, SignalView, BlockView } from './signal';
+import { block, dynamicBlock, getBlockParams, signal, COMPS } from './signal';
 
 const { shallowCompare, isDiff, isDraft } = limuUtils;
 const createShared = share; // for compatible wit v2 helux
@@ -98,8 +99,7 @@ export {
   block,
   dynamicBlock,
   getBlockParams,
-  SignalView,
-  BlockView,
+  COMPS,
   // mutate api
   mutate,
   mutateDict,

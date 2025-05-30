@@ -37,6 +37,7 @@ export function blockNormalLogic<P = object>(innerOptions: IBlockLogicOptions<P>
     blockCtx,
     () => {
       const Comp = (props: any, inputRef: ForwardedRef<any>) => {
+        console.log('Render makeBlockComp', props, 'inputRef', inputRef, 'options.ref', options.ref);
         const { ref, viewProps } = getRefAndViewProps(blockCtx, options, inputRef);
         const result = markBlockAndRunCb(
           blockCtx,
@@ -105,7 +106,8 @@ function blockLogicImpl<P = object>(
 ) {
   const stdOptions = parseBlockOptions(blockOptions, shouldUseRead);
   const { enableStatus } = stdOptions;
-  const logicOpts = { ...innerOptions, blockCtx: initBlockCtx(innerOptions.isDynamic, enableStatus) };
+  const blockCtx = stdOptions.blockCtx || initBlockCtx(innerOptions.isDynamic, enableStatus);
+  const logicOpts = { ...innerOptions, blockCtx };
 
   if (!enableStatus) {
     return blockNormalLogic(logicOpts, stdOptions);

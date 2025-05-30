@@ -20,7 +20,7 @@ import type { CoreApiCtx } from '../../types/api-ctx';
 import type {
   BlockOptionsWithReadType,
   Dict,
-  IBlockOptions,
+  IBlockOptionsWithRead,
   ICreateOptions,
   IInnerCreateOptions,
   IMutateFnLooseItem,
@@ -364,7 +364,7 @@ export function parseWatchOptions(forEffect: boolean, options?: WatchOptionsType
   return { immediate, deps };
 }
 
-export function parseBlockOptions(options?: BlockOptionsWithReadType, shouldUseRead?: boolean): IBlockOptions {
+export function parseBlockOptions(options?: BlockOptionsWithReadType, shouldUseRead?: boolean): IBlockOptionsWithRead {
   if (!options) return {};
   if (typeof options === 'boolean') {
     return { enableStatus: options };

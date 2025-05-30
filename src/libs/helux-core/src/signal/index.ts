@@ -1,2 +1,3 @@
 export { block, dynamicBlock, getBlockParams } from './block';
-export { signal, SignalView, BlockView } from './signal';
+export { COMPS } from './comps';
+export { signal } from './signal';

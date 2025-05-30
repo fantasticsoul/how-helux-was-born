@@ -7,6 +7,7 @@ import { CoreApiCtx } from './types/api-ctx';
 import { HeluxApi, model, modelFactory } from './types/model';
 // 依赖 api，故这里二次合并
 import * as modelApi from './factory/createModel';
+import { compareBlockViewProps, compareSignalViewProps, compareV2Props } from './signal/view-compare';
 
 export type AllApi = HeluxApi & { model: typeof model; modelFactory: typeof modelFactory };
 const needApiCtxFns = [
@@ -64,6 +65,15 @@ export function buildHeluxApi(react: ReactLike, act?: Fn): AllApi {
   const apiVar: any = api; // fot skip ts check instead of ts-ignore
   Object.keys(apiVar).forEach((key) => {
     const apiDef = apiVar[key];
+
+    if ('COMPS' === key) {
+      const { SignalView, BlockView, SignalV2, BlockV2 } = apiDef;
+      apiDef.SignalView = react.memo(react.forwardRef(SignalView), compareSignalViewProps);
+      apiDef.BlockView = react.memo(react.forwardRef(BlockView), compareBlockViewProps);
+      apiDef.SignalV2 = react.memo(react.forwardRef(SignalV2), compareV2Props);
+      apiDef.BlockV2 = react.memo(react.forwardRef(BlockV2), compareV2Props);
+    }
+
     if (shouldInjectApiCtx(key)) {
       // code 1:
       // baseApiVar[key] = (...args: any[]) => apiDef(apiCtx, ...args) };

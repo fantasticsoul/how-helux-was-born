@@ -1,4 +1,4 @@
-import { $, share, atom, deriveDict, derive, block, useAtom, getBlockParams, BlockView, SignalView } from 'helux';
+import { $, share, atom, deriveDict, derive, block, useAtom, getBlockParams, BlockView, BlockV2, SignalView } from 'helux';
 import React from 'react';
 import { Entry } from './comps';
 import { random, delay } from "./logic/util";
@@ -24,6 +24,19 @@ const aPlusB2Result = deriveDict({
 const [numAtom, setAtom] = atom(100);
 const doubleNum = derive(() => {
   return numAtom.val * 2 + sharedState.a;
+});
+
+const nameFistSuffix = derive(() => {
+  return sharedState.info.name.first + '_siffix';
+});
+
+const nameFistSuffix2 = derive({
+  deps: () => [sharedState.info.name.first],
+  fn: ({ input }) => `${input[0]}_init`,
+  task: async () => {
+    await delay(1000);
+    return sharedState.info.name.first + '_async_siffix';
+  },
 });
 
 // mutate state out of react component
@@ -95,16 +108,52 @@ function changeName() {
 }
 
 const Name = React.forwardRef((props: any, b: any) => {
-  const { first, last } = props;
-  console.log('b', b);
+  const { first, last, name } = props;
+  console.log('ref', b);
   console.log(props);
-  return <div>{`name is ${first} ${last}`}</div>;
+  React.useEffect(() => {
+    console.log('first render');
+  }, []);
+
+  return <div>{`>> result:${first} ${last}`} name {name}</div>;
 });
 
 
+const Name2 = (props: any, b: any) => {
+  const { first, last, name } = props;
+  console.log('ref', b);
+  console.log(props);
+  React.useEffect(() => {
+    console.log('first render');
+  }, []);
+  React.useImperativeHandle(b, () => ({
+    hello() {
+      console.log('hello22' + props.mark);
+    }
+  }))
+
+  return <div>{`>> result:${first} ${last}`} name {name}</div>;
+};
+
+const NameBlock = block((props) => {
+  const { status } = getBlockParams(props);
+  const { first, last } = sharedState.info.name;
+  const nameSuffix = nameFistSuffix2.val;
+
+  if (status.loading) return 'NameBlock loading...';
+
+  return (
+    <div>
+      <h4>first: {first}</h4>
+      <h4>last: {last}</h4>
+      <h4>nameSuffix: {nameSuffix}</h4>
+    </div>
+  );
+});
+
 const getProps2 = () => {
   const { first, last } = sharedState.info.name;
-  return { first, last };
+  return { first, last, go: 1 };
 };
 
 
@@ -121,8 +170,12 @@ const Label = (val: any) => {
   return `first val ${val.first}, last is ${val.last}`;
 }
 
+const btn = <button onClick={() => setState(draft => void (draft.info.name.first = `${Date.now()}`))}>change sharedState.info.name.first</button>;
+
 const Demo = () => {
-  const ref = React.useRef(null);
+  const ref = React.useRef<any>(null);
+  const [name, setName] = React.useState('BlockView22');
+  const [other, setOther] = React.useState('other');
   const list = useStatusList();
   console.log('loading', list[0].loading);
 
@@ -130,26 +183,60 @@ const Demo = () => {
   if (status.loading) return <span>is loading...</span>;
 
   // @ts-ignore
-  const badCase = <SignalView input={sharedState.info.name.first} />;
+  // const badCase = <SignalView input={sharedState.info.name.first} />;
   return (
     <Entry fns={[changeB2, changeA, changeAtom, changeName, changeB12Sync, ac.actions.changeB12Sync, ac.actions.changeB12Sync_2]}>
-      <BlockView data={getProps2} comp={Name} ref={ref} />
+      {/* {$(sharedState.info.name, val => `first val ${val.first}, last is ${val.last}`)}<br /> */}
 
-      {$(sharedState.info.name.first)}<br />
-      {$(sharedState.info.name, val => `first val ${val.first}, last is ${val.last}`)}<br />
-      {badCase}<br />
-      <SignalView input={() => sharedState.info.name.first} format={val => `first val -> ${val}`} /><br />
-      <SignalView input={() => sharedState.info.name} format={val => `first val ${val.first}, last is ${val.last}`} /><br />
-      <SignalView input={() => sharedState.info.name} format={Label} /><br />
-      <BlockView data={() => sharedState.info.name} comp={Label} /><br />
+      {/* {$(NameBlock)} */}
 
-      {/* {$(sharedState.info.name.first)}<br />
-      {$(sharedState.info.name, (val) => `first val ${val.first}, last is ${val.last}`)} */}
+      <BlockView data={getProps2} comp={Name2} ref={ref} name={name} mark="BlockView" />
+      {/* <BlockV2 data={getProps2} comp={Name2} ref={ref} viewProps={{ name, mark: 'BlockV2' }} /> */}
 
-      {/* <BlockView<Data, Other> data={getProps} comp={AsyncBlockPure} useStatusList={useStatusList} label="label" /> */}
-      <button onClick={() => setState(draft => void (draft.info.name.first = `${Date.now()}`))}>change sharedState.info.name.first</button>
+      {/* <BlockView comp={Name} ref={ref} /> */}
+      {/* <SignalView input={getProps2} format={Name} ref={ref} /> */}
+
+      {/* {$(sharedState.info.name.first)}<br /> */}
+
+      {/* {badCase}<br /> */}
+
+      {/* <SignalView input={() => sharedState.info.name.first} format={val => `first val -> ${val}`} /><br /> */}
+
+      {/* <SignalView input={() => sharedState.info.name} format={val => `first val ${val.first}, last is ${val.last}`} /><br /> */}
+
+      {/* <SignalView input={() => sharedState.info.name} format={Label} /><br /> */}
+
+      {/* <BlockView<{ a: 1 }, { b: 1 }> data={() => sharedState.info.name} comp={Label} /><br /> */}
+      {/* <BlockView<{ a: 1 }, { b: 1 }> data={() => ({ a: 1 })} comp={Label} outProps={{ b: 's' }} /><br /> */}
+
+      {/* <BlockView data={getProps2} comp={Label} outProps={{ b: 's' }} /><br /> */}
+
+      {/* {$(sharedState.info.name.first)}<br /> */}
+
+      {/* {$(sharedState.info.name, (val) => `first val ${val.first}, last is ${val.last}`)} */}
+
+      {/* <SignalView input={() => `-first val ${sharedState.info.name.first}, -last is ${sharedState.info.name.last}`} /><br /> */}
+
+      {/* <SignalView
+        input={() => `-first val ${sharedState.info.name.first}, -last is ${sharedState.info.name.last}`}
+        format={(result) => `result is: ${result}`}
+      /> */}
+      <br />
+      {btn}
+      <button onClick={() => setName(`local_${Date.now()}`)}>change local name</button>
+      <button onClick={() => setOther(`other_${Date.now()}`)}>change other</button>
+      <button onClick={() => ref.current?.hello()}>call hello</button>
+      <div>local name: {name}</div>
+      <div>other: {other}</div>
     </Entry>
   );
 };
 
-export default Demo;
+const EComp = () => <div><Demo /></div>;
+// const EComp = ()=><div><Demo />{$(NameBlock, true)}</div>;
+// const EComp = ()=><div>{$(NameBlock, true)}{btn}</div>;
+// const EComp = () => <div>{$(() => numAtom)}{btn}</div>;
+// const EComp = () => <div>{$(() => <NameBlock />)}{btn}</div>;
+
+export default EComp;
+

@@ -5,7 +5,7 @@ import { getApiCtx } from '../../common/transfer';
 import { getAtom, isDerivedAtom } from '../../factory/common/atom';
 import { markBlockFnEnd, markBlockFnStart } from '../../helpers/blockCtx';
 import type { CoreApiCtx } from '../../types/api-ctx';
-import type { Dict, Fn, IBlockCtx, IBlockOptions, IBlockParams, RenderCbType } from '../../types/base';
+import type { Dict, Fn, IBlockCtx, IBlockOptionsWithRead, IBlockParams, RenderCbType } from '../../types/base';
 import { wrapDerivedAtomSignalComp } from './wrap';
 
 interface IMarkBlockAndRunCbOptions {
@@ -83,14 +83,17 @@ export function renderResult(apiCtx: CoreApiCtx, blockCtx: IBlockCtx, result: an
   return getAtom(result as any);
 }
 
-let id = 0;
-
-export function makeBlockComp<P = object>(apiCtx: CoreApiCtx, blockCtx: IBlockCtx, factory: Fn, options?: IBlockOptions<P>) {
-  const { memo = true, compare } = options || {};
+export function makeBlockComp<P = object>(apiCtx: CoreApiCtx, blockCtx: IBlockCtx, factory: Fn, options: IBlockOptionsWithRead<P>) {
+  const { memo = true, compare, forView } = options;
   const { key } = blockCtx;
   const { react } = apiCtx;
   const forwardRef = react.forwardRef || noop;
   const Comp = factory();
+
+  // 来自 BlockView 调用，无需再做 ref 转发处理
+  if (forView) {
+    return Comp;
+  }
 
   // allow pass ref to block component
   let RefComp = forwardRef(Comp);
@@ -111,9 +114,36 @@ export function makeBlockComp<P = object>(apiCtx: CoreApiCtx, blockCtx: IBlockCt
   }
 
   const Block = memo ? react.memo(RefComp, compare) : RefComp;
-  id = +1;
-  Block.displayName = 'HeluxBlock_' + id;
+  Block.displayName = memo ? 'HeluxBlock(memo)' : 'HeluxBlock';
   // @ts-ignore
   Block[IS_BLOCK] = true;
   return Block;
+}
+
+export function getSignalViewOptions(props: any, ref: any, forV2?: boolean) {
+  if (forV2) {
+    const { input, format: mayFormat, enableStatus, useStatusList, viewProps } = props;
+    return { input, mayFormat, enableStatus, useStatusList, ref, viewProps };
+  }
+  const { input, format: mayFormat, enableStatus, useStatusList, ...viewProps } = props;
+  return { input, mayFormat, enableStatus, useStatusList, ref, viewProps };
+}
+
+export function getBlockViewOptions(props: any, ref: any, forV2?: boolean) {
+  const getMayFormat = (comp: any, input: any) => {
+    // 类型上标识了 comp 必传，但实际运行如未传递 comp 则尝试使用 input 作为渲染函数
+    // 此时 input 既是数据输入源，也是渲染函数
+    const mayFormat = comp || input;
+    return mayFormat;
+  };
+
+  if (forV2) {
+    const { data: input, comp, enableStatus, useStatusList, viewProps } = props;
+    const mayFormat = getMayFormat(comp, input);
+    return { input, mayFormat, enableStatus, useStatusList, ref, viewProps, forView: true };
+  }
+
+  const { data: input, comp, enableStatus, useStatusList, ...viewProps } = props;
+  const mayFormat = getMayFormat(comp, input);
+  return { input, mayFormat, enableStatus, useStatusList, ref, viewProps, forView: true };
 }

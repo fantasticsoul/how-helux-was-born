@@ -227,7 +227,7 @@ const Demo = () => {
     <Entry fns={[changeB2, changeA, changeAtom, changeName, changeNameSync, changeB22, changeB212]}>
       <BlockView data={getProps2} comp={Name} ref={ref} />
       {/* <BlockView data={getProps2} comp={Name2} ref={ref} label='gogogo' /> */}
-      <BlockView<Data, Other> data={getProps} comp={AsyncBlockPure} enableStatus label="xx" />
+      <BlockView<Data, { a: 1 }> data={() => ({ abb: 1 })} comp={AsyncBlockPure} enableStatus outProps={{ label: true, a: 's' }} a={'s'} />
       {/* <SignalView input={getProps2} format={Name} /> */}
       {/* <BlockView<Data> data={getProps} comp={AsyncBlockPure} enableStatus label="xx" /> */}
       {/* {$(getProps, AsyncBlockPure, true)} */}
