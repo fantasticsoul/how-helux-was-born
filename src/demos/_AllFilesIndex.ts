@@ -32,7 +32,7 @@ export { default as SignalBlockView } from './SignalBlockView';
 // export { default as DeriveTask2 } from './DeriveTask2';
 // export { default as EmitAndOn } from './EmitAndOn';
 // export { default as UseEffect } from './UseEffect';
-// export { default as WithAtoms } from './WithAtoms';
+export { default as WithAtoms } from './WithAtoms';
 // export { default as UseObject } from './UseObject';
 // export { default as UseMutable } from './UseMutable';
 // export { default as Produce } from './Produce';

@@ -1,5 +1,5 @@
-import { KEY_SPLITER } from '../../consts';
 import { getParentKeyFromArr } from '../../common';
+import { KEY_SPLITER } from '../../consts';
 import { getDepKeyByPath } from '../common/util';
 import { getBlockScope } from './speedup';
 
@@ -70,7 +70,7 @@ export function disableReuseLatest() {
       // 当前 depKey 已被添加
       newKeyPath.includes(depKey)
       // 当前 depKey 是数组里某个 key 的路径前缀，不需要添加到依赖路径里，表示依赖已被收窄
-      || newKeyPath.some(v => v.startsWith(`${depKey}${KEY_SPLITER}`))
+      || newKeyPath.some((v) => v.startsWith(`${depKey}${KEY_SPLITER}`))
     ) {
       ignored[depKey] = true;
       return;
@@ -80,9 +80,7 @@ export function disableReuseLatest() {
     newKeyPaths.push(keyPath);
   });
 
-  console.log('disableReuseLatest 1', latest.keyPaths.join(' '));
   latest.keyPaths = newKeyPaths;
-  console.log('disableReuseLatest', latest.keyPaths);
   reuseLatest = false;
 }
 

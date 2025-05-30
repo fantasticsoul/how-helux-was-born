@@ -6,17 +6,17 @@ import { isAtom, isDerivedAtom } from '../factory/common/atom';
 import { disableReuseLatest, enableReuseLatest, getLastest } from '../factory/common/blockScope';
 import { getSharedKey } from '../helpers/state';
 import type { CoreApiCtx } from '../types/api-ctx';
-import type { SingalVal, RenderCbType, LoadingStatus, IBlockOptionsWithRead } from '../types/base';
+import type { IBlockOptionsWithRead, LoadingStatus, RenderCbType, SingalVal } from '../types/base';
 import { dynamicBlockWithRead } from './block';
-import { alwaysEqual, wrapDerivedAtomSignalComp, wrapDerivedSignalComp, wrapSignalComp, type IWrapSignalCompOpt } from './common/wrap';
 import { noopVal } from './common/util';
+import { alwaysEqual, wrapDerivedAtomSignalComp, wrapDerivedSignalComp, wrapSignalComp, type IWrapSignalCompOpt } from './common/wrap';
 
 interface ISignalLogicOptions {
-  input: SingalVal | (() => SingalVal),
-  mayFormat?: (val: any) => any,
-  enableStatus?: boolean,
-  ref?: any,
-  viewProps?: any,
+  input: SingalVal | (() => SingalVal);
+  mayFormat?: (val: any) => any;
+  enableStatus?: boolean;
+  ref?: any;
+  viewProps?: any;
   useStatusList?: () => LoadingStatus[];
   forView?: boolean;
   blockCtx?: any;
@@ -27,8 +27,8 @@ const str2CompType: Record<string, string> = {
   'Symbol(react.memo)': 'memo',
 };
 const compTypeMap: Record<string, number> = {
-  'forwardRef': 1,
-  'memo': 1,
+  forwardRef: 1,
+  memo: 1,
 };
 
 function getCbType(result: any) {
@@ -81,7 +81,15 @@ export function signalLogic(apiCtx: CoreApiCtx, options: ISignalLogicOptions): R
     const renderFn: any = isFormatAsComp ? mayFormat : input;
     const { blockCtx } = options;
     const blkOpt: IBlockOptionsWithRead = {
-      compare, read, enableStatus: estatus, ref, viewProps, isFormatAsComp, cbType, useStatusList, blockCtx,
+      compare,
+      read,
+      enableStatus: estatus,
+      ref,
+      viewProps,
+      isFormatAsComp,
+      cbType,
+      useStatusList,
+      blockCtx,
     };
     const Comp = dynamicBlockWithRead(apiCtx, renderFn, blkOpt);
     return react.createElement(Comp);
@@ -145,7 +153,15 @@ export function signalLogic(apiCtx: CoreApiCtx, options: ISignalLogicOptions): R
     // for $(atom.val.xxx.yy), $(shared.xxx.yy), $(val, val=>...), <SignalView input={()=>val} format={(val)=>...} />
     if (stateOrResult) {
       const options: IWrapSignalCompOpt = {
-        sharedKey, sharedState: stateOrResult, depKey, keyPath, keyPaths, compare, format, result, shouldUseResult: true,
+        sharedKey,
+        sharedState: stateOrResult,
+        depKey,
+        keyPath,
+        keyPaths,
+        compare,
+        format,
+        result,
+        shouldUseResult: true,
       };
       if (isInputFn) {
         options.input = input;

@@ -4,9 +4,9 @@ import { DICT } from '../../consts';
 import { getDepKeyByPath } from '../../factory/common/util';
 import { useAtomSimpleLogic } from '../../hooks/common/useAtomLogic';
 import { useDerivedSimpleLogic } from '../../hooks/common/useDerivedLogic';
-import { noopVal } from './util';
 import type { CoreApiCtx } from '../../types/api-ctx';
 import type { DerivedAtom, Dict, Fn } from '../../types/base';
+import { noopVal } from './util';
 
 export const alwaysEqual = () => true;
 export interface IWrapSignalCompOpt {
@@ -54,9 +54,7 @@ export function wrapComp(apiCtx: CoreApiCtx, Comp: any, displayName: string, nee
 }
 
 export function wrapSignalComp(apiCtx: CoreApiCtx, options: IWrapSignalCompOpt): FunctionComponent {
-  const {
-    sharedState, depKey, keyPath, keyPaths, compare, sharedKey, format = noopVal, shouldUseResult, result, input,
-  } = options;
+  const { sharedState, depKey, keyPath, keyPaths, compare, sharedKey, format = noopVal, shouldUseResult, result, input } = options;
   const Comp = function () {
     const insCtx = useAtomSimpleLogic(apiCtx, sharedState, { arrDep: true });
     if (insCtx.isFirstRender) {

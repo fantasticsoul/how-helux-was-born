@@ -23,15 +23,8 @@ const needApiCtxFns = [
   '$',
   'signal',
   'block',
-  'blockStatus',
   'dynamicBlock',
-  'dynamicBlockStatus',
 ];
-
-/**
- *  这些api需要直接获取转发api，内部调用 getApiCtx 来获取 apiCtx 透传给其他函数
- */
-const needForwardRefFns = ['SignalView', 'BlockView'];
 
 function shouldInjectApiCtx(key: string) {
   return key.startsWith('use') || needApiCtxFns.includes(key);
@@ -67,11 +60,15 @@ export function buildHeluxApi(react: ReactLike, act?: Fn): AllApi {
     const apiDef = apiVar[key];
 
     if ('COMPS' === key) {
+      const { memo, forwardRef } = react;
       const { SignalView, BlockView, SignalV2, BlockV2 } = apiDef;
-      apiDef.SignalView = react.memo(react.forwardRef(SignalView), compareSignalViewProps);
-      apiDef.BlockView = react.memo(react.forwardRef(BlockView), compareBlockViewProps);
-      apiDef.SignalV2 = react.memo(react.forwardRef(SignalV2), compareV2Props);
-      apiDef.BlockV2 = react.memo(react.forwardRef(BlockV2), compareV2Props);
+      baseApi.SignalView = memo(forwardRef(SignalView), compareSignalViewProps);
+      // baseApi.Signal = baseApi.SignalView; // should I expose this, it is similar with signal
+      baseApi.BlockView = memo(forwardRef(BlockView), compareBlockViewProps);
+      // baseApi.Block = baseApi.BlockView; // should I expose this, it is similar with block
+      baseApi.SignalV2 = memo(forwardRef(SignalV2), compareV2Props);
+      baseApi.BlockV2 = memo(forwardRef(BlockV2), compareV2Props);
+      return;
     }
 
     if (shouldInjectApiCtx(key)) {
@@ -84,13 +81,6 @@ export function buildHeluxApi(react: ReactLike, act?: Fn): AllApi {
 
       // code 3: use bind
       baseApi[key] = apiDef.bind(null, apiCtx);
-      return;
-    }
-
-    if (needForwardRefFns.includes(key)) {
-      const Comp = apiCtx.react.forwardRef(apiDef);
-      Comp.displayName = key;
-      baseApi[key] = Comp;
       return;
     }
 

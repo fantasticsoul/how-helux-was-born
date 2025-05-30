@@ -38,10 +38,7 @@ export function blockNormalLogic<P = object>(innerOptions: IBlockLogicOptions<P>
     () => {
       const Comp = (props: any, inputRef: ForwardedRef<any>) => {
         const { ref, viewProps } = getRefAndViewProps(blockCtx, options, inputRef);
-        const result = markBlockAndRunCb(
-          blockCtx,
-          { isDynamic, cb, props, ref, read: options.read, viewProps, cbType: options.cbType }
-        );
+        const result = markBlockAndRunCb(blockCtx, { isDynamic, cb, props, ref, read: options.read, viewProps, cbType: options.cbType });
         const forceUpdate = useForceUpdate();
         useDep(apiCtx, blockCtx, forceUpdate, options.useStatusList || noopArr);
         useDelCtxEffect(apiCtx, blockCtx, isDynamic);
@@ -69,10 +66,7 @@ export function blockStatusLogic<P = object>(innerOptions: IBlockLogicOptions<P>
     () => {
       return (props: any, inputRef: ForwardedRef<any>) => {
         const { ref, viewProps } = getRefAndViewProps(blockCtx, options, inputRef);
-        const result = markBlockAndRunCb(
-          blockCtx,
-          { isDynamic, cb, props, ref, read: options.read, viewProps, cbType: options.cbType },
-        );
+        const result = markBlockAndRunCb(blockCtx, { isDynamic, cb, props, ref, read: options.read, viewProps, cbType: options.cbType });
         const forceUpdate = useForceUpdate();
         const status = useDep(apiCtx, blockCtx, forceUpdate, options.useStatusList || noopArr);
         useDelCtxEffect(apiCtx, blockCtx, isDynamic);
@@ -98,11 +92,7 @@ export function blockStatusLogic<P = object>(innerOptions: IBlockLogicOptions<P>
  * 用户在组件里调用，推荐使用 dynamicBlock 替代 block
  * 如果非要在组件里使用 block 生成组件，也能正常工作，但会额外占用一些不会释放的内存
  */
-function blockLogicImpl<P = object>(
-  innerOptions: IInnerBlockOptions<P>,
-  blockOptions?: BlockOptionsType,
-  shouldUseRead?: boolean,
-) {
+function blockLogicImpl<P = object>(innerOptions: IInnerBlockOptions<P>, blockOptions?: BlockOptionsType, shouldUseRead?: boolean) {
   const stdOptions = parseBlockOptions(blockOptions, shouldUseRead);
   const { enableStatus } = stdOptions;
   const blockCtx = stdOptions.blockCtx || initBlockCtx(innerOptions.isDynamic, enableStatus);
@@ -115,7 +105,6 @@ function blockLogicImpl<P = object>(
   return blockStatusLogic(logicOpts, stdOptions);
 }
 
-
 /**
  * 用户在组件里调用，推荐使用 dynamicBlock 替代 block
  * 如果非要在组件里使用 block 生成组件，也能正常工作，但会额外占用一些不会释放的内存
@@ -127,4 +116,3 @@ export function blockLogic<P = object>(innerOptions: IInnerBlockOptions<P>, bloc
 export function blockLogicWithRead<P = object>(innerOptions: IInnerBlockOptions<P>, blockOptions?: BlockOptionsWithReadType) {
   return blockLogicImpl(innerOptions, blockOptions, true);
 }
-

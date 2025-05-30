@@ -38,7 +38,7 @@ interface ICallMutateBase {
 
 interface ICallMutateFnOpt<T = SharedState> extends ICallMutateBase {
   /** fn 函数调用入参拼装 */
-  getArgs?: (param: { draft: T; draftRoot: T; setState: Fn; desc: string; input: any[]; extraArgs: any, extra: any }) => any[];
+  getArgs?: (param: { draft: T; draftRoot: T; setState: Fn; desc: string; input: any[]; extraArgs: any; extra: any }) => any[];
   getPayloadArgs?: () => any;
 }
 

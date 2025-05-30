@@ -1,8 +1,8 @@
 import { isFn } from '@helux/utils';
 import { getApiCtx } from '../common/transfer';
 import { initBlockCtx } from '../helpers/blockCtx';
+import { getBlockViewOptions, getSignalViewOptions } from './common/util';
 import { signalLogic } from './signal';
-import { getSignalViewOptions, getBlockViewOptions } from './common/util';
 
 function mayLogNotFnError(input: any, label: string) {
   if (!isFn(input)) {

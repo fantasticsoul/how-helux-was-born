@@ -14,7 +14,6 @@ import type {
   Atom,
   AtomValType,
   BlockComponent,
-  IBlockParams,
   ChangeDraftCb,
   DerivedAtom,
   DerivedDict,
@@ -27,6 +26,7 @@ import type {
   IAtomCtx,
   IBindAtomOptions,
   IBlockOptions,
+  IBlockParams,
   IBoundStateInfo,
   ICompAtomCtx,
   ICompReactiveCtx,
@@ -648,7 +648,7 @@ export function dynamicBlock<P = object, T = any>(
 /**
  * 获取 props 上的 blockParams 参数，如不存在也会返回，并标识 isFake=true，
  * 在 signal(getProps, Comp) 场景，这样设计课让 Comp 在 signal 外或 signal 中均可正常渲染不报错
- * @param props 
+ * @param props
  */
 export function getBlockParams<P = object>(props: P): IBlockParams<P>;
 
@@ -668,7 +668,7 @@ export function getBlockParams<P = object>(props: P): IBlockParams<P>;
  * const Info = (props)=><div>name:{props.name}-age{props.age}</div>;
  * const getProps = ()=>({ name: state.info.name, age: state.info.age });
  * <div>...long content {$(getProps,Info)}</div>
- * 
+ *
  * //  atom 响应示例
  * // ✅ ok，传入原始值 atom，推荐这种写法
  * <div>...long content {$(atom)}</div>
@@ -694,23 +694,14 @@ export function getBlockParams<P = object>(props: P): IBlockParams<P>;
  * <div>...long content {$(sharedUser, (v)=>{const{age,name,nickname}=v;return age>10?name:nickname})}</div>
  * ```
  */
-export function signal<T extends SingalVal>(
-  inputVar: T,
-  format?: (val: T) => any,
-  enableStatus?: EnableStatus,
-): ReactNode;
-export function signal(
-  inputVar: (props: any) => SingalVal,
-  format?: (val: any) => any,
-  enableStatus?: EnableStatus,
-): ReactNode;
+export function signal<T extends SingalVal>(inputVar: T, format?: (val: T) => any, enableStatus?: EnableStatus): ReactNode;
+export function signal(inputVar: (props: any) => SingalVal, format?: (val: any) => any, enableStatus?: EnableStatus): ReactNode;
 export function signal(inputVar: () => SingalVal): ReactNode;
 
 /**
  * signal 函数的简写导出
  */
 export const $: typeof signal;
-
 
 type ISignalViewInnerProps<T extends SingalVal = any> = {
   /**
@@ -742,18 +733,14 @@ type ISignalViewInnerProps<T extends SingalVal = any> = {
   useStatusList?: () => LoadingStatus[];
 };
 
-
-type SignalViewProps<T extends SingalVal = any, ViewProps extends object = any>
-  = ISignalViewInnerProps<T> & Omit<ViewProps, 'input' | 'format' | 'enableStatus' | 'ref' | 'useStatusList'>;
+type SignalViewProps<T extends SingalVal = any, ViewProps extends object = any> = ISignalViewInnerProps<T> &
+  Omit<ViewProps, 'input' | 'format' | 'enableStatus' | 'ref' | 'useStatusList'>;
 
 /**
  * signal 的组件化写法
  */
 export function SignalView(props: SignalViewProps): ReactNode;
-export function SignalView<T extends SingalVal = any, O extends object = any>(
-  props: SignalViewProps<T, O>,
-): ReactNode;
-
+export function SignalView<T extends SingalVal = any, O extends object = any>(props: SignalViewProps<T, O>): ReactNode;
 
 interface ISignalV2Props<T extends SingalVal = any, V extends object = any> extends ISignalViewInnerProps<T> {
   viewProps: V;
@@ -769,9 +756,7 @@ interface ISignalV2SimpleProps<T extends SingalVal = any> extends ISignalViewInn
  */
 export function SignalV2(props: ISignalV2SimpleProps): ReactNode;
 export function SignalV2<T extends SingalVal = any>(props: ISignalV2SimpleProps<T>): ReactNode;
-export function SignalV2<T extends SingalVal = any, V extends object = object>(
-  props: ISignalV2Props<T, V>,
-): ReactNode;
+export function SignalV2<T extends SingalVal = any, V extends object = object>(props: ISignalV2Props<T, V>): ReactNode;
 
 type IBlockViewInnerProps<Data extends object = any, ViewProps extends object = any> = {
   data: () => Data;
@@ -787,8 +772,8 @@ type IBlockViewInnerProps<Data extends object = any, ViewProps extends object = 
   useStatusList?: () => LoadingStatus[];
 };
 
-type IBlockViewProps<Data extends object = any, ViewProps extends object = any>
-  = IBlockViewInnerProps<Data, ViewProps> & Omit<ViewProps, 'input' | 'format' | 'enableStatus' | 'ref' | 'useStatusList'>;
+type IBlockViewProps<Data extends object = any, ViewProps extends object = any> = IBlockViewInnerProps<Data, ViewProps> &
+  Omit<ViewProps, 'input' | 'format' | 'enableStatus' | 'ref' | 'useStatusList'>;
 
 /**
  * 收窄 SignalView，变换属性为 data, comp,
@@ -808,9 +793,7 @@ export function BlockView(props: IBlockViewProps): ReactNode;
 // 只约束Data
 export function BlockView<D extends object = any>(props: IBlockViewProps<D, any>): ReactNode;
 // Data，ViewProps 都约束
-export function BlockView<D extends object = any, V extends object = object>(
-  props: IBlockViewProps<D, V>,
-): ReactNode;
+export function BlockView<D extends object = any, V extends object = object>(props: IBlockViewProps<D, V>): ReactNode;
 
 interface IBlockV2Props<Data extends object = any, V extends object = any> extends IBlockViewInnerProps<Data, V> {
   viewProps: V;
@@ -837,9 +820,7 @@ export function BlockV2(props: IBlockV2SimpleProps): ReactNode;
 // 只约束Data
 export function BlockV2<Data extends object = any>(props: IBlockV2SimpleProps<Data>): ReactNode;
 // Data，ViewProps 都约束
-export function BlockV2<Data extends object = any, V extends object = object>(
-  props: IBlockV2Props<Data, V>,
-): ReactNode;
+export function BlockV2<Data extends object = any, V extends object = object>(props: IBlockV2Props<Data, V>): ReactNode;
 
 /**
  * 添加中间件，可在数据提交前做二次修改，可写入数据传递给下一个中间件
@@ -977,7 +958,7 @@ export declare const produce: IProduce;
 export declare function markRaw<T extends any = any>(rawVal: T): T;
 
 /**
- * 兼容 react 类组件使用 helux，区别于 withAtom，bindAtom 返回函数组件
+ * 兼容 react 类组件使用 helux ，区别于 withAtom ，bindAtom 返回函数组件
  */
 export declare function bindAtom<T extends any = any>(ClassComp: T, atomMap: IBindAtomOptions): T;
 

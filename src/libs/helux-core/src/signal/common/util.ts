@@ -1,7 +1,7 @@
 import type { ForwardedRef } from '@helux/types';
-import { has, isDebug, noop, noopArr, isPlainObj, isFn } from '@helux/utils';
-import { IS_BLOCK, HELUX_BLOCK_PARAMS } from '../../consts';
+import { has, isDebug, isFn, isPlainObj, noop, noopArr } from '@helux/utils';
 import { getApiCtx } from '../../common/transfer';
+import { HELUX_BLOCK_PARAMS, IS_BLOCK } from '../../consts';
 import { getAtom, isDerivedAtom } from '../../factory/common/atom';
 import { markBlockFnEnd, markBlockFnStart } from '../../helpers/blockCtx';
 import type { CoreApiCtx } from '../../types/api-ctx';
@@ -54,7 +54,7 @@ export function markBlockAndRunCb(blockCtx: IBlockCtx, options: IMarkBlockAndRun
     result = getApiCtx().react.createElement(cb, { ...propsToComp, ref }) || null;
   } else if (cbType === 'memo') {
     // 避免如下警告
-    // Function components cannot be given refs. 
+    // Function components cannot be given refs.
     // Attempts to access this ref will fail. Did you mean to use React.forwardRef()
     result = getApiCtx().react.createElement(cb, propsToComp) || null;
   } else {

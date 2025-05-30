@@ -14,7 +14,7 @@ export function useDep(apiCtx: CoreApiCtx, blockCtx: IBlockCtx, forceUpdate: Fn,
   let status: LoadingStatus = { loading: false, err: null, ok: true };
   useStateDep(apiCtx, blockCtx, forceUpdate);
   const statusList: LoadingStatus[] = useStatusList() || [];
-  statusList.forEach(v => noop(v.loading)); // 触发一下读取动作，表示关心 status 变化
+  statusList.forEach((v) => noop(v.loading)); // 触发一下读取动作，表示关心 status 变化
 
   // use result dep, find one non-ok status
   blockCtx.results.forEach((result) => {

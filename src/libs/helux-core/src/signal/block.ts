@@ -21,7 +21,6 @@ export function dynamicBlock<P = object>(apiCtx: CoreApiCtx, cb: BlockCb<P>, opt
   return Block;
 }
 
-
 /**
  * 功能同 dynamicBlock，内部专用函数
  */
@@ -32,8 +31,8 @@ export function dynamicBlockWithRead<P = object>(apiCtx: CoreApiCtx, cb: BlockCb
 
 /**
  * 获取 props 上的 blockParams 参数，如果获取不到则返回一个假的参数，表标识 isFake=true
- * @param props 
- * @returns 
+ * @param props
+ * @returns
  */
 export function getBlockParams(props: any) {
   const noop: any = noopAny;
