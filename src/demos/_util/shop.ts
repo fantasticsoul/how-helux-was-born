@@ -140,7 +140,9 @@ export default defineStore('shop', {
       this.info.name.first = String(Date.now());
     },
     updateItem(item: IItem) {
-      console.log(item);
+      const [cur] = this.$getCurrentProxy(item);
+      console.log(this.$state);
+      cur.name = `updateItem_${Date.now()}`;
     },
   },
   lifecycle: {

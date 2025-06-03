@@ -222,7 +222,7 @@ export function isDraft(mayDraft: any) {
 }
 
 export function getNextMetaLevel(mayContainMetaObj: any, apiCtx: IApiCtx) {
-  const meta = getDraftMeta(mayContainMetaObj, apiCtx);
+  const meta = getDraftMetaByCtx(mayContainMetaObj, apiCtx);
   return meta ? meta.level + 1 : 1;
 }
 
@@ -231,14 +231,21 @@ export function getSafeDraftMeta<T = ObjectLike>(proxyDraft: T, apiCtx: IApiCtx)
   return apiCtx.metaMap.get(proxyDraft);
 }
 
-export function getDraftMeta(proxyDraft: any, apiCtx?: IApiCtx): DraftMeta<any> | null {
-  if (!proxyDraft) {
+export function getDraftMetaByCtx(mayProxyDraft: any, apiCtx: IApiCtx): DraftMeta<any> | null {
+  if (!mayProxyDraft) {
     return null;
   }
   if (apiCtx) {
-    return apiCtx.metaMap.get(proxyDraft) || null;
+    return apiCtx.metaMap.get(mayProxyDraft) || null;
   }
-  return getPrivateMeta(proxyDraft);
+  return getPrivateMeta(mayProxyDraft) || null;
+}
+
+export function getDraftMeta(mayProxyDraft: any): DraftMeta<any> | null {
+  if (!mayProxyDraft) {
+    return null;
+  }
+  return getPrivateMeta(mayProxyDraft) || null;
 }
 
 export function getMetaVer(mayDraftProxy: any): string {

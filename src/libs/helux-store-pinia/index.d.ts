@@ -10,6 +10,7 @@ import {
   MergeGetters,
   StateWrap,
 } from './src/types';
+import { InnerProp } from '@helux/store-pinia';
 export * from './src/types';
 export * from '@helux/core/src/types/base';
 
@@ -21,11 +22,11 @@ export * from '@helux/core/src/types/base';
 export declare function withLayeredOptionsThis<S extends Dict, G extends Dict, A extends Dict>(options: {
   state: (() => S) | S;
   getters: G & ThisType<StateWrap<S> & GettersProp<G>>;
-  actions: A & ThisType<StateWrap<S> & A & GettersProp<G>>;
+  actions: A & ThisType<StateWrap<S> & A & GettersProp<G> & InnerProp<S>>;
 }): {
   state: (() => S) | S;
   getters: G & ThisType<StateWrap<S> & GettersProp<G>>;
-  actions: A & ThisType<StateWrap<S> & A & GettersProp<G>>;
+  actions: A & ThisType<StateWrap<S> & A & GettersProp<G> & InnerProp<S>>;
 };
 
 /**
@@ -72,11 +73,11 @@ export declare function defineLayeredStore<S extends Dict, G extends Dict, A ext
 export declare function withOptionsThis<S extends Dict, G extends Dict, A extends Dict>(options: {
   state: (() => S) | S;
   getters: G & ThisType<S & GettersProp<G>>;
-  actions: A & ThisType<S & A & GettersProp<G>>;
+  actions: A & ThisType<S & A & GettersProp<G> & InnerProp<S>>;
 }): {
   state: (() => S) | S;
   getters: G & ThisType<S & GettersProp<G>>;
-  actions: A & ThisType<S & A & GettersProp<G>>;
+  actions: A & ThisType<S & A & GettersProp<G> & InnerProp<S>>;
 };
 
 /**

@@ -166,6 +166,7 @@ declare module 'helux' {
     getRawState,
     getSnap,
     getAtom,
+    getCurrentProxy,
     addMiddleware,
     addPlugin,
     cst,

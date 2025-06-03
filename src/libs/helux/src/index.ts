@@ -100,6 +100,7 @@ export const {
   getRawState,
   getSnap,
   getAtom,
+  getCurrentProxy,
   addMiddleware,
   addPlugin,
   cst,

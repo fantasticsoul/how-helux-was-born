@@ -9,6 +9,11 @@ export type GettersProp<G extends Dict> = {
 // 约束返回给用户使用的 loading 类型
 export type LoadingType<A extends Dict = any> = { [K in keyof A]: LoadingStatus };
 
+export type InnerProp<S extends Dict> = {
+  $getCurrentProxy: <T = any>(mayProxyDraft: T) => [currentProxy: T, isGetSucess: boolean, path: string[]],
+  $state: S,
+};
+
 declare function withOptionsThis<
   S extends Dict,
   G extends Dict,
@@ -16,11 +21,11 @@ declare function withOptionsThis<
 >(options: {
   state: () => S,
   getters: G & ThisType<S & GettersProp<G>>,
-  actions: A & ThisType<S & A & GettersProp<G>>,
+  actions: A & ThisType<S & A & GettersProp<G> & InnerProp<S>>,
 }): {
   state: () => S,
   getters: G & ThisType<S & GettersProp<G>>,
-  actions: A & ThisType<S & A & GettersProp<G>>,
+  actions: A & ThisType<S & A & GettersProp<G> & InnerProp<S>>,
 };
 
 
@@ -31,7 +36,7 @@ declare function defineStore<
 >(options: {
   state: () => S,
   getters: G & ThisType<S & GettersProp<G>>,
-  actions: A & ThisType<S & A & GettersProp<G>>,
+  actions: A & ThisType<S & A & GettersProp<G> & InnerProp<S>>,
 }): {
   actions: A,
   useState: () => S,
@@ -49,7 +54,7 @@ declare function defineMergedStore<
 >(options: {
   state: () => S,
   getters: G & ThisType<S & GettersProp<G>>,
-  actions: A & ThisType<S & A & GettersProp<G>>,
+  actions: A & ThisType<S & A & GettersProp<G> & InnerProp<S>>,
 }): {
   useStore: () => S & GettersProp<G> & A,
   actions: A,

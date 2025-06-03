@@ -36,6 +36,11 @@ export type GettersProp<G extends Dict> = {
   readonly [K in keyof G]: G[K] extends (...args: any[]) => infer R ? R : any;
 };
 
+export type InnerProp<S extends Dict> = {
+  $getCurrentProxy: <T = any>(mayProxyDraft: T) => [currentProxy: T, isGetSucess: boolean, path: string[]],
+  $state: S,
+};
+
 // 约束返回给用户使用的 loading 类型
 export type LoadingType<A extends Dict = any> = { [K in keyof A]: LoadingStatus };
 
@@ -44,7 +49,7 @@ export interface IDefineLayeredStoreOptions<S extends Dict, G extends Dict, A ex
   /** 确保 getters 里能访问到 state */
   getters?: G & ThisType<StateWrap<S> & GettersProp<G>>;
   /** 确保 actions 里能访问到 state getters */
-  actions?: A & ThisType<StateWrap<S> & A & GettersProp<G>>;
+  actions?: A & ThisType<StateWrap<S> & A & GettersProp<G> & InnerProp<S>>;
   /** 确保 lifecycle 里能访问到 state getters actions */
   lifecycle?: ILifecycle & ThisType<StateWrap<S> & A & GettersProp<G>>;
 }
@@ -78,7 +83,7 @@ export interface IDefineStoreOptions<S extends Dict, G extends Dict, A extends D
   /** 确保 getters 里能访问到 state */
   getters?: G & ThisType<S & GettersProp<G>>;
   /** 确保 actions 里能访问到 state getters */
-  actions?: A & ThisType<S & A & GettersProp<G>>;
+  actions?: A & ThisType<S & A & GettersProp<G> & InnerProp<S>>;
   /** 确保 lifecycle 里能访问到 state getters actions */
   lifecycle?: ILifecycle & ThisType<S & A & GettersProp<G>>;
 }

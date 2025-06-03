@@ -572,6 +572,14 @@ export function getRawState<T = Dict>(state: T): T;
  */
 export function getSnap<T = Dict>(state: T, isPrevSnap?: boolean): T;
 
+/**
+ * 获取代理对象（可能已过期）的最新版本代理对象
+ */
+export function getCurrentProxy<T = any>(
+  proxyRoot: any,
+  mayProxyDraft: T,
+): [currentProxy: T, isGetSucess: boolean, path: string[]];
+
 export function emit<A extends any[] = any[]>(name: string, ...args: A): void;
 
 /**

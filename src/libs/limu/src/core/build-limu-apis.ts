@@ -24,7 +24,7 @@ import { handleDataNode } from './data-node-processor';
 import { deepFreeze } from './freeze';
 import { createScopedMeta, getMayProxiedVal, getUnProxyValue } from './helper';
 import {
-  getSafeDraftMeta, getDraftMeta, isDraft, getPrivateMeta, replaceMetaPartial,
+  getSafeDraftMeta, getDraftMetaByCtx, isDraft, getPrivateMeta, replaceMetaPartial,
   mayRelinkPath, ROOT_CTX, getSourceId, setSourceId,
 } from './meta';
 import { pushKeyPath, getValByKeyPaths, getVal, setValByKeyPaths } from './path-util';
@@ -262,7 +262,7 @@ export function buildLimuApis(options?: IInnerCreateDraftOptions) {
          * draft.a = draft.info.a;
          * 需重记录多引用关系
          */
-        const valueMeta = getDraftMeta(mayProxyVal, apiCtx);
+        const valueMeta = getDraftMetaByCtx(mayProxyVal, apiCtx);
         const proxyVal = mayRelinkPath(key, parentMeta, valueMeta);
         if (proxyVal) {
           return proxyVal;

@@ -1,4 +1,6 @@
 import type { Dict, Fn, ILifecycle, ISharedCtx } from 'helux';
+import { getCurrentProxy } from 'helux';
+import { INNER_GET_CURRENT_PROXY, INNER_STATE, STATE } from './consts';
 
 function keys(obj: object) {
   return Object.keys(obj);
@@ -44,8 +46,14 @@ export function makeWrapStore(state: any, options: any, isLayered?: boolean) {
     {},
     {
       get(t: any, p: any) {
-        // state 独立存放
-        if (isLayered && p === 'state') {
+        if (INNER_GET_CURRENT_PROXY === p) {
+          return (mayProxyDraft: any) => getCurrentProxy(state, mayProxyDraft);
+        }
+        if (
+          // 访问内置属性
+          INNER_STATE === p
+          // state 独立存放
+          || (isLayered && STATE === p)) {
           return state;
         }
 

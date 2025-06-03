@@ -6,7 +6,7 @@
 import type { DraftMeta, IApiCtx } from '../inner-types';
 import { ARRAY, MAP, SET } from '../support/consts';
 import { deepDrill, isObject } from '../support/util';
-import { getDraftMeta, getMetaVer, getMultiRefPaths, clearMultiRefData } from './meta';
+import { getDraftMetaByCtx, getDraftMeta, getMetaVer, getMultiRefPaths, clearMultiRefData } from './meta';
 import { getKeyStrByPath, getVal, setVal } from './path-util';
 
 function ressignArrayItem(listMeta: DraftMeta, itemMeta: DraftMeta, ctx: { targetNode: any; key: any }) {
@@ -48,7 +48,7 @@ export function clearScopes(rootMeta: DraftMeta, apiCtx: IApiCtx) {
     }
     const item = v;
     deepDrill(node, parent, key, (obj: any, parentObj: any, key: any) => {
-      const meta = getDraftMeta(obj, apiCtx);
+      const meta = getDraftMetaByCtx(obj, apiCtx);
       if (meta) {
         const { modified, copy, self } = meta;
         const targetNode = !modified ? self : copy;
