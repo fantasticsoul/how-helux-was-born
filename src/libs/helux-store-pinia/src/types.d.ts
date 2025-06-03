@@ -3,7 +3,7 @@ import type { Dict, ICreateOptions, ILifecycle, IUseSharedStateOptions, LoadingS
 /** 使用reactive修改状态时，标记表述，方便在devtool里可追溯 */
 type MarkRreactiveDesc = (desc: string) => void;
 
-type HeluxOptions = Omit<ICreateOptions, 'moduleName'>;
+export type HeluxOptions = Omit<ICreateOptions, 'moduleName'>;
 
 type D = Dict;
 

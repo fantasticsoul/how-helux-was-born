@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { getSnap, sharex, type ISharedCtx, type IUseSharedStateOptions } from 'helux';
-import type { IDefineStoreOptions, IStoreCtx } from './types';
+import type { IDefineStoreOptions, IStoreCtx, HeluxOptions } from './types';
 import { extractOptions, makeLifecycle, makeWrapActions, makeWrapDerived, makeWrapStore } from './util';
 
-export function defineStore(moduleName: string, options: IDefineStoreOptions<{}, {}, {}>): IStoreCtx<{}, {}, {}> {
+export function defineStore(
+  moduleName: string,
+  options: IDefineStoreOptions<{}, {}, {}>,
+  heluxOptions?: HeluxOptions,
+): IStoreCtx<{}, {}, {}> {
   const { firstVerState, lifecycle, userGetters, userActions, stateFn } = extractOptions(false, options);
-  const ctx = sharex(firstVerState, { moduleName }) as ISharedCtx;
+  const ctx = sharex(firstVerState, { ...(heluxOptions || {}), moduleName }) as ISharedCtx;
   const { state } = ctx;
   const { derivedState } = makeWrapDerived(ctx, { userGetters, userActions });
   // 未分层结构是用 state 当 derived，因为是基于自身可变计算的派生属性

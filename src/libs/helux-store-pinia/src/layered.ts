@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { getSnap, sharex, type ISharedCtx, type IUseSharedStateOptions } from 'helux';
-import type { IDefineStoreOptions, ILayeredStoreCtx } from './types';
+import type { IDefineStoreOptions, ILayeredStoreCtx, HeluxOptions } from './types';
 import { extractOptions, makeLifecycle, makeWrapActions, makeWrapDerived } from './util';
 
-export function defineLayeredStore(moduleName: string, options: IDefineStoreOptions<{}, {}, {}>): ILayeredStoreCtx<{}, {}, {}> {
+export function defineLayeredStore(
+  moduleName: string,
+  options: IDefineStoreOptions<{}, {}, {}>,
+  heluxOptions?: HeluxOptions,
+): ILayeredStoreCtx<{}, {}, {}> {
   const { firstVerState, lifecycle, userGetters, userActions, stateFn } = extractOptions(true, options);
-  const ctx = sharex(firstVerState, { moduleName }) as ISharedCtx;
+  const ctx = sharex(firstVerState, { ...(heluxOptions || {}), moduleName }) as ISharedCtx;
   const { state } = ctx;
 
   const { derivedState, useDerivedState } = makeWrapDerived(ctx, { userGetters, userActions }, true);

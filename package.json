@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@babel/core": "^7.16.0",
+    "@faker-js/faker": "^9.8.0",
     "@helux/demo-utils": "^0.0.3",
     "@helux/plugin-devtool": "^5.0.0",
     "@helux/store-pinia": "^1.1.0",

@@ -36,6 +36,7 @@ import {
   useService,
   useWatch,
   useWatchEffect,
+  useLockDep,
 } from './hooks';
 import { block, COMPS, dynamicBlock, getBlockParams, signal } from './signal';
 
@@ -84,6 +85,7 @@ export {
   useActionLoading,
   useLocalForceUpdate,
   useGlobalForceUpdate,
+  useLockDep,
   // for react class component
   bindAtom,
   withAtom,

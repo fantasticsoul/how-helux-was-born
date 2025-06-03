@@ -117,6 +117,7 @@ declare module 'helux' {
     useObject,
     useLocalForceUpdate,
     useGlobalForceUpdate,
+    useLockDep,
     // for react class component
     bindAtom,
     withAtom,

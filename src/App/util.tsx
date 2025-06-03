@@ -5,32 +5,34 @@ const cbTypeMap: Record<string, string> = {
   'Symbol(react.forward_ref)': 'forwardRef',
   'Symbol(react.memo)': 'memo',
 };
-
-export const entryKeys = Object.keys(demos).filter(key => key !== 'INITIAL_KEY');
-let initialKey = demos.INITIAL_KEY;
-if (!entryKeys.includes(initialKey)) {
-  initialKey = entryKeys[0];
-}
-
-export function getInitialKey(){
-  return initialKey;
-}
-
 export const entrys: Stat[] = [];
 export const mainKeys: string[] = [];
+export const compDict: any = {};
+export const keySubKeys: any = {};
+
 Object.keys(demos).forEach((v) => {
   // @ts-ignore
   const stat = getCompStat(v, demos[v]);
   stat && entrys.push(stat);
 });
 
-export const compDict: any = {};
-export const keySubKeys: any = {};
 entrys.forEach(v => {
   mainKeys.push(v.key);
   keySubKeys[v.key] = v.comps.map(v => v.key);
   v.comps.forEach(sub => compDict[`${v.key}/${sub.key}`] = sub.comp)
 });
+
+export const entryKeys = Object.keys(demos).filter(key => key !== 'INITIAL_KEY');
+let initialMainKey = demos.INITIAL_KEY;
+let initialSubKey = '';
+if (!entryKeys.includes(initialMainKey)) {
+  initialMainKey = entryKeys[0];
+}
+initialSubKey = keySubKeys[initialMainKey][0];
+
+export function getInitialKey() {
+  return { initialMainKey, initialSubKey };
+}
 
 function isComp(comp: any) {
   const keys = Object.keys(comp);
@@ -60,7 +62,6 @@ export function getCompStat(key: string, mayComp: any) {
 
   return item;
 }
-
 
 export function renderView(mainKey: string, subKey: string) {
   const key = `${mainKey}/${subKey}`;

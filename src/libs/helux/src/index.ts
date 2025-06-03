@@ -45,6 +45,7 @@ export const {
   useObject,
   useLocalForceUpdate,
   useGlobalForceUpdate,
+  useLockDep,
   // for react class component
   bindAtom,
   withAtom,

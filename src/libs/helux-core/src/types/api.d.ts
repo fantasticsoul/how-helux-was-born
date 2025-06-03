@@ -530,6 +530,11 @@ export function useMutable<T extends PlainObject>(
 export function useStable<T = any>(data: T): T;
 
 /**
+ * 锁定依赖，配合父组件设置 arrIndexDep=false 时用
+ */
+export function useLockDep<T = any>(data: T): T;
+
+/**
  * default: GlobalLoading，
  * 不传递任何共享状态的话，顶层 useMutateLoading 默认使用全局的 loading 状态
  * ```ts

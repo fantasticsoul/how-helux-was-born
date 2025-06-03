@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useRef } from "react";
 import { IRenderInfo, IFnRenderInfo } from "helux";
 import { nodupPush, getLocaleTime } from "../logic/util";
 
@@ -10,14 +10,15 @@ interface IProps {
   children: any;
   /** 强制按顺序读取新颜色 */
   forceColor?: boolean;
+  /** 不一样标识条是否在头部 */
+  top?: boolean;
 }
 
 const colors = ["#0944d0", "#fc774b", "#1da187", "#fdc536", "#1789f5"];
-let curIdx = 0;
 
-function getColor(sn: number, forceColor = false) {
+function getColor(sn: number, curIdx: number, forceColor = false) {
   let idx = 0;
-  if (forceColor) {
+  if (forceColor || sn === 0) {
     idx = curIdx % colors.length;
     curIdx++;
   } else {
@@ -65,18 +66,28 @@ function getInfoData(
 }
 
 function Ui(props: IProps) {
-  const { name = "MarkUpdate", info = fakeInfo, forceColor } = props;
+  const idxRef = useRef(0);
+  const { name = "MarkUpdate", info = fakeInfo, forceColor, top } = props;
+  const curIdx = idxRef.current;
   const { sn, insKeyStr, depStr, snStr } = getInfoData(info);
+  idxRef.current += 1;
+
+  const uiMarkBar = (<>
+    <div
+      className="info"
+      style={{ backgroundColor: getColor(sn, curIdx, forceColor) }}
+    >
+      [{name}] update at {getLocaleTime()}
+      {info !== fakeInfo && <span>{snStr} insKey {insKeyStr}</span>}
+    </div>
+    {depStr && <div style={{ color: "green" }}> deps is [ {depStr} ]</div>}
+  </>);
+
   return (
     <div className="box">
+      {top && uiMarkBar}
       {props.children}
-      <div
-        className="info"
-        style={{ backgroundColor: getColor(sn, forceColor) }}
-      >
-        [{name}] update at {getLocaleTime()} {snStr} (insKey {insKeyStr})
-      </div>
-      {depStr && <div style={{ color: "green" }}> deps is [ {depStr} ]</div>}
+      {!top && uiMarkBar}
     </div>
   );
 }

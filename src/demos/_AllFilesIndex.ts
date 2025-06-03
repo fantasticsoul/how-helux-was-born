@@ -11,8 +11,8 @@
 // export { default as AtomMutate } from './AtomMutate';
 // export { default as Signal } from './Signal';
 // export { default as Signal_atomLoading } from './Signal_atomLoading';
-export { default as Signal2 } from './Signal2';
-export { default as SignalBlockView } from './SignalBlockView';
+// export { default as Signal2 } from './Signal2';
+// export { default as SignalBlockView } from './SignalBlockView';
 // export { default as Plugin } from './Plugin';
 // export { default as IsStable } from './IsStable';
 // export { default as DeriveToState } from './DeriveToState';
@@ -32,7 +32,7 @@ export { default as SignalBlockView } from './SignalBlockView';
 // export { default as DeriveTask2 } from './DeriveTask2';
 // export { default as EmitAndOn } from './EmitAndOn';
 // export { default as UseEffect } from './UseEffect';
-export { default as WithAtoms } from './WithAtoms';
+// export { default as WithAtoms } from './WithAtoms';
 // export { default as UseObject } from './UseObject';
 // export { default as UseMutable } from './UseMutable';
 // export { default as Produce } from './Produce';
@@ -110,5 +110,7 @@ export {
 // export { DefineStoreDemo } from './best-practice/Best1/Comp';
 // export { RawHelux as DefineStoreDemo } from './best-practice/RawHelux/Comp';
 
+export * as perf from './perf';
+
 // BestParctice2 BestParcticeLayered RawHelux
-export const INITIAL_KEY = 'SignalBlockView';
+export const INITIAL_KEY = 'perf';

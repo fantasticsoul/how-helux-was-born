@@ -6,7 +6,8 @@
 import type { DraftMeta, IApiCtx } from '../inner-types';
 import { ARRAY, MAP, SET } from '../support/consts';
 import { deepDrill, isObject } from '../support/util';
-import { getDraftMeta, getMetaVer } from './meta';
+import { getDraftMeta, getMetaVer, getMultiRefPaths, clearMultiRefData } from './meta';
+import { getKeyStrByPath, getVal, setVal } from './path-util';
 
 function ressignArrayItem(listMeta: DraftMeta, itemMeta: DraftMeta, ctx: { targetNode: any; key: any }) {
   const { copy, isArrOrderChanged } = listMeta;
@@ -15,9 +16,9 @@ function ressignArrayItem(listMeta: DraftMeta, itemMeta: DraftMeta, ctx: { targe
   if (isArrOrderChanged) {
     // fix issue https://github.com/tnfe/limu/issues/13
     // 元素经过 sort 后，可能已变成 proxy 对象，所以这里需要比较 copy 和 proxyVal
-    const key = copy.findIndex((item: any) => item === itemMeta.copy || item === itemMeta.proxyVal);
-    if (key >= 0) {
-      copy[key] = targetNode;
+    const index = copy.findIndex((item: any) => item === itemMeta.copy || item === itemMeta.proxyVal);
+    if (index >= 0) {
+      copy[index] = targetNode;
     }
     return;
   }
@@ -99,6 +100,51 @@ export function clearScopes(rootMeta: DraftMeta, apiCtx: IApiCtx) {
   rootMeta.scopes.length = 0;
 }
 
+export function handleMultiRef(rootMeta: DraftMeta, final: any) {
+  const keyPathsList = getMultiRefPaths(rootMeta.sourceId);
+
+  let idx = -1;
+  const toClearIdxList : number[] = [];
+  const toClearKeyStrList : string[] = [];
+  for (const keyPaths of keyPathsList) {
+    idx += 1;
+    let changedMeta: any = null;
+    let fixedMeta: any = null;
+    const results: any[] = [];
+    for (const keyPath of keyPaths) {
+      const { val } = getVal(rootMeta.proxyVal, keyPath);
+      const valMeta = getDraftMeta(val);
+      if (!valMeta) continue;
+
+      if (valMeta.modified && !changedMeta) {
+        changedMeta = valMeta;
+      }
+
+      fixedMeta = valMeta;
+      results.push(valMeta.self);
+    }
+
+    const isEq = results[0] === results[1];
+    // TODO 部分清理
+    if (!isEq) {
+      toClearIdxList.push(idx);
+      keyPaths.forEach(keyPath => toClearKeyStrList.push(getKeyStrByPath(keyPath)));
+    } else if (changedMeta) {
+      for (const keyPath of keyPaths) {
+        setVal(final, keyPath, changedMeta.copy);
+      }
+    } else if (fixedMeta) {
+      for (const keyPath of keyPaths) {
+        setVal(final, keyPath, fixedMeta.self);
+      }
+    }
+  }
+
+  if (toClearIdxList.length) {
+    clearMultiRefData(rootMeta.sourceId, toClearIdxList, toClearKeyStrList);
+  }
+}
+
 export function extractFinalData(rootMeta: DraftMeta, apiCtx: IApiCtx) {
   const { self, copy, modified } = rootMeta;
   let final = self;
@@ -106,6 +152,8 @@ export function extractFinalData(rootMeta: DraftMeta, apiCtx: IApiCtx) {
   if (copy && modified) {
     final = rootMeta.copy;
   }
+  // 这里 handleMultiRef 和 clearScopes 顺序很重要，必须先处理多引用，再清理 scopes
+  handleMultiRef(rootMeta, final);
   // if put this on first line, fail at test/set-other/update-object-item.ts
   clearScopes(rootMeta, apiCtx);
   return final;
